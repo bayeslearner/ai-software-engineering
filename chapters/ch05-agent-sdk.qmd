@@ -1,0 +1,220 @@
+---
+title: "Building with the Agent SDK"
+subtitle: "Embedding the ReAct Loop in Your Own Applications"
+author: "AI-Powered SE Tutorial"
+date: today
+abstract: |
+  Claude Code is a finished product — you use its ReAct loop, you don't modify it. The Claude Agent SDK flips this: it gives you the same agentic loop as a library you embed in your own applications. You control which tools are available, what permissions apply, how many turns to allow, and how to handle results. This chapter covers the SDK's message lifecycle, tool execution model, and how to build production agents with budget limits, hooks, and session continuity.
+---
+
+## From User to Builder {#sec-sdk-bridge}
+
+So far in this tutorial you've learned:
+
+- How the ReAct loop works at the message level (Chapter 2)
+- How context and sessions are managed (Chapter 3)
+- How extensions customize behavior (Chapter 4)
+
+The Agent SDK makes all of this **programmable**. Instead of typing prompts into Claude Code, you write Python or TypeScript that drives the same loop:
+
+```python
+from claude_agent_sdk import query, ClaudeAgentOptions, ResultMessage
+
+async for message in query(
+    prompt="Find and fix the bug causing test failures in auth",
+    options=ClaudeAgentOptions(
+        allowed_tools=["Read", "Edit", "Bash", "Glob", "Grep"],
+        max_turns=30,
+        effort="high",
+    ),
+):
+    if isinstance(message, ResultMessage):
+        if message.subtype == "success":
+            print(message.result)
+        print(f"Cost: ${message.total_cost_usd:.4f}")
+```
+
+That's a complete autonomous agent. It reads files, edits code, runs tests, and self-corrects — the same loop you've been using in Claude Code, now under your programmatic control.
+
+## The Loop at the SDK Level {#sec-sdk-loop}
+
+The SDK runs the exact same cycle from Chapter 2, but now you can observe every step:
+
+```{mermaid}
+%%| fig-cap: "SDK agent loop — each message type maps to a phase of the ReAct cycle"
+flowchart TD
+    P["Your prompt"] --> S["SystemMessage — init"]
+    S --> A["AssistantMessage — text + tool calls"]
+    A --> D{"Tool calls?"}
+    D -->|"Yes"| T["SDK executes tools"]
+    T --> U["UserMessage — tool results"]
+    U --> A
+    D -->|"No"| R["ResultMessage — final output + cost"]
+    style P fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style A fill:#dcfce7,stroke:#166534,color:#166534
+    style T fill:#fef3c7,stroke:#92400e,color:#92400e
+    style U fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style R fill:#dcfce7,stroke:#166534,color:#166534
+```
+
+Each iteration through this cycle is called a **turn**. A turn is one round trip: Claude produces output with tool calls → SDK executes the tools → results feed back to Claude automatically. Turns continue until Claude produces a text-only response with no tool calls.
+
+### Concrete example: fixing a test
+
+Prompt: *"Fix the failing tests in auth.ts"*
+
+| Turn | Claude does | SDK does | Message type |
+|---|---|---|---|
+| — | — | Initializes session | `SystemMessage` (init) |
+| 1 | Calls `Bash("npm test")` | Runs the command, returns output (3 failures) | `AssistantMessage` → `UserMessage` |
+| 2 | Calls `Read("auth.ts")` and `Read("auth.test.ts")` | Reads both files, returns contents | `AssistantMessage` → `UserMessage` |
+| 3 | Calls `Edit("auth.ts", ...)` then `Bash("npm test")` | Applies edit, reruns tests (all pass) | `AssistantMessage` → `UserMessage` |
+| 4 | Responds: "Fixed the null check on line 42. All tests pass." | — | `AssistantMessage` (no tool calls) |
+| — | — | Delivers final output + cost | `ResultMessage` |
+
+Four turns: three with tool calls, one final text response. The message array grew with each turn — exactly like Chapter 2 described — but now you're seeing it as SDK events rather than abstract message types.
+
+## Message Types {#sec-sdk-messages}
+
+The SDK yields five message types as the loop runs:
+
+| Type | When | What it contains |
+|---|---|---|
+| `SystemMessage` | Session start, compaction events | Session ID, metadata |
+| `AssistantMessage` | After each Claude response | Text content + tool call requests |
+| `UserMessage` | After tool execution | Tool results fed back to Claude |
+| `StreamEvent` | During generation (if enabled) | Real-time text deltas, tool input chunks |
+| `ResultMessage` | Loop ends | Final text, cost, usage, session ID, stop reason |
+
+### Handling results
+
+The `ResultMessage` has a `subtype` that tells you why the loop stopped:
+
+| Subtype | What happened |
+|---|---|
+| `success` | Claude finished the task |
+| `error_max_turns` | Hit the turn limit |
+| `error_max_budget_usd` | Hit the spend limit |
+| `error_during_execution` | API failure or cancelled request |
+
+```python
+from claude_agent_sdk import query, ResultMessage
+
+async for message in query(prompt="Summarize this project"):
+    if isinstance(message, ResultMessage):
+        if message.subtype == "success":
+            print(message.result)
+        else:
+            print(f"Stopped: {message.subtype}")
+```
+
+## Built-in Tools {#sec-sdk-tools}
+
+The SDK includes the same tools that power Claude Code:
+
+| Category | Tools |
+|---|---|
+| **Files** | `Read`, `Edit`, `Write` |
+| **Search** | `Glob`, `Grep` |
+| **Execution** | `Bash` |
+| **Web** | `WebSearch`, `WebFetch` |
+| **Discovery** | `ToolSearch` (load tools on demand) |
+| **Orchestration** | `Agent` (subagents), `Skill`, `AskUserQuestion`, `TaskCreate` |
+
+Beyond built-in tools, you can connect **MCP servers** for databases, browsers, and APIs, or define **custom tool handlers** for your own functions.
+
+### Tool permissions
+
+Three options control what runs:
+
+- **`allowed_tools`** — auto-approves listed tools (no prompting)
+- **`disallowed_tools`** — blocks listed tools regardless of other settings
+- **`permission_mode`** — controls everything not covered by allow/deny rules
+
+You can scope tools with rules like `"Bash(npm *)"` to allow only specific commands.
+
+### Parallel execution
+
+When Claude requests multiple tool calls in one turn, read-only tools (`Read`, `Glob`, `Grep`) run concurrently. State-modifying tools (`Edit`, `Write`, `Bash`) run sequentially to avoid conflicts.
+
+## Controlling the Loop {#sec-sdk-control}
+
+| Option | What it controls | Default |
+|---|---|---|
+| `max_turns` | Maximum tool-use round trips | No limit |
+| `max_budget_usd` | Maximum cost before stopping | No limit |
+| `effort` | Reasoning depth per turn | `"high"` |
+| `permission_mode` | Tool approval behavior | `"default"` |
+| `model` | Which Claude model to use | Depends on auth method |
+
+### Effort levels
+
+| Level | When to use |
+|---|---|
+| `"low"` | File lookups, listing directories |
+| `"medium"` | Routine edits, standard tasks |
+| `"high"` | Refactors, debugging |
+| `"max"` | Multi-step problems requiring deep analysis |
+
+Lower effort = fewer tokens per turn = lower cost. Use `"low"` for simple subagents that only grep or read files.
+
+## Context Window in the SDK {#sec-sdk-context}
+
+Everything from Chapter 3 applies here. The context window accumulates across turns: system prompt + tool definitions + CLAUDE.md + conversation history. When it fills up, the SDK **compacts** automatically — summarizing older history to make room.
+
+| Context source | When loaded | Impact |
+|---|---|---|
+| System prompt | Every request | Small fixed cost |
+| CLAUDE.md | Session start (via `setting_sources`) | Full content every request (prompt-cached) |
+| Tool definitions | Every request | Built-in schemas always loaded |
+| Conversation history | Accumulates over turns | Grows with each tool call and result |
+
+### Keeping context lean
+
+- **Use subagents for subtasks** — each gets a fresh context, only the final result returns to the parent
+- **Scope tools** — give subagents only the tools they need via `allowed_tools`
+- **Use lower effort for routine work** — reduces token usage per turn
+
+## Hooks {#sec-sdk-hooks}
+
+Hooks fire at specific points in the loop — outside the context window (zero context cost):
+
+| Hook | When | Use for |
+|---|---|---|
+| `PreToolUse` | Before a tool executes | Validate inputs, block dangerous commands |
+| `PostToolUse` | After a tool returns | Audit outputs, trigger side effects |
+| `Stop` | When the agent finishes | Validate result, save session state |
+| `PreCompact` | Before compaction | Archive full transcript |
+
+A `PreToolUse` hook that rejects a tool call prevents execution — Claude receives the rejection and tries a different approach.
+
+## Sessions and Continuity {#sec-sdk-sessions}
+
+Capture `session_id` from `ResultMessage` to resume later:
+
+```python
+# First run
+session_id = None
+async for msg in query(prompt="Start refactoring auth module"):
+    if isinstance(msg, ResultMessage):
+        session_id = msg.session_id
+
+# Resume later with full context restored
+async for msg in query(
+    prompt="Continue — now update the tests",
+    options=ClaudeAgentOptions(session_id=session_id),
+):
+    ...
+```
+
+Resuming restores the full context: files read, edits made, decisions taken. You can also **fork** a session to try an alternative approach without modifying the original.
+
+## Key Takeaways {#sec-sdk-takeaways}
+
+- The Agent SDK embeds Claude Code's ReAct loop as a library — same tools, same loop, your programmatic control
+- `query()` yields a stream of typed messages: `SystemMessage`, `AssistantMessage`, `UserMessage`, `ResultMessage`
+- A **turn** is one tool-call round trip; cap turns with `max_turns` and cost with `max_budget_usd`
+- `allowed_tools` auto-approves tools; `permission_mode` controls everything else
+- Hooks (`PreToolUse`, `PostToolUse`, `Stop`) intercept the loop without consuming context
+- Sessions can be resumed or forked via `session_id` — full context is restored
+- Use subagents to keep context lean: each gets a fresh window, only the result returns to the parent

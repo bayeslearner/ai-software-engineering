@@ -1,0 +1,53 @@
+project:
+  type: book
+  output-dir: _book
+
+book:
+  title: "AI-Powered Software Engineering"
+  subtitle: "From Ralph Loops to Gas Town — A Practitioner's Guide to Autonomous Coding"
+  author: "Kun Deng"
+  date: today
+  page-navigation: true
+  chapters:
+    - index.qmd
+    - chapters/ch01-core-thesis.qmd
+    - chapters/ch02-react-loop.qmd
+    - chapters/ch03-sessions-memory.qmd
+    - chapters/ch04-extensions-workflows.qmd
+    - chapters/ch05-agent-sdk.qmd
+    - chapters/ch06-build-agent.qmd
+    - chapters/ch07-pocketflow.qmd
+    - chapters/ch08-production-frameworks.qmd
+    - chapters/ch09-mastra.qmd
+    - chapters/ch10-ralph-loop.qmd
+    - chapters/ch11-economics.qmd
+    - chapters/ch12-gas-town.qmd
+    - chapters/ch13-career.qmd
+
+format:
+  html:
+    theme: [cosmo, custom.scss]
+    code-fold: true
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    mermaid:
+      theme: default
+
+  pdf:
+    documentclass: scrreprt
+    papersize: letter
+    toc: true
+    mermaid-format: png
+    include-in-header:
+      text: |
+        \usepackage{adjustbox}
+        \let\oldincludegraphics\includegraphics
+        \renewcommand{\includegraphics}[2][]{%
+          \adjustbox{max width=\textwidth,max height=0.85\textheight,keepaspectratio}{%
+            \oldincludegraphics[#1]{#2}%
+          }%
+        }
+
+execute:
+  freeze: auto

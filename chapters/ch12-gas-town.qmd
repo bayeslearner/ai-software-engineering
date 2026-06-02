@@ -1,0 +1,113 @@
+---
+title: "Scaling Up"
+subtitle: "From Ralph to Gas Town — Multi-Agent Systems and Safe Autonomy"
+author: "AI-Powered SE Tutorial"
+date: today
+abstract: |
+  Ralph is a single loop handling one task at a time. Gas Town is many loops running concurrently — multiple agents modifying the same codebase in parallel. This creates new engineering problems: shared file conflicts, race conditions, duplicated work, and cascading failures. Solving them requires isolation boundaries, automated quality gates, and a fundamental rethink of how code review and release engineering work.
+---
+
+## From One Loop to Many {#sec-gastown-scaling}
+
+Ralph handles one task in one bounded context. That's powerful for a single developer's workflow. But real software projects have dozens of tasks in flight: features, bug fixes, dependency upgrades, test improvements, documentation updates. Running them sequentially through one Ralph loop is safe but slow.
+
+**Gas Town** is Huntley's term for running many Ralph loops concurrently — each operating on its own task, potentially modifying the same codebase at the same time. This is where single-agent engineering becomes **multi-agent systems engineering**.
+
+```{mermaid}
+%%| fig-cap: "Ralph vs Gas Town — one loop becomes many concurrent loops"
+flowchart LR
+    subgraph Ralph
+        R1["One Loop"] --> R2["One Task"] --> R3["One Context"]
+    end
+    subgraph GasTown
+        G1["Loop A — Feature"]
+        G2["Loop B — Bug Fix"]
+        G3["Loop C — Tests"]
+        G4["Loop D — Docs"]
+    end
+    Ralph -->|"Scale"| GasTown
+    style R1 fill:#dcfce7,stroke:#166534,color:#166534
+    style G1 fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style G2 fill:#fef3c7,stroke:#92400e,color:#92400e
+    style G3 fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style G4 fill:#fce7f3,stroke:#9d174d,color:#9d174d
+```
+
+## New Problems in Multi-Agent Systems {#sec-gastown-problems}
+
+Concurrency introduces problems that don't exist with a single loop:
+
+| Problem | What happens | Example |
+|---|---|---|
+| **Shared file conflicts** | Two agents edit the same file simultaneously | Agent A refactors `auth.py` while Agent B adds a feature to it |
+| **Race conditions** | Agent actions interleave unpredictably | Agent A runs tests while Agent B is mid-edit — tests fail spuriously |
+| **Duplicated work** | Agents solve the same sub-problem independently | Both agents add the same utility function |
+| **Inconsistent assumptions** | Agents diverge on design decisions | Agent A assumes REST, Agent B assumes GraphQL |
+| **Cascading failures** | One agent's mistake breaks another's work | Agent A introduces a bug that causes Agent B's tests to fail |
+
+These are the same concurrency problems that distributed systems engineers deal with — but applied to code generation instead of request processing.
+
+## Isolation Boundaries {#sec-gastown-isolation}
+
+The primary solution is **isolation**: each agent operates in its own bounded workspace where it can't interfere with others.
+
+In Claude Code, this means:
+- **Git worktrees** — each subagent gets its own copy of the repo on a separate branch
+- **Separate context windows** — each agent sees only its own task, not the others'
+- **Merge at the end** — changes come together through normal git merge/PR review
+
+This maps directly to how human teams work: developers work on feature branches in isolation, then merge through pull requests. The difference is that with agents, you can have 10 "developers" working simultaneously instead of sequentially.
+
+## Safe Autonomy: Quality Gates Over Manual Review {#sec-gastown-safety}
+
+When agents produce code faster than humans can review it, manual code review becomes the bottleneck. The solution isn't to skip review — it's to shift quality enforcement from human review to **automated gates**:
+
+| Gate | What it catches | When it runs |
+|---|---|---|
+| **Pre-commit hooks** | Formatting, lint errors, import ordering | Before every commit |
+| **Type checking** | Type errors, interface mismatches | On commit or CI |
+| **Property-based tests** | Edge cases, invariant violations | In CI pipeline |
+| **Snapshot tests** | Unintended output changes | In CI pipeline |
+| **Release gates** | Integration failures, performance regressions | Before deployment |
+
+The principle: **quality still matters, but the control points shift**. Instead of a human reading every line of code, you build automated systems that catch the classes of errors you care about. Human review is reserved for architectural decisions and design intent — things that automated tools can't evaluate.
+
+```{mermaid}
+%%| fig-cap: "Quality gates replace manual review as the primary quality control mechanism"
+flowchart LR
+    A["Agent writes code"] --> B["Pre-commit hooks"]
+    B --> C["Type check"]
+    C --> D["Test suite"]
+    D --> E["Property tests"]
+    E --> F["Release gate"]
+    F --> G["Deploy"]
+    style A fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style B fill:#dcfce7,stroke:#166534,color:#166534
+    style C fill:#dcfce7,stroke:#166534,color:#166534
+    style D fill:#dcfce7,stroke:#166534,color:#166534
+    style E fill:#dcfce7,stroke:#166534,color:#166534
+    style F fill:#fef3c7,stroke:#92400e,color:#92400e
+    style G fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+```
+
+## Tools for Agents vs. Tools for Humans {#sec-gastown-tooling}
+
+Current development tooling — Unix shells, TTYs, interactive editors, environment conventions — was designed for human operators. Agent systems need different interfaces:
+
+| Human tooling | Agent tooling |
+|---|---|
+| Interactive shell (bash, zsh) | Structured command execution with captured output |
+| GUI editors (VS Code) | File read/write/edit APIs |
+| Manual environment setup | Declarative configuration |
+| Interactive debugging | Programmatic test execution + log analysis |
+| Browser-based dashboards | API-based monitoring |
+
+The tooling gap is real: agents spend tokens parsing human-readable output that could be structured JSON. Future agent stacks will likely emphasize fewer human abstractions and more direct machine interfaces.
+
+## Key Takeaways {#sec-gastown-takeaways}
+
+- Gas Town is many Ralph loops running concurrently — multi-agent systems modifying the same codebase
+- Concurrency creates new problems: file conflicts, race conditions, duplicated work, cascading failures
+- Isolation boundaries (git worktrees, separate contexts) prevent agents from interfering with each other
+- Quality gates (hooks, type checks, property tests, release gates) replace manual review as the primary quality mechanism
+- Human review shifts to architectural decisions and design intent — things automated gates can't evaluate

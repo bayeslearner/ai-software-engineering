@@ -1,0 +1,104 @@
+---
+title: "The Core Thesis"
+subtitle: "Coding Is Commoditized — Engineering Is Not"
+author: "AI-Powered SE Tutorial"
+date: today
+abstract: |
+  Software development — the act of typing code to implement specifications — is becoming a low-cost, repeatable task handled by autonomous loops. Software engineering — designing safe systems, predicting failure modes, building observability — is becoming more valuable, not less. This chapter lays out the thesis and its evidence: cheap, looped LLM execution is collapsing the price floor for raw code production while raising the premium on everything around it.
+---
+
+## The Shift {#sec-thesis-shift}
+
+Geoffrey Huntley's central claim is stark: the traditional model of software development — a human reads a spec, thinks about it, types code, tests it, iterates — is being replaced by a loop that a machine can run. Not perfectly. Not for every problem. But well enough, and cheaply enough, to fundamentally change the economics of code production.
+
+The shift isn't from "humans write code" to "machines write code." It's from **development** (writing code) to **engineering** (designing systems that write code safely).
+
+```{mermaid}
+%%| fig-cap: "The value shift — raw code production drops in value, system design rises"
+flowchart TD
+    subgraph Before
+        D["Software Development"] --> C["Write Code"]
+        C --> T["Test Manually"]
+        T --> R["Review & Ship"]
+    end
+    subgraph After
+        E["Software Engineering"] --> DS["Design Safe Systems"]
+        DS --> A["Autonomous Loops"]
+        A --> O["Observe & Intervene"]
+    end
+    style D fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style E fill:#dcfce7,stroke:#166534,color:#166534
+    style A fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style DS fill:#dcfce7,stroke:#166534,color:#166534
+```
+
+## Development vs. Engineering {#sec-thesis-dev-vs-eng}
+
+Huntley draws a sharp line between two roles that are often conflated:
+
+| Software Development | Software Engineering |
+|---|---|
+| Primarily writing code | Predicting failure modes |
+| Executing assigned tasks | Designing safeguards |
+| Acting as a downstream implementer | Building observability |
+| Focus on implementing specifications | Recovering automatically |
+| **Being commoditized** | **Increasing safe autonomy** |
+
+This distinction matters because a looped coding agent can do the left column. It can read a spec, write code, run tests, fix failures, and iterate. What it cannot do — and what becomes the scarce, high-value skill — is the right column: deciding what systems to build, how they should fail safely, what to monitor, and when to intervene.
+
+## The Evidence {#sec-thesis-evidence}
+
+The claim that coding is being commoditized rests on three observable trends:
+
+**Cost collapse.** A looped coding agent operating on a standard LLM API produces code at a fraction of a human developer's effective hourly cost. The exact number changes monthly as API pricing drops, but the direction is clear and accelerating. When the marginal cost of producing a code change approaches zero, the value of the person producing it also approaches zero.
+
+**Quality convergence.** For well-specified tasks with clear acceptance criteria (write this function, fix this test, add this API endpoint), agent-produced code is reaching the quality level of junior-to-mid developers. Not for novel architecture, not for ambiguous requirements, but for the implementation work that constitutes a large fraction of most engineers' time.
+
+**Speed advantage.** An autonomous loop doesn't take breaks, doesn't context-switch between Slack and code, doesn't attend standup meetings. For tasks within its capability, it runs continuously until done. When combined with cost and quality, this creates an economic force that's difficult for manual coding to compete against.
+
+::: {.callout-note}
+This doesn't mean all coding becomes worthless overnight. Complex architectural decisions, novel problem-solving, and human judgment remain essential. The thesis is about the *average* coding task, not the hardest 10%.
+:::
+
+## What Becomes Scarce {#sec-thesis-scarcity}
+
+If raw code production is abundant and cheap, what becomes scarce?
+
+1. **System design** — architecture decisions, failure mode analysis, observability design
+2. **Context engineering** — the discipline of managing what the model knows and doesn't know (Chapters 4-6)
+3. **Harness design** — building the loop itself: task selection, stopping criteria, safety boundaries
+4. **Problem definition** — collaborating with stakeholders to define *what* to build and *why*, not just *how*
+5. **Safe autonomy** — designing systems where autonomous agents can operate without causing damage
+
+The irony: as coding becomes easier, the engineering that surrounds it becomes harder and more important. The person who can design a system where 10 autonomous agents safely modify a production codebase in parallel is far more valuable than the person who can write a React component.
+
+## Key Takeaways {#sec-thesis-takeaways}
+
+- Software development (writing code) is being commoditized by autonomous coding loops
+- Software engineering (designing safe, observable systems) is becoming more valuable
+- The shift is driven by cost collapse, quality convergence, and speed advantages of looped LLM execution
+- Scarcity moves from "typing code" to system design, context engineering, harness design, and problem definition
+- This is not about replacing engineers — it's about redefining what engineering means
+
+## Concept Map {#sec-thesis-concept-map}
+
+```{mermaid}
+%%| fig-cap: "How the core thesis concepts connect"
+flowchart TD
+    A["Looped LLM Execution"] --> B["Cost Collapse"]
+    A --> C["Quality Convergence"]
+    A --> D["Speed Advantage"]
+    B --> E["Coding Commoditized"]
+    C --> E
+    D --> E
+    E --> F["New Scarcity"]
+    F --> G["System Design"]
+    F --> H["Context Engineering"]
+    F --> I["Safe Autonomy"]
+    style A fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style E fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style F fill:#fef3c7,stroke:#92400e,color:#92400e
+    style G fill:#dcfce7,stroke:#166534,color:#166534
+    style H fill:#dcfce7,stroke:#166534,color:#166534
+    style I fill:#dcfce7,stroke:#166534,color:#166534
+```

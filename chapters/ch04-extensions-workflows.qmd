@@ -1,0 +1,507 @@
+---
+title: "Extensions and Workflows"
+subtitle: "CLAUDE.md, Skills, MCP, Hooks, Subagents, and the 4-Phase Pattern"
+author: "AI-Powered SE Tutorial"
+date: today
+abstract: |
+  Claude Code's power comes from five extension mechanisms — CLAUDE.md for always-on rules, Skills for reusable on-demand knowledge, MCP for external system integration, Hooks for deterministic automation, and Subagents for delegated parallel work. Combined with the 4-phase workflow pattern (Explore, Plan, Implement, Verify), these extensions turn a general-purpose agent into a specialized, project-aware engineering partner. This chapter covers when to use each type, the critical context cost rule, and the workflow pattern that produces the most reliable results.
+---
+
+## The Five Extension Types {#sec-extensions-types}
+
+Claude Code has five extension mechanisms. The key decision factor is **context cost** — how much of your limited context window each extension consumes:
+
+```{mermaid}
+%%| fig-cap: "Five extension types — ordered by context cost"
+flowchart LR
+    A["CLAUDE.md"] --> B["Always-on — high context cost"]
+    C["Skills"] --> D["On-demand — cost only when used"]
+    E["MCP"] --> F["External systems — live data"]
+    G["Hooks"] --> H["Deterministic automation — zero cost"]
+    I["Subagents"] --> J["Parallel work — own context"]
+    style A fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style C fill:#fef3c7,stroke:#92400e,color:#92400e
+    style E fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style G fill:#dcfce7,stroke:#166534,color:#166534
+    style I fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+```
+
+| Extension | When loaded | Best for | Context cost |
+|---|---|---|---|
+| **CLAUDE.md** | Every session, automatically | Project conventions, build/test commands, architecture rules | **High** — loads every session |
+| **Skills** | On demand, when triggered | Complex procedures, specialized knowledge, templates | **Medium** — only when used |
+| **MCP** | Connected at session start | External systems, live data, APIs | **Medium** — tool defs loaded |
+| **Hooks** | Event-driven, automatic | Deterministic automation (lint on save, format on commit) | **Zero** — runs outside context |
+| **Subagents** | Spawned during execution | Parallel tasks, independent research, code review | **Separate** — own context window |
+
+::: {.callout-important}
+**The Context Cost Rule:** CLAUDE.md loads every session (high cost) | Skills only when used (medium cost) | Hooks zero cost. This is why CLAUDE.md must be short — every line consumes context in every session, even when irrelevant to the current task.
+:::
+
+### Decision guide
+
+| Situation | Use |
+|---|---|
+| Always-on, small, stable rules | **CLAUDE.md** |
+| On-demand, rich knowledge | **Skill** |
+| External system integration | **MCP** |
+| Deterministic automation on events | **Hook** |
+| Heavy research or parallel work | **Subagent** |
+
+### CLAUDE.md — the constitution
+
+CLAUDE.md is loaded into every session. It's the project's constitution — short, stable rules that rarely change. Claude Code looks for CLAUDE.md files at three levels:
+
+| Level | Location | Scope |
+|---|---|---|
+| **User** | `~/.claude/CLAUDE.md` | All your projects |
+| **Project** | `./CLAUDE.md` (repo root) | This project |
+| **Folder** | `./src/api/CLAUDE.md` | This directory tree |
+
+All matching files are concatenated and injected into the system message. A typical project CLAUDE.md:
+
+```markdown
+# Build & Test
+- `npm run build` to compile
+- `npm test` to run vitest
+- `npm run lint` to check style
+
+# Conventions
+- TypeScript strict mode, no `any`
+- React components in PascalCase
+- API routes return `{ data, error }` shape
+
+# Architecture
+- src/api/ — Express routes
+- src/components/ — React UI
+- src/lib/ — shared utilities
+```
+
+**Keep it short.** Every line consumes context window space in every session, even when irrelevant to the current task. If a rule only applies to specific tasks, put it in a Skill instead.
+
+**Keep it stable.** CLAUDE.md should change less often than your code. If you're editing it every session, the content probably belongs in a Skill or in the session prompt itself.
+
+You can also use `.claude/rules/*.md` files for **topic-scoped rules** — each file has a `paths` frontmatter that controls when it's loaded:
+
+```markdown
+---
+paths:
+  - "src/api/**/*.ts"
+---
+Always validate request body with Zod before processing.
+Return 422 for validation errors, not 400.
+```
+
+Rules with `paths` load only when the agent is working with matching files — targeted context without the always-on cost of CLAUDE.md. Rules without `paths` load at session start (like a scoped CLAUDE.md).
+
+### Skills — reusable knowledge packs {#sec-skills}
+
+Skills are loaded on demand — either explicitly by the user (`/skill-name`) or automatically when the agent recognizes a relevant trigger. Each skill lives in its own directory with a `SKILL.md` file:
+
+```
+.claude/skills/
+├── deploy/
+│   └── SKILL.md           # invoked as /deploy
+├── lecture-notes/
+│   ├── SKILL.md           # invoked as /lecture-notes
+│   └── templates/         # supporting files
+└── db-migration/
+    ├── SKILL.md           # invoked as /db-migration
+    └── reference.md       # detailed docs loaded by SKILL.md
+```
+
+The directory name becomes the command name. The `SKILL.md` file has YAML frontmatter that controls behavior:
+
+```markdown
+---
+name: deploy
+description: "Deploy the app to staging or production.
+  Use when the user asks to deploy, push to staging,
+  or release a new version."
+allowed-tools: Bash(npm *) Bash(git *)
+---
+
+## Current state
+
+!`git status --short`
+
+## Deployment Procedure
+
+1. Run the test suite: `npm test`
+2. Build the production bundle: `npm run build`
+3. Deploy: `npm run deploy -- --env $ARGUMENTS`
+```
+
+Several things to notice here:
+
+- **`description`** drives both manual trigger (`/deploy`) and auto-trigger (user says "deploy to staging" and Claude matches the description)
+- **`allowed-tools`** auto-approves specific tools when this skill is active — no permission prompts for `npm` and `git` commands
+- **`` !`command` ``** runs a shell command *before* Claude sees the skill — the output is injected inline as context
+- **`$ARGUMENTS`** is replaced with whatever the user passes after the command (e.g., `/deploy staging` → `$ARGUMENTS` = `staging`)
+
+Key frontmatter fields:
+
+| Field | Purpose |
+|---|---|
+| `description` | When/why to use — drives auto-invocation |
+| `allowed-tools` | Tools auto-approved when skill is active |
+| `paths` | Glob patterns limiting when skill auto-activates |
+| `disable-model-invocation` | `true` = only the user can trigger, not Claude |
+| `user-invocable` | `false` = only Claude can trigger (background knowledge) |
+| `model` | Override which Claude model runs this skill |
+| `effort` | Override reasoning depth (`low`, `medium`, `high`, `max`) |
+
+Skills can also live at the personal level (`~/.claude/skills/`) to apply across all your projects.
+
+Skills are the **playbooks** of the Claude Code system. They encode complex procedures that would be too long for CLAUDE.md and too specific for the model's general training:
+
+| Use case | Why not CLAUDE.md? |
+|---|---|
+| How to deploy to production | Too long, only needed occasionally |
+| Database migration procedures | Complex multi-step procedure |
+| How to write a specific type of test | Template + rules, not always relevant |
+| Framework-specific patterns | Only needed when touching that part of the code |
+
+The key benefit: a skill only consumes context when it's actually needed. A 500-line deployment playbook in CLAUDE.md would waste context in every coding session. As a skill, it loads only when someone types `/deploy`.
+
+### MCP — external system integration {#sec-mcp}
+
+Model Context Protocol (MCP) connects Claude Code to external systems through a standardized tool interface. An MCP server is a process that exposes **tools** the agent can call — the same way built-in tools like `Read` and `Bash` work, but connected to external systems.
+
+```{mermaid}
+%%| fig-cap: "MCP servers expose tools that Claude Code calls like built-in tools"
+flowchart LR
+    C["Claude Code"] -->|"tool call"| M1["MCP: Database"]
+    C -->|"tool call"| M2["MCP: Gmail"]
+    C -->|"tool call"| M3["MCP: Calendar"]
+    C -->|"tool call"| M4["MCP: Slack"]
+    C -->|"built-in"| B["Read / Edit / Bash"]
+    style C fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style M1 fill:#dcfce7,stroke:#166534,color:#166534
+    style M2 fill:#dcfce7,stroke:#166534,color:#166534
+    style M3 fill:#dcfce7,stroke:#166534,color:#166534
+    style M4 fill:#dcfce7,stroke:#166534,color:#166534
+    style B fill:#fef3c7,stroke:#92400e,color:#92400e
+```
+
+MCP servers are configured in `.mcp.json` at the project root:
+
+```json
+{
+  "mcpServers": {
+    "postgres": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres",
+               "postgresql://localhost:5432/mydb"]
+    },
+    "github": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_TOKEN": "ghp_..." }
+    }
+  }
+}
+```
+
+The `type` field specifies the transport: `"stdio"` for local processes, `"http"` for remote servers. For user-scope MCP servers (available across all projects), configure them in `~/.claude.json` instead.
+
+Once configured, the MCP tools appear alongside built-in tools. The agent can call `mcp__postgres__query("SELECT * FROM users LIMIT 5")` the same way it calls `Read("config.py")`. From the LLM's perspective, an MCP tool is just another tool in the message array — it doesn't know or care that the tool connects to an external system.
+
+**Context cost:** MCP tool *definitions* (name, description, parameter schema) are loaded at session start, so they consume context. The tool *results* accumulate in the message array like any other tool result. Choose MCP when the agent needs to interact with a running system, not just follow a procedure.
+
+| MCP server | What it provides |
+|---|---|
+| Database (Postgres, SQLite) | Query, insert, schema inspection |
+| GitHub | Issues, PRs, repo management |
+| Gmail / Calendar | Read emails, create events |
+| Slack | Send messages, read channels |
+| File system | Sandboxed file access for external dirs |
+| Custom | Any API you wrap in the MCP protocol |
+
+### Hooks — deterministic event automation {#sec-hooks}
+
+Hooks run shell commands in response to specific agent events — deterministic automation with **zero context cost**. They execute outside the agent's context window entirely: the LLM never sees the hook configuration, never decides whether to run it, and never pays context tokens for it.
+
+The main hook events correspond to key points in the ReAct loop:
+
+| Hook | When it fires | Use for |
+|---|---|---|
+| `PreToolUse` | Before a tool executes | Validate inputs, block dangerous commands |
+| `PostToolUse` | After a tool returns | Auto-format, lint, log actions |
+| `Stop` | When the agent finishes | Validate final output, run checks |
+| `SessionStart` | Session begins | Set environment, load context |
+
+Hooks are configured in `.claude/settings.json`. Notice the three-level nesting — each event contains an array of matchers, and each matcher contains a `hooks` array of actions:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/check_dangerous.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx prettier --write"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm test --silent"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The `matcher` field controls which tool triggers the hook — `"Bash"` matches the Bash tool, `"Edit|Write"` matches either. The `Stop` event fires unconditionally (no matcher needed).
+
+How this works in practice:
+
+1. The agent calls `Edit("src/app.tsx", ...)` to modify a file
+2. The framework executes the edit (tool runs normally)
+3. The `PostToolUse` hook fires — Prettier formats the file automatically
+4. The agent never knows Prettier ran — the file is just formatted
+
+The **PreToolUse** hook can *block* tool execution. If the hook script exits with a non-zero status, the tool call is rejected and the agent receives an error message. This is how you enforce hard safety rules:
+
+```python
+# .claude/hooks/check_dangerous.py
+import sys, json
+
+input_data = json.load(sys.stdin)
+command = input_data.get("tool_input", {}).get("command", "")
+
+blocked = ["rm -rf /", "DROP TABLE", "format c:"]
+if any(b in command for b in blocked):
+    print(f"BLOCKED: dangerous command detected")
+    sys.exit(1)
+```
+
+Hook scripts receive **JSON on stdin** with the event context (tool name, inputs, etc.) — that's how the script above reads the command being executed.
+
+The critical distinction: **hooks are deterministic, the agent is probabilistic**. If something should *always* happen (format on edit, lint on commit, block `rm -rf`), use a hook. If it requires judgment ("should I refactor this function?"), use the agent.
+
+```{mermaid}
+%%| fig-cap: "Hooks fire at four points in the ReAct loop — outside the context window"
+flowchart TD
+    A["Agent calls tool"] --> B{"PreToolUse hook?"}
+    B -->|"Pass"| C["Tool executes"]
+    B -->|"Block"| D["Agent gets rejection"]
+    C --> E{"PostToolUse hook?"}
+    E --> F["Hook runs (format, lint, log)"]
+    F --> G["Result returns to agent"]
+    E -->|"No hook"| G
+    G --> H{"Agent done?"}
+    H -->|"Yes"| I{"Stop hook?"}
+    I --> J["Final validation"]
+    H -->|"No"| A
+    style B fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style E fill:#dcfce7,stroke:#166534,color:#166534
+    style I fill:#fef3c7,stroke:#92400e,color:#92400e
+```
+
+### Subagents — delegated workers {#sec-subagents}
+
+Subagents are separate agent instances spawned during a session. Each gets its own context window and runs its own ReAct loop independently. The parent agent communicates with subagents through the `Agent` tool:
+
+```
+Agent(
+  prompt="Search for how rate limiting is implemented
+          in src/api/. Report the pattern in under 100 words.",
+  allowed_tools=["Read", "Grep", "Glob"]
+)
+```
+
+The subagent runs its own loop — reads files, searches, reasons — then returns a single result message to the parent. The parent's context window only sees the final summary, not the subagent's entire exploration.
+
+Use subagents for:
+
+- **Parallel research** — "Compare three auth libraries" → spawn three subagents, each investigates one
+- **Code review** — spawn a reviewer agent to examine changes while you continue implementing
+- **Independent tasks** — "Update the README" → subagent handles it in its own context
+- **Isolation** — `isolation: "worktree"` gives the subagent a separate git worktree, preventing file conflicts
+
+::: {.callout-important}
+Subagents have their own context windows. They don't share the parent's context — you must pass them the information they need explicitly. Think of spawning a subagent like delegating to a colleague who just walked into the room: brief them on what they need to know.
+:::
+
+Subagents connect directly to the **Gas Town** concept from Chapter 12 — multiple autonomous loops operating concurrently, each with its own bounded context. A parent with three subagents is a miniature Gas Town.
+
+## The Harness: All Five Together {#sec-harness}
+
+Individually, each extension type solves a specific problem. Together, they form a **harness** — the complete configuration that turns a generic agent into a project-specific engineering partner:
+
+```{mermaid}
+%%| fig-cap: "The harness — five extension types working together"
+flowchart TD
+    H["The Harness"] --> C["CLAUDE.md"]
+    H --> S["Skills"]
+    H --> M["MCP Servers"]
+    H --> K["Hooks"]
+    H --> A["Subagents"]
+    C -->|"always loaded"| R["Agent's Context Window"]
+    S -->|"loaded on demand"| R
+    M -->|"tool defs loaded"| R
+    K -->|"outside context"| E["Event-driven automation"]
+    A -->|"own context"| W["Parallel workers"]
+    style H fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style C fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style S fill:#fef3c7,stroke:#92400e,color:#92400e
+    style M fill:#dcfce7,stroke:#166534,color:#166534
+    style K fill:#dcfce7,stroke:#166534,color:#166534
+    style A fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style R fill:#dbeafe,stroke:#1e40af,color:#1e40af
+```
+
+A well-configured harness means the agent already knows your conventions (CLAUDE.md), can follow complex procedures (Skills), can talk to your systems (MCP), enforces invariants automatically (Hooks), and can parallelize work (Subagents) — before you type a single prompt.
+
+| File | Configures |
+|---|---|
+| `CLAUDE.md` | Project rules and conventions |
+| `.claude/rules/*.md` | Topic-scoped rules (path-gated) |
+| `.claude/skills/*/SKILL.md` | On-demand playbooks |
+| `.claude/settings.json` | Hooks, permissions |
+| `.mcp.json` | MCP server connections |
+
+## The 4-Phase Workflow {#sec-extensions-workflow}
+
+For medium-to-large tasks, the most reliable pattern is a four-phase approach:
+
+```{mermaid}
+%%| fig-cap: "4-phase workflow — explore before you plan, plan before you implement"
+flowchart LR
+    E["1. Explore"] --> P["2. Plan"]
+    P --> I["3. Implement"]
+    I --> V["4. Verify & Commit"]
+    style E fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style P fill:#dcfce7,stroke:#166534,color:#166534
+    style I fill:#fef3c7,stroke:#92400e,color:#92400e
+    style V fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+```
+
+### Phase 1: Explore
+
+Read the codebase. Understand the existing patterns. Find the files that matter. Don't write any code yet.
+
+```
+Read the src/api/ directory and understand how existing endpoints
+are structured. Look at the pagination pattern in /api/orders.
+Check what ORM we use and how queries are built. Don't make any
+changes — just report what you find.
+```
+
+This phase fills the agent's context with relevant information. The better the exploration, the better the plan.
+
+### Phase 2: Plan
+
+Based on what was found, create a concrete plan. Specify which files to create or modify, what the changes will be, and how to verify them.
+
+```
+Based on what you found, create a plan for adding cursor-based
+pagination to /api/users. List the specific files to modify,
+the approach for each, and what tests to write. Don't implement
+yet — just plan.
+```
+
+Using `plan` permission mode here ensures the agent can't accidentally start implementing before the plan is reviewed.
+
+### Phase 3: Implement
+
+Execute the plan step by step. The agent has full context from phases 1 and 2 — it knows the codebase patterns, the specific plan, and the acceptance criteria.
+
+```
+Implement the plan. Follow the existing patterns you found in
+the orders endpoint. Write tests as you go.
+```
+
+### Phase 4: Verify & Commit
+
+Run the full test suite, check for linting issues, review the diff, and commit with a clear message.
+
+```
+Run the full test suite. If anything fails, fix it. Then run the
+linter. Review the full diff and make sure it follows our conventions.
+Commit with a descriptive message.
+```
+
+### Why this order matters
+
+The 4-phase pattern prevents the most common failure mode: the agent starts writing code before it understands the codebase. Without exploration, it invents patterns instead of following existing ones. Without a plan, it makes architectural decisions on the fly that may contradict project conventions. The phases force a discipline that produces more consistent results.
+
+## Choosing the Right Extension {#sec-extensions-choosing}
+
+| Situation | Use |
+|---|---|
+| "Always use tabs, not spaces" | CLAUDE.md |
+| "Here's how to deploy to staging" | Skill |
+| "Review these changes for security issues" | Subagent |
+| "Our API uses JSON:API format" | CLAUDE.md |
+| "Generate a migration for adding a users table" | Skill |
+| "Research three auth libraries and compare them" | Subagent (parallel) |
+| "Run `npm test` to verify changes" | CLAUDE.md |
+| "Follow this template for new React components" | Skill |
+
+The rule of thumb: if it's short and applies to every session, it's CLAUDE.md. If it's a procedure or template, it's a Skill. If it's work that can happen independently, it's a Subagent.
+
+## Key Takeaways {#sec-extensions-takeaways}
+
+- Five extension types form the **harness** — the configuration that makes a generic agent project-specific
+- **CLAUDE.md** is the constitution: short, stable, always loaded. Use `.claude/rules/*.md` for topic-scoped rules
+- **Skills** are lazy-loaded playbooks — complex procedures that only consume context when triggered
+- **MCP** connects to external systems (databases, APIs, email) — tools appear alongside built-in ones
+- **Hooks** are deterministic automation at zero context cost — format on edit, block dangerous commands, validate on stop
+- **Subagents** get their own context windows — the building block of Gas Town
+- The hooks vs. agent distinction matters: deterministic invariants → hook; judgment required → agent
+- The 4-phase workflow (Explore → Plan → Implement → Verify) prevents the most common failure mode: coding before understanding
+
+## Concept Map {#sec-extensions-concept-map}
+
+```{mermaid}
+%%| fig-cap: "The harness — five extension types and how they relate"
+flowchart TD
+    A["The Harness"] --> B["CLAUDE.md — Always loaded"]
+    A --> C["Skills — On demand"]
+    A --> M["MCP — External systems"]
+    A --> K["Hooks — Zero cost automation"]
+    A --> D["Subagents — Parallel workers"]
+    B --> CTX["Context Window"]
+    C --> CTX
+    M --> CTX
+    K -->|"outside context"| EVT["Event-driven"]
+    D -->|"own context"| GT["Gas Town"]
+    CTX --> R["ReAct Loop"]
+    EVT --> R
+    W["4-Phase Workflow"] --> E1["Explore"]
+    E1 --> E2["Plan"]
+    E2 --> E3["Implement"]
+    E3 --> E4["Verify"]
+    style A fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style B fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style C fill:#fef3c7,stroke:#92400e,color:#92400e
+    style M fill:#dcfce7,stroke:#166534,color:#166534
+    style K fill:#dcfce7,stroke:#166534,color:#166534
+    style D fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style R fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style W fill:#fce7f3,stroke:#9d174d,color:#9d174d
+```

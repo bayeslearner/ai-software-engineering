@@ -1,0 +1,56 @@
+---
+title: "Career & What's Next"
+subtitle: "From Ticket Executor to Orchestrating Engineer"
+author: "AI-Powered SE Tutorial"
+date: today
+abstract: |
+  If you remain a ticket executor — someone who takes specs and types code — your work is increasingly automatable. The alternative is to become an orchestrating engineer: someone who designs systems, diagnoses problems, manages risks, and controls the automation loop. This chapter covers the career implications of the shift and a practical learning path.
+---
+
+## Two Paths {#sec-career-paths}
+
+The commoditization of coding creates a fork in career trajectories:
+
+| Ticket Executor | Orchestrating Engineer |
+|---|---|
+| Takes assigned tasks and implements them | Designs systems and controls automation |
+| Competes with cheap code generation | Leverages cheap code generation |
+| Value decreasing | Value increasing |
+| Downstream of decisions | Upstream of decisions |
+
+This isn't about seniority or title — it's about where you position yourself relative to the automation boundary. The question is: are you doing work that a Ralph loop could do, or are you doing work that requires a Ralph loop to be designed?
+
+## The Learning Path {#sec-career-learning}
+
+Huntley's recommended progression:
+
+**1. Update your mental model.** Discard stale GPT-3-era assumptions. Current models reason, use tools, self-correct, and chain actions. If your mental model is "fancy autocomplete," you'll underestimate what's possible and overestimate what's still hard.
+
+**2. Build a simple agent.** Make the autonomous coding loop visible. Inspect every moving part — how the message array grows, how tool calls chain, where the model fails. The minimal harness from Chapter 6 is a starting point. You can't engineer what you don't understand.
+
+**3. Master context engineering.** Focus on task scoping, prompt minimization, session hygiene, and compaction avoidance. This is the technical discipline that determines agent quality — more than model selection, more than prompt tricks.
+
+**4. Move closer to problem definition.** Collaborate with PMs and customers. The person who defines what to build is further from automation than the person who builds what's defined. Learn harness design, context engineering, and safe release engineering.
+
+## Key Mental Models {#sec-career-models}
+
+| Term | Meaning | Why it matters |
+|---|---|---|
+| **Context window** | The finite message array the LLM sees | Everything the agent knows lives here |
+| **Context rot** | Quality degradation as context fills | Drives session hygiene discipline |
+| **Harness** | The code that orchestrates the agent loop | Where engineering judgment lives |
+| **Compaction** | Lossy compression when context overflows | Can destroy critical earlier context |
+| **Gas Town** | Multiple concurrent agent loops | The scaling challenge ahead |
+| **Safe autonomy** | Quality gates instead of manual review | How to maintain quality at agent-scale velocity |
+
+## What's Next: The Agent Pattern Book {#sec-career-next}
+
+This tutorial covered **how agentic systems work** and **how to use them effectively**. The companion [Agentic Design Patterns Tutorial](../agent-pattern-book/_book/index.html) covers **how to build them yourself** — 21 architectural patterns for constructing agents with LangChain/LangGraph:
+
+- **Workflow patterns** — Prompt Chaining, Routing, Parallelization (state passing between steps)
+- **Self-improvement** — Reflection, Planning (feedback loops and goal-oriented action)
+- **External interaction** — Tool Use, RAG, MCP (connecting agents to the outside world)
+- **Multi-agent** — Collaboration, Communication, Orchestration (building Gas Town)
+- **Production** — Guardrails, Evaluation, Exception Handling (making it safe and reliable)
+
+The workflow patterns aren't obsolete — they're the plumbing that larger agentic systems are built on. Even the most sophisticated multi-agent system is chains with state passing at its core.

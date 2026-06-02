@@ -1,0 +1,1193 @@
+---
+title: "Production Agent Platforms for Python"
+subtitle: "Batteries-Included Agents with Agno and MCP-Native Composition with mcp-agent"
+author: "AI-Powered SE Tutorial"
+date: today
+abstract: |
+  PocketFlow proved that an agent framework is just a graph and a shared store — and that's the right place to *learn*. Chapter 7 added Burr + Pydantic for typed state, immutable snapshots, and fork-from-state replay. But production agents need more than a state machine. They need MCP plumbing, multi-agent coordination, RAG, memory, and composable patterns — and assembling those from independent libraries is a sprint of integration work. This chapter covers two Python platforms that ship those layers as first-class primitives. **Agno** is a batteries-included agent operating system: four primitives (Agent, Team, Workflow, Knowledge) with built-in MCP, ten storage backends, and OpenTelemetry tracing. **mcp-agent** treats the Model Context Protocol as the substrate and ships Anthropic's canonical agent patterns (Router, Parallel, Evaluator-Optimizer) as composable factories with Temporal for durable execution. We compare them along the axes that matter at production scale, then build a worked example in each.
+---
+
+## When PocketFlow Stops Being Enough {#sec-prod-pressures}
+
+Three pressures emerge between the toy and the deployment:
+
+1. **Multiple people touch the agent.** A mutable shared dict is a contract anyone can break. Without declared `reads`/`writes`, any node can silently overwrite any other's data — and the breakage shows up two iterations downstream, not where it happened.
+2. **A production run fails at 3 a.m. and you need to debug it.** "What was `shared["context"]` when the model went off the rails?" The answer requires either a print statement you added in advance or a state snapshot you kept. PocketFlow has neither.
+3. **MCP servers proliferate.** Once Claude Code, your codebase, your monitoring, and three vendor MCP servers are all tools your agent needs to reach, the per-server wiring (process lifecycle, auth, sampling, elicitation) becomes its own subsystem. Hand-rolling it is the same job over and over.
+
+Chapter 7 addressed the first two pressures with Burr + Pydantic — typed state, declared reads/writes, and fork-from-state replay. This chapter addresses the third pressure *and* the broader platform question: once you need MCP integration, multi-agent coordination, RAG, memory, and canonical patterns, which framework ships them ready to go?
+
+```{mermaid}
+%%| fig-cap: "Two platforms, two centers of gravity — with Burr from Chapter 7 for comparison"
+flowchart TD
+    P["PocketFlow + Burr<br/>(Ch 7: learn + type)"] --> A["Agno<br/>batteries-included platform"]
+    P --> M["mcp-agent<br/>MCP-native + canonical patterns"]
+    A --> Q["Production deployment"]
+    M --> Q
+    style P fill:#fef3c7,stroke:#92400e,color:#92400e
+    style A fill:#dcfce7,stroke:#166534,color:#166534
+    style M fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style Q fill:#fce7f3,stroke:#9d174d,color:#9d174d
+```
+
+The two frameworks aren't drop-in substitutes. Agno is closer to an agent operating system; mcp-agent is a pattern library on top of MCP. The matrix in @sec-prod-matrix makes the differences explicit.
+
+::: {.callout-note}
+Chapter 7 covers **Burr + Pydantic** — the typed-FSM-with-replay pick. If your primary need is fork-from-state debugging and explicit state contracts, start there. This chapter assumes you've seen Burr and are now asking the platform question: "What ships MCP, RAG, multi-agent, and patterns as first-class primitives?"
+:::
+
+## Agno: Batteries-Included Agent Platform {#sec-prod-agno}
+
+[Agno](https://docs.agno.com/) positions itself as an "agent operating system" — the AgentOS framing isn't marketing, it's an honest signal about scope. Where Burr gives you a state-machine library and asks you to assemble the rest, Agno ships the rest. MCP tooling, RAG with a `Knowledge` primitive, multi-agent `Team`s, ten storage backends for sessions and memory, OpenTelemetry, scheduling, RBAC, and chat interfaces for Slack and Telegram are all in the box.
+
+The decision to use Agno is therefore less "is the state machine model right?" and more "do I want a framework with opinions about every layer, or do I want to assemble those layers myself?"
+
+### The four primitives {#sec-prod-agno-primitives}
+
+```python
+from agno.agent import Agent
+from agno.team import Team
+from agno.workflow.workflow import Workflow
+from agno.knowledge import Knowledge
+```
+
+- **`Agent`** — a single autonomous unit with tools, instructions, and a model. The smallest piece. Agents can hold memory, knowledge, and MCP tools.
+- **`Team`** — a coordinated set of agents that collaborate on a task. Native multi-agent orchestration: you describe the team, Agno handles the routing between members.
+- **`Workflow`** — step-based execution with conditional logic, loops, and parallel branches. Closer to a workflow engine than a graph library — you define `Step`s and `Condition`s, and the framework sequences them.
+- **`Knowledge`** — a searchable corpus that any agent can query. Agno calls it "Agentic RAG": retrieval is exposed as a tool the model calls, not a preprocessing step you hand-orchestrate.
+
+The four primitives compose: a Team contains Agents, each Agent can hold Knowledge, and a Workflow can orchestrate Teams and Agents through Steps.
+
+#### Agent: the building block
+
+The simplest Agno agent:
+
+```python
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+
+agent = Agent(                                                          # <1>
+    name="assistant",
+    model=Claude(id="claude-sonnet-4-6"),                               # <2>
+    instructions="You are a helpful assistant. Be concise.",
+    markdown=True,
+)
+
+response = agent.run("What is context engineering?")                    # <3>
+print(response.content)
+```
+1. **`Agent` is the unit of work.** Name, model, instructions, and tools are all constructor parameters — no subclassing required.
+2. **Model is a first-class parameter.** Agno supports Claude, GPT, Gemini, Llama, and others. Swap `Claude(...)` for `OpenAIResponses(...)` to switch providers.
+3. **`agent.run(...)` returns a structured response.** For streaming, use `agent.print_response(...)` or `agent.arun(...)` for async.
+
+Add tools and the agent becomes capable:
+
+```python
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.tools.websearch import WebSearchTools
+from agno.tools.yfinance import YFinanceTools
+
+analyst = Agent(
+    name="market_analyst",
+    model=Claude(id="claude-sonnet-4-6"),
+    tools=[                                                             # <1>
+        WebSearchTools(),
+        YFinanceTools(stock_price=True, company_info=True),
+    ],
+    instructions=[
+        "You are a financial analyst.",
+        "Always cite your data sources.",
+        "Use tables for numerical comparisons.",
+    ],
+    markdown=True,
+)
+
+analyst.print_response("Compare AAPL and MSFT performance this quarter.")
+```
+1. **Tools are plug-and-play.** Agno ships dozens of built-in tool classes (web search, file I/O, SQL, finance, Hacker News, etc.). Each exposes functions the model can call. MCP tools use the same interface — see @sec-prod-agno-mcp.
+
+#### Knowledge: agentic RAG {#sec-prod-agno-knowledge}
+
+Agno's `Knowledge` primitive is the RAG story. You point it at a vector database and sources; the agent gets a `search_knowledge` tool automatically:
+
+```python
+from agno.knowledge import Knowledge
+from agno.knowledge.embedder.openai import OpenAIEmbedder
+from agno.vectordb.pgvector import PgVector, SearchType
+
+knowledge = Knowledge(                                                  # <1>
+    vector_db=PgVector(
+        db_url="postgresql+psycopg://ai:ai@localhost:5532/ai",
+        table_name="product_docs",
+        search_type=SearchType.hybrid,                                  # <2>
+        embedder=OpenAIEmbedder(id="text-embedding-3-small"),
+    ),
+)
+
+knowledge.load(                                                         # <3>
+    sources=[
+        {"path": "./docs/**/*.md"},
+        {"url": "https://example.com/api-reference.pdf"},
+    ],
+    recreate=False,
+)
+```
+1. **`Knowledge` wraps a vector DB.** Supported backends: PgVector, LanceDB, Qdrant, Pinecone, Weaviate, ChromaDB, and others.
+2. **`SearchType.hybrid`** combines keyword and semantic search. Also available: `vector` (pure embedding similarity) and `keyword` (BM25).
+3. **`knowledge.load()`** ingests sources — markdown files, PDFs, URLs — into the vector DB. Set `recreate=True` to rebuild on each run during development.
+
+Attach it to an agent:
+
+```python
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+
+support_agent = Agent(
+    name="support",
+    model=Claude(id="claude-sonnet-4-6"),
+    knowledge=knowledge,                                                # <1>
+    search_knowledge=True,                                              # <2>
+    instructions="Answer questions using the product documentation. "
+                 "Always search knowledge before answering.",
+)
+
+support_agent.print_response("How do I configure SSO?")
+```
+1. **Attach knowledge to the agent.** The agent now has a `search_knowledge` tool.
+2. **`search_knowledge=True`** makes the search tool available. The agent decides *when* to call it — that's the "agentic" part. The model sees the tool description and chooses to search before answering, rather than you writing a retrieval pipeline.
+
+Knowledge also supports **agentic filters** — metadata-based filtering where the model decides which filters to apply:
+
+```python
+knowledge.insert_many([
+    {"path": "sso-guide.md", "metadata": {"product": "enterprise", "year": 2025}},
+    {"path": "basic-auth.md", "metadata": {"product": "starter", "year": 2024}},
+])
+
+agent = Agent(
+    knowledge=knowledge,
+    enable_agentic_knowledge_filters=True,                              # <1>
+)
+```
+1. **Agentic filters** let the model add `WHERE` clauses to the vector search based on the user's question. "How do I configure SSO for the enterprise tier?" automatically filters on `product=enterprise`.
+
+#### Workflow: step-based orchestration {#sec-prod-agno-workflow}
+
+When you need sequential stages with conditional branching, `Workflow` provides a step engine:
+
+```python
+from agno.workflow.workflow import Workflow
+from agno.workflow.step import Step
+from agno.workflow.condition import Condition
+from agno.workflow.types import StepInput
+
+researcher = Agent(name="Researcher", instructions="Research the topic.",
+                   tools=[WebSearchTools()])
+fact_checker = Agent(name="Fact Checker", instructions="Verify claims.")
+writer = Agent(name="Writer", instructions="Write the final article.")
+
+def needs_fact_checking(step_input: StepInput) -> bool:                 # <1>
+    """Check if the research output contains claims needing verification."""
+    return "claim" in step_input.content.lower()
+
+workflow = Workflow(
+    name="Article Pipeline",
+    steps=[
+        Step(name="research", agent=researcher),                        # <2>
+        Condition(                                                      # <3>
+            name="fact_check_gate",
+            evaluator=needs_fact_checking,
+            steps=[Step(name="fact_check", agent=fact_checker)],
+        ),
+        Step(name="write", agent=writer),                               # <4>
+    ],
+)
+
+workflow.print_response("Write an article about MCP adoption trends.")
+```
+1. **Conditions are Python callables.** The evaluator receives the previous step's output and returns a boolean. If `True`, the condition's steps run; otherwise, they're skipped.
+2. **Steps wrap agents.** Each step runs its agent on the accumulated context from prior steps.
+3. **`Condition` gates a branch.** This is the workflow's conditional logic — richer patterns (loops, parallel branches) compose from the same primitives.
+4. **Steps execute sequentially.** The writer sees the output of the researcher (and fact checker, if it ran).
+
+::: {.callout-tip title="Workflow vs. Team"}
+Workflow gives you *deterministic* step-by-step execution with conditional branches. Team gives you *model-driven* coordination where the leader agent decides which members to delegate to and how to synthesize their responses. Use Workflow when the pipeline shape is known at design time; use Team when the routing decision requires judgment.
+:::
+
+### MCP integration via MCPTools {#sec-prod-agno-mcp}
+
+Agno's MCP story is first-class. The `MCPTools` class connects to any MCP server — the tools it exposes appear to the agent exactly like native Python tools:
+
+```python
+import asyncio
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.tools.mcp import MCPTools
+
+async def main():
+    mcp_tools = MCPTools(                                               # <1>
+        command="npx -y @modelcontextprotocol/server-brave-search",
+        env={"BRAVE_API_KEY": "${BRAVE_API_KEY}"},
+        timeout_seconds=30,
+    )
+    await mcp_tools.connect()                                           # <2>
+
+    agent = Agent(
+        name="search_agent",
+        model=Claude(id="claude-sonnet-4-6"),
+        tools=[mcp_tools],                                              # <3>
+        instructions="Use web search to answer questions with citations.",
+    )
+
+    await agent.aprint_response("What are the latest MCP spec changes?")
+    await mcp_tools.close()                                             # <4>
+
+asyncio.run(main())
+```
+1. **`MCPTools` wraps a single MCP server.** Specify the server command, args, env vars, and timeout.
+2. **`connect()` starts the server process.** Agno handles the lifecycle — process supervision, stdio/streamable-HTTP transport, and graceful shutdown.
+3. **MCP tools drop into the same `tools=[]` list.** The agent doesn't distinguish between native tools and MCP tools.
+4. **`close()` tears down the server.** In AgentOS mode (@sec-prod-agno-agentos), lifecycle is automatic.
+
+For multiple MCP servers, use `MultiMCPTools` with partial failure tolerance:
+
+```python
+from agno.tools.mcp import MultiMCPTools
+
+mcp_tools = MultiMCPTools(
+    [
+        "npx -y @modelcontextprotocol/server-brave-search",
+        "npx -y @modelcontextprotocol/server-filesystem /tmp",
+    ],
+    env={"BRAVE_API_KEY": "${BRAVE_API_KEY}"},
+    allow_partial_failure=True,                                         # <1>
+)
+```
+1. **`allow_partial_failure=True`** lets the agent run even if one server fails to start. Essential for production where MCP servers may be flaky.
+
+For remote MCP servers (streamable HTTP), the connection is simpler:
+
+```python
+mcp_tools = MCPTools(
+    transport="streamable-http",                                        # <1>
+    url="https://docs.agno.com/mcp",
+)
+```
+1. **Streamable HTTP transport** connects to remote MCP servers. No process management needed — just a URL.
+
+### Memory and session storage {#sec-prod-agno-memory}
+
+Agno separates two kinds of persistence:
+
+- **Session storage** — chat history within a conversation. The `db` parameter on Agent or Team determines where sessions live.
+- **Memory** — persistent user facts and preferences that survive across sessions. Managed by `MemoryManager`, which uses the model to extract structured memory entries from conversations.
+
+#### Session storage backends
+
+The same agent can persist to SQLite locally and Postgres in production by swapping one line:
+
+```python
+from agno.agent import Agent
+from agno.db.sqlite import SqliteDb
+from agno.db.postgres import PostgresDb
+
+# Local development
+agent = Agent(
+    db=SqliteDb(db_file="dev.db"),                                      # <1>
+    add_history_to_context=True,                                        # <2>
+    num_history_runs=6,                                                 # <3>
+)
+
+# Production
+agent = Agent(
+    db=PostgresDb(db_url="postgresql+psycopg://..."),                    # <4>
+    add_history_to_context=True,
+    num_history_runs=6,
+)
+```
+1. **SQLite for development.** Zero config, single file.
+2. **`add_history_to_context=True`** automatically includes previous messages in the prompt.
+3. **`num_history_runs=6`** limits how many prior turns are included — a context window budget control.
+4. **Postgres for production.** Same API, different backend. Also supported: MySQL, MongoDB, Redis, DynamoDB, Firestore, and Singlestore.
+
+#### Persistent user memory
+
+Memory goes beyond session history — it captures facts about users that persist across sessions:
+
+```python
+from agno.agent import Agent
+from agno.db.postgres import PostgresDb
+
+db = PostgresDb(db_url="postgresql+psycopg://ai:ai@localhost:5532/ai")
+
+agent = Agent(
+    db=db,
+    enable_agentic_memory=True,                                         # <1>
+    update_memory_on_run=True,                                          # <2>
+)
+
+# First conversation
+agent.run("My name is Sarah and I prefer dark mode.", user_id="sarah")
+
+# Later conversation (possibly a different session)
+response = agent.run("What are my preferences?", user_id="sarah")       # <3>
+# Response: "You prefer dark mode."
+```
+1. **`enable_agentic_memory=True`** gives the agent tools to create, update, and delete user memories.
+2. **`update_memory_on_run=True`** automatically extracts memories from each conversation turn.
+3. **Memories persist across sessions.** The agent retrieves Sarah's preferences from the database, not from the current conversation history.
+
+Shared memory across agents is straightforward — point multiple agents at the same database:
+
+```python
+agent_1 = Agent(db=db, update_memory_on_run=True)
+agent_2 = Agent(db=db, update_memory_on_run=True)
+
+agent_1.run("My name is John Doe", user_id="john")
+agent_2.run("What is my name?", user_id="john")                        # <1>
+```
+1. **Agent 2 can read Agent 1's memories.** Both agents share the same database, so memories created by one are visible to the other.
+
+### Multi-agent Teams {#sec-prod-agno-teams}
+
+Agno's `Team` primitive handles multi-agent coordination. The key design choice is the **mode** parameter, which determines how the leader agent coordinates its members:
+
+```python
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.team.team import Team
+from agno.team.mode import TeamMode
+
+researcher = Agent(
+    name="Researcher",
+    role="Research specialist who finds and summarizes information",     # <1>
+    model=Claude(id="claude-sonnet-4-6"),
+    instructions=[
+        "You are a research specialist.",
+        "Provide clear, factual summaries on any topic.",
+        "Organize findings with structure and cite limitations.",
+    ],
+)
+
+writer = Agent(
+    name="Writer",
+    role="Content writer who crafts polished, engaging text",           # <2>
+    model=Claude(id="claude-sonnet-4-6"),
+    instructions=[
+        "You are a skilled content writer.",
+        "Transform raw information into well-structured, readable text.",
+        "Use headers, bullet points, and clear prose.",
+    ],
+)
+
+team = Team(
+    name="Research & Writing Team",
+    mode=TeamMode.coordinate,                                           # <3>
+    model=Claude(id="claude-sonnet-4-6"),                               # <4>
+    members=[researcher, writer],
+    instructions=[
+        "You lead a research and writing team.",
+        "For informational requests, ask the Researcher first,",
+        "then ask the Writer to polish the findings.",
+        "Synthesize everything into a cohesive response.",
+    ],
+    show_members_responses=True,                                        # <5>
+    markdown=True,
+)
+
+team.print_response(
+    "Write a brief overview of how large language models are trained.",
+    stream=True,
+)
+```
+1. **`role` describes the agent to the team leader.** The leader uses this to decide which member to delegate to.
+2. **Each member is a full Agent** with its own model, tools, and instructions.
+3. **`TeamMode.coordinate`** is the default. The leader analyzes the request, selects members, crafts tasks for each, and synthesizes their responses. Also available: `route` (pick one member), `collaborate` (all members contribute), and `debate` (members argue toward consensus).
+4. **The team leader has its own model.** This is the model that makes the delegation decisions.
+5. **`show_members_responses=True`** includes each member's individual response in the output — useful for debugging and transparency.
+
+#### A worked Team example: research pipeline
+
+Here's a more realistic team that combines MCP tools, knowledge, and memory:
+
+```python
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.team.team import Team
+from agno.team.mode import TeamMode
+from agno.tools.mcp import MCPTools
+from agno.db.postgres import PostgresDb
+
+db = PostgresDb(db_url="postgresql+psycopg://ai:ai@localhost:5532/ai")
+
+web_researcher = Agent(
+    name="Web Researcher",
+    role="Searches the web for current information",
+    model=Claude(id="claude-sonnet-4-6"),
+    tools=[MCPTools(command="npx -y @modelcontextprotocol/server-brave-search",
+                    env={"BRAVE_API_KEY": "${BRAVE_API_KEY}"})],
+    instructions="Search for current, authoritative sources. Cite URLs.",
+)
+
+code_analyst = Agent(
+    name="Code Analyst",
+    role="Analyzes code repositories and technical documentation",
+    model=Claude(id="claude-sonnet-4-6"),
+    tools=[MCPTools(command="npx -y @modelcontextprotocol/server-filesystem /tmp")],
+    instructions="Analyze code structure, dependencies, and patterns.",
+)
+
+report_writer = Agent(
+    name="Report Writer",
+    role="Synthesizes research into polished reports",
+    model=Claude(id="claude-sonnet-4-6"),
+    instructions="Write clear, structured reports with executive summaries.",
+)
+
+research_team = Team(
+    name="Technical Research Team",
+    mode=TeamMode.coordinate,
+    model=Claude(id="claude-sonnet-4-6"),
+    members=[web_researcher, code_analyst, report_writer],
+    db=db,                                                              # <1>
+    enable_agentic_memory=True,                                         # <2>
+    instructions=[
+        "Coordinate research tasks across team members.",
+        "Use the Web Researcher for current events and trends.",
+        "Use the Code Analyst for technical deep-dives.",
+        "Always finish with the Report Writer for synthesis.",
+    ],
+)
+
+research_team.print_response(
+    "Analyze the current state of MCP adoption in production agent systems.",
+    stream=True,
+    user_id="analyst-42",                                               # <3>
+)
+```
+1. **Team-level persistence.** The team stores session history and coordination traces in Postgres.
+2. **Team-level memory.** The team remembers facts about users across sessions — the same memory API as individual agents.
+3. **`user_id` scopes memories.** Different users get different memory stores.
+
+### AgentOS: serving agents as APIs {#sec-prod-agno-agentos}
+
+Agno's `AgentOS` wraps agents, teams, and workflows into a deployable application:
+
+```python
+from agno.os import AgentOS
+
+agent_os = AgentOS(
+    description="Production research system",
+    agents=[support_agent],
+    teams=[research_team],
+    workflows=[article_pipeline],
+    tracing=True,                                                       # <1>
+)
+
+app = agent_os.get_app()                                                # <2>
+
+if __name__ == "__main__":
+    agent_os.serve(app="main:app")                                      # <3>
+```
+1. **`tracing=True`** enables OpenTelemetry tracing across all agents, teams, and workflows.
+2. **`get_app()` returns a FastAPI app.** You get REST endpoints for every agent and team automatically.
+3. **`serve()` runs the app.** The agents are now callable via HTTP.
+
+The inverse is also possible — an AgentOS instance can expose its agents as MCP tools:
+
+```python
+mcp_tools = MCPTools(
+    transport="streamable-http",
+    url="https://my-agent-os.example.com/mcp",                         # <1>
+)
+```
+1. **AgentOS as MCP server.** Other agents (yours or someone else's) can call your agents as tools via MCP. This makes Agno an integration target for non-Agno agents.
+
+### OpenTelemetry observability {#sec-prod-agno-otel}
+
+Observability is built in via the `openinference-instrumentation-agno` package:
+
+```python
+# Install: pip install openinference-instrumentation-agno
+
+from agno.os import AgentOS
+
+agent_os = AgentOS(
+    description="Traced system",
+    agents=[agent],
+    tracing=True,                                                       # <1>
+)
+```
+1. **One flag enables tracing.** Spans cover agent runs, tool calls, team coordination, knowledge queries, and workflow steps.
+
+The traces follow the [OpenInference](https://github.com/Arize-ai/openinference) semantic convention — meaning they work with any OpenTelemetry-compatible backend (Jaeger, Grafana Tempo, Datadog) plus Arize Phoenix for LLM-specific analysis. Spans include:
+
+- **Agent run spans** — model, input, output, latency, token counts
+- **Tool call spans** — which tool, arguments, return value, duration
+- **Team coordination spans** — leader decisions, member delegations, synthesis
+- **Knowledge query spans** — search terms, filters, retrieved chunks, relevance scores
+
+For local development, Agno stores traces in the session database:
+
+```python
+from agno.db.sqlite import SqliteDb
+
+db = SqliteDb(db_file="traces.db")
+traces, count = db.get_traces(workflow_id=workflow.id, limit=10)        # <1>
+for trace in traces:
+    print(f"  {trace.duration_ms}ms ({trace.status})")
+```
+1. **Query traces from the database.** No external backend required during development.
+
+### When Agno is the right call {#sec-prod-agno-when}
+
+Agno wins when you want **multi-agent + MCP + RAG on day one** and don't want to spend a sprint assembling them from independent libraries. The cost is opinionation: Agno's `Knowledge` decides how retrieval works, `Team` decides how routing works, `MemoryManager` decides what memory looks like. If those defaults match your needs, Agno is the fastest path to a working multi-agent system.
+
+Agno's strengths:
+
+- **Breadth of integration.** MCP tools, 10+ vector DBs, 10+ storage backends, 20+ built-in tool classes, multi-model support — all with consistent APIs.
+- **Multi-agent out of the box.** Team modes (coordinate, route, collaborate, debate) handle the most common multi-agent patterns without you writing routing logic.
+- **AgentOS deployment.** From prototype to API in minutes. The FastAPI wrapper, MCP server exposure, and tracing are deployment-ready.
+- **Agentic RAG.** Knowledge-as-a-tool means the model decides when and how to search — no hand-orchestrated retrieval pipelines.
+
+Agno's weaknesses:
+
+- **No fork-from-state replay.** If you need to debug *why* a past run branched wrong and re-run from the exact state, Burr (Chapter 7) is the tool. Agno has session storage but not state-snapshot replay.
+- **Opinionated abstractions.** If Agno's `Knowledge` doesn't match your retrieval needs, or `Team` coordination doesn't fit your use case, you're fighting the framework rather than using it.
+- **Less explicit control flow.** The `Team` leader makes routing decisions via the model — powerful but less predictable than an explicit state machine. For critical paths where you need deterministic routing, `Workflow` or Burr is safer.
+
+::: {.callout-tip title="The AgentOS-as-MCP-server angle"}
+Agno can also be the *server* side of MCP: an `AgentOS` instance exposes its agents as MCP tools that other agents (yours or someone else's) can call. This is the inverse of `MCPTools`. The pattern is useful when you've built a specialist agent and want a Claude Code session — or a different framework entirely — to call it as a tool. It also makes Agno an integration target for non-Agno agents, which is rare among frameworks.
+:::
+
+
+## mcp-agent: MCP-Native and Pattern-First {#sec-prod-mcp-agent}
+
+[mcp-agent](https://github.com/lastmile-ai/mcp-agent) (Last Mile AI) takes a position Agno doesn't: **the Model Context Protocol is the substrate**, and an agent framework's main job is to handle MCP plumbing and ship the canonical patterns from Anthropic's [*Building Effective Agents*](https://www.anthropic.com/research/building-effective-agents) post. If you've ever hand-rolled MCP server lifecycle code — process management, OAuth, sampling, elicitation, notifications — you know the work mcp-agent absorbs.
+
+### `AugmentedLLM` and the pattern factories {#sec-prod-mcp-agent-augmented}
+
+The core abstraction is `AugmentedLLM` — a composable wrapper around a model client that holds tools, MCP server connections, and shared context. The patterns ship as factory helpers that return `AugmentedLLM` objects, which means patterns *are* `AugmentedLLM`s and can be nested into larger patterns.
+
+The simplest mcp-agent application:
+
+```python
+import asyncio
+from mcp_agent.app import MCPApp
+from mcp_agent.agents.agent import Agent
+from mcp_agent.workflows.llm.augmented_llm_anthropic import AnthropicAugmentedLLM
+
+app = MCPApp(name="simple-agent")
+
+async def main():
+    async with app.run() as running_app:                                # <1>
+        agent = Agent(
+            name="assistant",
+            instruction="You are a helpful assistant.",
+            server_names=["filesystem"],                                # <2>
+        )
+
+        async with agent:                                               # <3>
+            llm = await agent.attach_llm(AnthropicAugmentedLLM)         # <4>
+            result = await llm.generate_str("List the files in /tmp")
+            print(result)
+
+asyncio.run(main())
+```
+1. **`app.run()` provides the runtime context** — secrets, OTel exporter, executor, token counter, MCP server registry. All patterns share this context.
+2. **`server_names`** references MCP servers from the config. The agent gets all tools those servers expose.
+3. **`async with agent`** manages the agent's lifecycle — connecting to MCP servers, attaching tools, and cleaning up.
+4. **`attach_llm`** binds a specific LLM provider to the agent. The `AugmentedLLM` gets the agent's tools and instructions.
+
+### The pattern library {#sec-prod-mcp-agent-patterns}
+
+The pattern library covers Anthropic's canonical set. Each pattern is a factory function that returns an `AugmentedLLM`, which means patterns compose — a router can contain a parallel pattern that contains an evaluator-optimizer.
+
+```{mermaid}
+%%| fig-cap: "mcp-agent's pattern library — all patterns are AugmentedLLMs"
+flowchart LR
+    A["AugmentedLLM<br/>(base)"] --> R["Router"]
+    A --> P["Parallel<br/>(fan-out / fan-in)"]
+    A --> E["Evaluator-<br/>Optimizer"]
+    A --> O["Orchestrator"]
+    A --> S["Swarm"]
+    R --> C["Composed<br/>pipelines"]
+    P --> C
+    E --> C
+    style A fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style C fill:#fce7f3,stroke:#9d174d,color:#9d174d
+```
+
+#### Router pattern
+
+The Router classifies incoming requests and routes to the best-matched agent, function, or MCP server:
+
+```python
+from mcp_agent.app import MCPApp
+from mcp_agent.agents.agent import Agent
+from mcp_agent.workflows.factory import AgentSpec, create_router_llm
+
+app = MCPApp(name="support_router")
+
+async def main():
+    async with app.run() as running_app:
+        router = await create_router_llm(                               # <1>
+            name="support_router",
+            server_names=["filesystem", "fetch"],                       # <2>
+            agents=[
+                AgentSpec(                                              # <3>
+                    name="finder",
+                    instruction="Locate relevant files or URLs.",
+                    server_names=["filesystem", "fetch"],
+                ),
+                AgentSpec(
+                    name="writer",
+                    instruction="Draft polished responses.",
+                ),
+            ],
+            functions=[                                                 # <4>
+                lambda msg: "Fallback: escalate to human triage.",
+            ],
+            routing_instruction="Prefer agents when tool use is needed.",
+            provider="anthropic",                                       # <5>
+            context=running_app.context,
+        )
+
+        # Route and get ranked results
+        decisions = await router.route(                                  # <6>
+            "Read the contents of README.md",
+            top_k=2,
+        )
+        for choice in decisions:
+            print(f"{choice.category}: {choice.result} "
+                  f"(confidence: {choice.confidence})")
+
+        # Or use the router as an autonomous LLM
+        answer = await router.generate_str(                             # <7>
+            "Find README.md and summarize it"
+        )
+        print(answer)
+```
+1. **`create_router_llm`** returns a Router `AugmentedLLM`. The router decides where to send each request.
+2. **`server_names`** are MCP servers the router can route to directly (without wrapping in an agent).
+3. **`AgentSpec`** describes agents lazily — they're only instantiated when the router selects them.
+4. **Functions** are simple Python callables — the router can route to them for lightweight tasks.
+5. **`provider`** selects the LLM backend for routing decisions. Each agent can use a different provider.
+6. **`router.route()`** returns ranked results with confidence scores and reasoning — useful when you want to inspect the routing decision.
+7. **`router.generate_str()`** auto-routes and executes in one call — the router picks the best destination and runs it.
+
+#### Parallel (fan-out / fan-in) pattern
+
+Fan out to N agents, fan in with a reducer:
+
+```python
+from mcp_agent.agents.agent import Agent
+from mcp_agent.workflows.factory import create_parallel_llm
+
+async def main():
+    async with app.run() as running_app:
+        proofreader = Agent(
+            name="proofreader",
+            instruction="Review for grammar, spelling, and punctuation.",
+        )
+        fact_checker = Agent(
+            name="fact_checker",
+            instruction="Verify factual consistency and logical coherence.",
+            server_names=["fetch"],                                     # <1>
+        )
+        style_enforcer = Agent(
+            name="style_enforcer",
+            instruction="Analyze narrative flow, tone, and style.",
+        )
+
+        grader = Agent(                                                 # <2>
+            name="grader",
+            instruction="""Compile feedback from all reviewers.
+            Summarize issues, provide recommendations, assign a grade.""",
+        )
+
+        parallel = create_parallel_llm(                                 # <3>
+            fan_out=[proofreader, fact_checker, style_enforcer],
+            fan_in=grader,
+            provider="anthropic",
+            context=running_app.context,
+        )
+
+        report = await parallel.generate_str(                           # <4>
+            "Grade this story submission:\n\n" + story_text
+        )
+        print(report)
+```
+1. **Fan-out agents can have MCP tools.** The fact checker can fetch URLs to verify claims.
+2. **The fan-in agent synthesizes** all fan-out results into a single output.
+3. **`create_parallel_llm`** returns a Parallel `AugmentedLLM`. Fan-out agents run concurrently via `asyncio.gather`.
+4. **One call, three parallel agents, one synthesis.** The `generate_str()` interface is the same as any other `AugmentedLLM`.
+
+#### Evaluator-Optimizer pattern
+
+Generate, critique, refine — in a loop:
+
+```python
+from mcp_agent.agents.agent import Agent
+from mcp_agent.workflows.factory import create_evaluator_optimizer_llm
+
+async def main():
+    async with app.run() as running_app:
+        writer = Agent(
+            name="writer",
+            instruction="Write compelling marketing copy. "
+                        "Incorporate feedback from previous rounds.",
+        )
+
+        critic = Agent(
+            name="critic",
+            instruction="""Evaluate marketing copy on clarity, engagement,
+            and persuasiveness. Rate 1-10 and provide specific
+            improvement suggestions.""",
+        )
+
+        eval_opt = create_evaluator_optimizer_llm(
+            optimizer=writer,                                           # <1>
+            evaluator=critic,                                           # <2>
+            min_rating=8,                                               # <3>
+            max_refinements=3,                                          # <4>
+            provider="anthropic",
+            context=running_app.context,
+        )
+
+        result = await eval_opt.generate_str(
+            "Write a tagline for a new AI coding assistant"
+        )
+        print(f"Final copy (after refinement): {result}")
+```
+1. **Optimizer generates candidates.** On each iteration, it sees the critic's feedback and tries to improve.
+2. **Evaluator critiques.** Returns a rating and specific improvement suggestions.
+3. **`min_rating=8`** is the quality threshold. The loop stops when the evaluator rates the output at 8 or above.
+4. **`max_refinements=3`** caps the iterations. If the optimizer can't reach the threshold in 3 rounds, return the best attempt.
+
+::: {.callout-note title="The Evaluator-Optimizer is the Ralph loop in disguise"}
+The Evaluator-Optimizer pattern is structurally the same as the Ralph loop you'll meet in Chapter 10: generate a candidate, evaluate against criteria, iterate. Ralph applies this shape to code editing — produce a change, run tests, iterate. The pattern is the same; the action space is different.
+:::
+
+#### Composing patterns
+
+Because every pattern is an `AugmentedLLM`, you compose them like building blocks:
+
+```python
+from mcp_agent.workflows.factory import (
+    create_router_llm,
+    create_parallel_llm,
+    create_evaluator_optimizer_llm,
+)
+
+async def main():
+    async with app.run() as running_app:
+        # Step 1: Route to the right research strategy
+        router = await create_router_llm(
+            agents=[web_researcher, code_analyst, doc_reader],
+            provider="anthropic",
+            context=running_app.context,
+        )
+
+        # Step 2: Fan out for multi-perspective analysis
+        parallel = create_parallel_llm(
+            fan_out=[technical_reviewer, business_reviewer],
+            fan_in=synthesizer,
+            provider="anthropic",
+            context=running_app.context,
+        )
+
+        # Step 3: Iteratively refine the output
+        eval_opt = create_evaluator_optimizer_llm(
+            optimizer=writer,
+            evaluator=editor,
+            min_rating=8,
+            max_refinements=3,
+            provider="anthropic",
+            context=running_app.context,
+        )
+
+        # Compose: route -> parallel -> evaluate
+        research = await router.generate_str(query)                     # <1>
+        analysis = await parallel.generate_str(research)                # <2>
+        final = await eval_opt.generate_str(analysis)                   # <3>
+```
+1. **Router selects the research strategy** based on the query.
+2. **Parallel fans out** to multiple reviewers and synthesizes their analysis.
+3. **Evaluator-Optimizer refines** the synthesis until the editor is satisfied.
+
+### What MCP-native actually buys you {#sec-prod-mcp-agent-native}
+
+The "MCP-native" claim is concrete. mcp-agent implements the MCP spec more completely than any other agent framework:
+
+- **Lifecycle management** — server processes are started, supervised, and torn down by the framework. You write a YAML config or `Settings` object; mcp-agent runs the servers.
+- **Auth** — OAuth flows for MCP servers that require it. The framework handles token refresh and credential storage.
+- **Elicitation and sampling** — the bidirectional MCP capabilities where the server asks the client for input mid-tool-call. mcp-agent implements both sides.
+- **Notifications** — server-pushed events make it through the runtime.
+
+Server configuration is declarative — YAML or Python:
+
+```yaml
+# mcp_agent.config.yaml
+mcp:
+  servers:
+    brave-search:
+      command: "npx"
+      args: ["-y", "@modelcontextprotocol/server-brave-search"]
+      env:
+        BRAVE_API_KEY: "${BRAVE_API_KEY}"
+    filesystem:
+      command: "npx"
+      args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+
+anthropic:
+  default_model: "claude-sonnet-4-6"
+```
+
+Or equivalently in Python:
+
+```python
+from mcp_agent.config import Settings, MCPSettings, MCPServerSettings
+
+settings = Settings(
+    execution_engine="asyncio",                                         # <1>
+    mcp=MCPSettings(
+        servers={
+            "brave-search": MCPServerSettings(
+                command="npx",
+                args=["-y", "@modelcontextprotocol/server-brave-search"],
+                env={"BRAVE_API_KEY": "${BRAVE_API_KEY}"},
+            ),
+            "filesystem": MCPServerSettings(
+                command="npx",
+                args=["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+            ),
+        }
+    ),
+)
+```
+1. **`execution_engine`** can be `"asyncio"` (default) or `"temporal"` for durable execution — see @sec-prod-mcp-agent-temporal.
+
+The other frameworks treat MCP as one transport among many. Agno's `MCPTools` is capable but MCP is one tool type among many native tools. For mcp-agent, "MCP is all you need" is the founding claim — tools come from MCP servers, and the framework's job is to make that plumbing invisible.
+
+### Durable execution via Temporal {#sec-prod-mcp-agent-temporal}
+
+mcp-agent integrates with [Temporal](https://temporal.io/) for durable execution. Switch one config line and your agent workflows become crash-recoverable:
+
+```python
+from mcp_agent.app import MCPApp
+from mcp_agent.executor.workflow import Workflow, WorkflowResult
+from mcp_agent.agents.agent import Agent
+from mcp_agent.workflows.llm.augmented_llm_anthropic import AnthropicAugmentedLLM
+import asyncio
+
+app = MCPApp(name="durable_analysis")
+
+@app.workflow                                                           # <1>
+class ParallelAnalysisWorkflow(Workflow[dict]):
+    @app.workflow_run                                                   # <2>
+    async def run(self, document: str) -> WorkflowResult[dict]:
+        async def analyze_sentiment():
+            agent = Agent(name="sentiment",
+                          instruction="Analyze sentiment.")
+            async with agent:
+                llm = await agent.attach_llm(AnthropicAugmentedLLM)
+                return await llm.generate_str(
+                    f"Analyze sentiment: {document}")
+
+        async def extract_entities():
+            agent = Agent(name="entities",
+                          instruction="Extract entities.")
+            async with agent:
+                llm = await agent.attach_llm(AnthropicAugmentedLLM)
+                return await llm.generate_str(
+                    f"Extract entities: {document}")
+
+        async def summarize():
+            agent = Agent(name="summarizer",
+                          instruction="Summarize content.")
+            async with agent:
+                llm = await agent.attach_llm(AnthropicAugmentedLLM)
+                return await llm.generate_str(
+                    f"Summarize: {document}")
+
+        # Execute in parallel — Temporal handles orchestration
+        sentiment, entities, summary = await asyncio.gather(            # <3>
+            analyze_sentiment(),
+            extract_entities(),
+            summarize()
+        )
+
+        return WorkflowResult(value={                                   # <4>
+            "sentiment": sentiment,
+            "entities": entities,
+            "summary": summary
+        })
+```
+1. **`@app.workflow`** registers a workflow class. With `execution_engine="temporal"`, this becomes a Temporal workflow.
+2. **`@app.workflow_run`** marks the entry point. Temporal records the event history at each `await`.
+3. **`asyncio.gather`** fans out. With Temporal, each branch is a separate activity — if one fails, only that branch retries.
+4. **`WorkflowResult`** wraps the output. Temporal persists this — the result survives worker restarts.
+
+The mental model contrast with Burr's fork-from-state (Chapter 7):
+
+| | Burr (fork-from-state) | mcp-agent (Temporal replay) |
+|---|---|---|
+| **What's saved** | State snapshot after each action | Event history of the workflow |
+| **Primary use** | Debug-and-rerun-with-changes | Crash recovery + exactly-once execution |
+| **Granularity** | Per-action snapshot | Per-event in the workflow |
+| **"What if?" branching** | First-class via `fork_from_sequence_id` | Possible but not the primary mode |
+
+Both are real production guarantees; they solve adjacent but different problems. If your need is "this agent must complete even if the worker pod is killed," Temporal. If your need is "this agent went wrong and I want to know which decision and try a different one," Burr.
+
+### When mcp-agent is the right call {#sec-prod-mcp-agent-when}
+
+mcp-agent's strengths:
+
+- **Full MCP spec implementation.** If you have nontrivial MCP server plumbing — OAuth, elicitation, sampling, server lifecycle — mcp-agent handles it. No other framework is as complete here.
+- **Pattern composition.** The factory-function-returning-AugmentedLLM model means patterns nest. A router-inside-a-parallel-inside-an-evaluator is three factory calls, not three frameworks.
+- **Temporal for durability.** Crash-recoverable agent workflows with exactly-once semantics. Essential for long-running agents in production.
+- **Lightweight agents.** Agents are thin — name, instruction, server names. The complexity lives in the patterns, not the agent configuration.
+
+mcp-agent's weaknesses:
+
+- **No `Knowledge` primitive.** RAG is DIY — you bring an MCP server that provides retrieval, or you wire your own vector search. Agno's `Knowledge` is far more convenient.
+- **No built-in memory.** Session history, user preferences, persistent facts — all yours to implement. Agno's memory story is significantly richer.
+- **No deployment story.** mcp-agent is a library, not a platform. You write your own FastAPI wrapper, your own Docker deployment, your own RBAC. Agno's AgentOS ships these.
+- **Less explicit state.** The pattern composition is implicit — there's no state machine you can inspect or replay. Burr is the tool for that.
+
+
+## Worked Example: Q&A Agent, Two Ways {#sec-prod-example}
+
+Chapter 7 built a Q&A agent in PocketFlow: a `DecideAction` node returning `"search"` or `"answer"`, a `SearchWeb` node, and an `Answer` node. We'll port it to both frameworks. The comparison shows how each framework's center of gravity shapes the same problem differently.
+
+### Agno version {#sec-prod-agno-example}
+
+The Agno version leans on `Knowledge` for retrieval and `Team` for multi-step coordination:
+
+```python
+import asyncio
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.tools.mcp import MCPTools
+from agno.team.team import Team
+from agno.team.mode import TeamMode
+from agno.db.sqlite import SqliteDb
+
+db = SqliteDb(db_file="qa_agent.db")
+
+async def main():
+    # MCP-based web search
+    search_tools = MCPTools(
+        command="npx -y @modelcontextprotocol/server-brave-search",
+        env={"BRAVE_API_KEY": "${BRAVE_API_KEY}"},
+    )
+    await search_tools.connect()
+
+    researcher = Agent(                                                  # <1>
+        name="Researcher",
+        role="Search the web for information to answer questions",
+        model=Claude(id="claude-sonnet-4-6"),
+        tools=[search_tools],
+        instructions=[
+            "Search for authoritative sources to answer the question.",
+            "Return a structured brief with key findings and source URLs.",
+        ],
+    )
+
+    synthesizer = Agent(                                                 # <2>
+        name="Synthesizer",
+        role="Synthesize research into a clear, grounded answer",
+        model=Claude(id="claude-sonnet-4-6"),
+        instructions=[
+            "Answer the user's question using only the research provided.",
+            "Cite sources. If the evidence is insufficient, say so.",
+        ],
+    )
+
+    qa_team = Team(                                                      # <3>
+        name="QA Team",
+        mode=TeamMode.coordinate,
+        model=Claude(id="claude-sonnet-4-6"),
+        members=[researcher, synthesizer],
+        db=db,
+        instructions=[
+            "For factual questions, delegate to the Researcher first.",
+            "Then ask the Synthesizer to produce the final answer.",
+            "If the question is conversational, answer directly.",
+        ],
+        show_members_responses=True,
+        markdown=True,
+    )
+
+    qa_team.print_response(
+        "Who won the 2024 Physics Nobel and what was it for?",
+        stream=True,
+    )
+    await search_tools.close()
+
+asyncio.run(main())
+```
+1. **Researcher agent** has web search via MCP. It gathers evidence.
+2. **Synthesizer agent** takes the researcher's findings and produces a grounded answer.
+3. **Team in coordinate mode.** The leader decides the pipeline: research first, synthesize second. The routing is model-driven, not hard-coded.
+
+The PocketFlow version had explicit `DecideAction` -> `SearchWeb` -> `Answer` nodes with action edges. The Agno version replaces the explicit state machine with a team leader that makes the same decisions — but the routing logic is in the model, not the graph.
+
+### mcp-agent version {#sec-prod-mcp-agent-example}
+
+The mcp-agent version uses the **Router** pattern with an MCP search server:
+
+```python
+import asyncio
+from mcp_agent.app import MCPApp
+from mcp_agent.agents.agent import Agent
+from mcp_agent.workflows.factory import create_router_llm
+
+app = MCPApp(
+    name="qa-bot",
+    settings={
+        "mcp": {
+            "servers": {
+                "brave-search": {                                       # <1>
+                    "command": "npx",
+                    "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+                    "env": {"BRAVE_API_KEY": "${BRAVE_API_KEY}"},
+                }
+            }
+        }
+    },
+)
+
+async def main():
+    async with app.run() as running_app:
+        researcher = Agent(                                             # <2>
+            name="researcher",
+            instruction="Use search to gather evidence. "
+                        "Return a structured brief with sources.",
+            server_names=["brave-search"],
+        )
+
+        synthesizer = Agent(                                            # <3>
+            name="synthesizer",
+            instruction="Answer the user's question grounded "
+                        "in the provided research.",
+        )
+
+        direct_answerer = Agent(                                        # <4>
+            name="direct_answerer",
+            instruction="Answer simple conversational questions "
+                        "that don't require research.",
+        )
+
+        router = await create_router_llm(                               # <5>
+            agents=[researcher, synthesizer, direct_answerer],
+            routing_instruction="Route factual questions to researcher, "
+                               "then synthesizer. Route conversational "
+                               "questions to direct_answerer.",
+            provider="anthropic",
+            context=running_app.context,
+        )
+
+        answer = await router.generate_str(                             # <6>
+            "Who won the 2024 Physics Nobel and what was it for?"
+        )
+        print(answer)
+
+asyncio.run(main())
+```
+1. **MCP server is declarative.** The Brave Search server is started, supervised, and authenticated by mcp-agent.
+2. **Researcher agent** gets the MCP server. It has tools; the others don't.
+3. **Synthesizer** receives the researcher's output and produces the grounded answer.
+4. **Direct answerer** handles simple queries without research — the router skips the expensive path.
+5. **`create_router_llm`** returns a Router `AugmentedLLM`. The routing decision happens inside `generate_str`.
+6. **One call** — the router picks the agent, runs it, and returns the result.
+
+The shape difference is the actual decision the comparison is helping you make:
+
+- **Agno's Team** makes routing decisions via a leader agent that sees the full team and coordinates explicitly. You get `show_members_responses=True` for transparency and session persistence for free.
+- **mcp-agent's Router** makes routing decisions via classification and confidence scoring. You get composability — this router can be dropped into a larger pattern (a parallel-then-router-then-evaluator stack) without rewriting.
+
+
+## The Decision Matrix {#sec-prod-matrix}
+
+| Axis | Agno | mcp-agent |
+|------|------|-----------|
+| **Center of gravity** | Batteries-included agent platform | MCP-spec-native + Anthropic patterns |
+| **Killer feature** | `Knowledge` + `Team` + `MCPTools` + 10 storage backends | Full MCP spec + pattern factories + Temporal |
+| **Primitives** | Agent, Team, Workflow, Knowledge | Agent, AugmentedLLM, pattern factories |
+| **MCP story** | First-class `MCPTools` + AgentOS-as-server | The substrate — lifecycle, auth, elicitation, sampling |
+| **RAG** | `Knowledge` primitive, 10+ vector DBs | DIY (via MCP servers) |
+| **Multi-agent** | Native `Team` with 4 coordination modes | Nested `AugmentedLLM`s + Swarm pattern |
+| **Memory** | Agentic memory + session storage + 10 DB backends | DIY |
+| **Replay / durability** | Session storage (no fork-from-state) | Temporal workflow replay |
+| **Observability** | OTel via OpenInference, built-in trace DB | OTLP + `TokenCounter` |
+| **Deployment** | AgentOS (FastAPI, RBAC, MCP server) | Library only (bring your own deployment) |
+| **Governance** | Commercial (Agno) + OSS | Last Mile AI + OSS |
+| **Pick when...** | You want MCP + RAG + Team + memory without assembly | You're MCP-first, want patterns as primitives, need durable execution |
+
+For the full three-way comparison (including Burr + Pydantic), see the Burr sections in Chapter 7 — particularly the fork-from-state replay story that neither Agno nor mcp-agent matches.
+
+::: {.callout-tip title="Can you combine them?"}
+**Agno + mcp-agent** overlap significantly — both want to own the agent surface — so picking one is usually cleaner.
+
+**Burr + Agno** is plausible: use Burr's state machine for the conversational loop (Chapter 7), call an Agno agent as a tool inside an action. The composition isn't documented but the interfaces are loose enough.
+
+**Burr + mcp-agent** is similar: a Burr action can wrap an mcp-agent `AugmentedLLM` and benefit from both fork-from-state and the pattern library. This is the most synergistic pairing — Burr for the outer loop and state inspection, mcp-agent for the inner pattern composition.
+:::
+
+::: {.callout-note title="What about Mastra?"}
+Chapter 9 covers **Mastra** — a TypeScript-native agent framework. If your team is TypeScript-first, Mastra is the production framework to evaluate. The Python-vs-TypeScript choice often dominates the framework choice within each language.
+:::
+
+
+## Forward Link: From Agent Platforms to the Ralph Loop {#sec-prod-ralph}
+
+Chapter 10 introduces Ralph — Geoffrey Huntley's minimal autonomous coding loop: load spec, select task, execute, observe, repeat. Ralph and the frameworks in this chapter are different layers of the same stack. Ralph is the *loop shape*; the frameworks are the *state machine the loop runs on*.
+
+Three connections worth flagging now:
+
+- **mcp-agent's Evaluator-Optimizer pattern is the Ralph loop in disguise.** Generate a candidate change; evaluate against the spec/tests; iterate. Chapter 10 will show that the "spec -> execute -> test -> re-evaluate" loop is structurally the same pattern, just with code edits as the action space.
+- **Agno's `Team` is what scales Ralph to Gas Town.** Chapter 12 covers multi-agent orchestration; if you adopted Agno here, the Team primitive is what you'll lean on then.
+- **Burr's `@action.pydantic` (Chapter 7) is what makes a Ralph harness inspectable.** When the loop runs for 200 iterations and one of them edits the wrong file, you want to know which action wrote which field. Typed reads/writes are not optional at that scale.
+
+The book's path is therefore: Chapter 7 picks the state machine, this chapter picks the platform, Chapter 10 wraps the loop around it, and Chapter 12 scales the loop into a fleet.
+
+
+## Key Takeaways {#sec-prod-takeaways}
+
+- PocketFlow stops being enough when MCP servers proliferate and you need multi-agent coordination, RAG, and memory. Chapter 7 (Burr + Pydantic) addresses typed state and replay; this chapter addresses the platform question.
+- **Agno** is the batteries-included pick. `Agent` / `Team` / `Workflow` / `Knowledge` plus `MCPTools` plus multi-backend memory ship MCP, RAG, and multi-agent as one decision instead of three integrations. The cost is opinionation — Agno decides how retrieval, routing, and memory work.
+- **mcp-agent** is the MCP-native pick. The Model Context Protocol is the substrate, `AugmentedLLM` is the composition primitive, and the canonical Anthropic patterns (Router, Parallel, Evaluator-Optimizer) ship as factory helpers. Temporal handles durable execution. The cost is assembly — no built-in RAG, memory, or deployment story.
+- The decision matrix in @sec-prod-matrix is honest about gaps — neither framework is a superset of the other. The right choice depends on which pressure dominates your project.
+- Frameworks compose better than they replace. Burr (Chapter 7) + mcp-agent is a real option: fork-from-state for the outer loop, `AugmentedLLM` patterns inside the actions.
+
+
+## Concept Map {#sec-prod-concept-map}
+
+```{mermaid}
+%%| fig-cap: "How the production-platform concepts connect"
+flowchart TD
+    P["Pressures past PocketFlow"] --> M["MCP plumbing"]
+    P --> K["Multi-agent + RAG + memory"]
+    P --> PT["Canonical agent patterns"]
+    M --> AG["Agno (MCPTools)"]
+    K --> AG
+    M --> MA["mcp-agent (MCP substrate)"]
+    PT --> MA
+    AG --> TM["Team coordination"]
+    AG --> KN["Knowledge (agentic RAG)"]
+    AG --> MM["Memory + sessions"]
+    MA --> RT["Router pattern"]
+    MA --> PL["Parallel pattern"]
+    MA --> EO["Evaluator-Optimizer"]
+    MA --> TP["Temporal durability"]
+    EO --> RL["Ralph loop (Ch 10)"]
+    TM --> GT["Gas Town (Ch 12)"]
+    style P fill:#fef3c7,stroke:#92400e,color:#92400e
+    style AG fill:#dcfce7,stroke:#166534,color:#166534
+    style MA fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style RL fill:#fce7f3,stroke:#9d174d,color:#9d174d
+    style GT fill:#fce7f3,stroke:#9d174d,color:#9d174d
+```

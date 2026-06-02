@@ -1,0 +1,196 @@
+---
+title: "Sessions, Context, and Memory"
+subtitle: "Managing State in Claude Code"
+author: "AI-Powered SE Tutorial"
+date: today
+abstract: |
+  A Claude Code session is more than a chat — it's a stateful execution environment bound to a working directory, accumulating prompts, tool calls, edits, and checkpoints. The context window is a finite array that must be managed like memory: what you load in determines what the agent can reason about. This chapter covers session lifecycle, context window mechanics, and the three layers of persistent memory — connecting directly to the context engineering principles from the Ralph framework.
+---
+
+## Sessions {#sec-sessions-overview}
+
+A Claude Code session is bound to a **working directory**. When you run `claude` from `~/projects/my-app`, the session's scope is that project. The agent reads files relative to that directory, runs commands in that shell context, and stores its state there.
+
+Each session accumulates:
+
+- **Prompts** — your messages and the agent's responses
+- **Tool calls** — every file read, edit, shell command, and search
+- **Edits** — the actual changes made to files
+- **Checkpoints** — snapshots the session can return to
+
+### Session lifecycle
+
+```{mermaid}
+%%| fig-cap: "Session lifecycle — sessions are bound to a directory and accumulate state"
+flowchart TD
+    S["claude (start)"] --> A["New Session"]
+    A --> W["Work — prompts, tools, edits"]
+    W --> E["End / Exit"]
+    E --> C["--continue (latest)"]
+    E --> R["--resume (pick from list)"]
+    E --> F["--fork-session (branch)"]
+    C --> W
+    R --> W
+    F --> W
+    style S fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style A fill:#dcfce7,stroke:#166534,color:#166534
+    style W fill:#fef3c7,stroke:#92400e,color:#92400e
+    style C fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style R fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style F fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+```
+
+| Command | Behavior |
+|---|---|
+| `claude` | Start a fresh session — new context array |
+| `claude --continue` | Resume the most recent session with full context |
+| `claude --resume` | Pick from a list of past sessions to resume |
+| `claude --fork-session` | Branch from a session to try an alternative approach without losing the original |
+
+**When to continue vs. start fresh:** Continue when you're working on the same task and need accumulated context (files read, errors seen, decisions made). Start fresh when switching to a different task — this is the **chat hygiene** principle from the Ralph framework. Dragging one task's context into another task contaminates the model's reasoning.
+
+## The Context Window as Memory {#sec-sessions-context}
+
+The context window is not magic — it's a **finite array**. Everything the agent knows during a session lives in this array:
+
+- Your prompts write data into it
+- Tool results (file contents, command output) append more data
+- The agent's own responses consume space
+- There is no persistent server-side memory happening automatically
+
+This means the context window is a **managed resource**, like RAM. You can fill it with useful information or waste it on irrelevant data.
+
+$$C_{\text{usable}} = C_{\text{total}} - O_{\text{model}} - O_{\text{harness}} - O_{\text{tools}}$$
+
+Where:
+
+- $C_{\text{total}}$ is the model's total context window size
+- $O_{\text{model}}$ is overhead consumed by the model's own system instructions
+- $O_{\text{harness}}$ is overhead from Claude Code's internal orchestration
+- $O_{\text{tools}}$ is space consumed by tool definitions and schemas
+
+The usable context is always smaller than the advertised window size. As the session accumulates history, earlier content may be compacted (lossy compression) to make room for new tokens.
+
+### Context rot and the dumb zone
+
+Two failure modes emerge from context management:
+
+**Context rot** — quality degrades as the context grows stale, noisy, or overly full. Early instructions slide further from the model's attention. Irrelevant tool outputs dilute the signal. The agent's reasoning quality drops even though it's the same model.
+
+**The dumb zone** — a region of high context utilization where model performance noticeably worsens. The model isn't broken — it's overwhelmed. Too much information competing for attention produces worse results than less information with better focus.
+
+**Compaction** — when the context fills up, the system performs a lossy compression event that drops earlier context to make room for new tokens. This can remove critical details like the original specification or early design decisions.
+
+```{mermaid}
+%%| fig-cap: "Context quality vs. utilization — performance degrades as context fills"
+flowchart LR
+    A["Low Utilization — Good Focus"] --> B["Medium — Productive"]
+    B --> C["High — Dumb Zone"]
+    C --> D["Full — Compaction Event"]
+    D --> E["Post-Compaction — Lost Context"]
+    style A fill:#dcfce7,stroke:#166534,color:#166534
+    style B fill:#dcfce7,stroke:#166534,color:#166534
+    style C fill:#fef3c7,stroke:#92400e,color:#92400e
+    style D fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style E fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+```
+
+### Practical context management
+
+1. **Keep sessions focused on one task** — loading too many tasks dilutes model focus, important specs slide out of view, priorities blur, and error rates rise
+2. **Start fresh for new tasks** — treat a new chat as a new array; reusing chats across tasks drags prior assumptions into new objectives
+3. **Front-load critical context** — put the most important information (spec, constraints, patterns to follow) at the beginning of the session where it gets the most attention
+4. **Prune verbose tool output** — if a command produces 500 lines of output but only 10 matter, tell the agent to focus on the relevant section
+
+## Three Layers of Memory {#sec-sessions-memory-layers}
+
+Claude Code provides three mechanisms for persisting information beyond a single session:
+
+| Layer | Scope | Persistence | Content |
+|---|---|---|---|
+| **CLAUDE.md** | Project | Permanent (file in repo) | Coding standards, conventions, project-specific rules |
+| **Memory** | User + Project | Persistent (auto-managed) | User preferences, past decisions, learned behaviors |
+| **Session history** | Session | Until session ends or is resumed | Accumulated prompts, tool calls, and results |
+
+### CLAUDE.md — the always-on layer
+
+CLAUDE.md files are loaded at the start of every session. They contain stable, project-specific instructions:
+
+```markdown
+# CLAUDE.md
+
+## Build & Test
+- Run tests: `npm test`
+- Lint: `npm run lint`
+- Build: `npm run build`
+
+## Conventions
+- Use TypeScript strict mode
+- Prefer `const` over `let`
+- Components in PascalCase, utilities in camelCase
+- Tests co-located with source files (*.test.ts)
+
+## Architecture
+- API routes in src/api/
+- Business logic in src/services/
+- Database queries in src/db/
+```
+
+CLAUDE.md is to Claude Code what `.editorconfig` is to text editors — it ensures consistent behavior regardless of who (or what) is working in the codebase. Keep it short, concrete, and non-conflicting. It is NOT the place for large tutorials or API documentation.
+
+### `.claude/rules/` — scoped topic rules
+
+For rules that only apply to specific areas, use `.claude/rules/` with topic files:
+
+```
+.claude/rules/
+  testing.md      # testing conventions and commands
+  security.md     # security requirements and constraints
+  frontend.md     # UI/component patterns
+```
+
+Rules files support path-scoping — a rule in `security.md` can apply only to files under `src/auth/`. This reduces global context noise: instead of loading all rules into every session, only relevant rules are loaded when the agent works in a matching area.
+
+### Auto Memory — the learned layer
+
+Claude Code's auto memory system stores patterns learned from working with you. Unlike CLAUDE.md (which you write explicitly), memory accumulates from interactions: "the user prefers functional components over class components," "this project uses pnpm not npm."
+
+The first 200 lines of memory are loaded per session. Memory provides **context, not hard policy** — it informs the agent's defaults but can be overridden by explicit instructions.
+
+### Session history — the working layer
+
+Within a session, the full history of interactions serves as working memory. This is why `--continue` is powerful for multi-step tasks — the agent remembers what it tried, what failed, and why. Use `/context` to inspect current context usage and see how much window remains.
+
+## Key Takeaways {#sec-sessions-takeaways}
+
+- Sessions are bound to a working directory and accumulate prompts, tool calls, edits, and checkpoints
+- The context window is a finite array — manage it like RAM, not like infinite storage
+- Context rot and the dumb zone degrade performance as context fills; start fresh sessions for new tasks
+- $C_{\text{usable}} = C_{\text{total}} - O_{\text{model}} - O_{\text{harness}} - O_{\text{tools}}$ — your usable context is always smaller than the advertised window
+- Three memory layers: CLAUDE.md (always-on rules), Memory (learned preferences), Session history (working context)
+- `--continue` resumes context; `--fork-session` branches it — use these deliberately, not as defaults
+
+## Concept Map {#sec-sessions-concept-map}
+
+```{mermaid}
+%%| fig-cap: "Sessions and memory concepts"
+flowchart TD
+    A["Session"] --> B["Context Window"]
+    B --> C["Finite Array"]
+    C --> D["Context Rot"]
+    C --> E["Dumb Zone"]
+    C --> F["Compaction"]
+    A --> G["Three Memory Layers"]
+    G --> H["CLAUDE.md — Permanent"]
+    G --> I["Memory — Learned"]
+    G --> J["Session History — Working"]
+    B --> K["Chat Hygiene"]
+    K --> L["One Task Per Session"]
+    style A fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style B fill:#dcfce7,stroke:#166534,color:#166534
+    style C fill:#fef3c7,stroke:#92400e,color:#92400e
+    style D fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style E fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style G fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style K fill:#fce7f3,stroke:#9d174d,color:#9d174d
+```

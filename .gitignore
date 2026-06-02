@@ -1,0 +1,13 @@
+_book/
+.quarto/
+/.quarto/
+**/*.quarto_ipynb
+__pycache__/
+*.pyc
+.env
+.DS_Store
+*.log
+*.tex
+*.aux
+*.toc
+*.out

@@ -1,0 +1,90 @@
+---
+title: "The Economic Shock"
+subtitle: "When Code Production Costs Approach Zero"
+author: "AI-Powered SE Tutorial"
+date: today
+abstract: |
+  A looped coding agent collapses the price floor for raw code production. Manual coding speed and individual throughput become less important competitive advantages. Scarcity shifts from typing code to designing safe, autonomous systems. This chapter examines the economic mechanics of this shift and what it means for how software organizations operate.
+---
+
+## The Price Floor Collapse {#sec-econ-collapse}
+
+A looped coding agent produces software at a remarkably low effective hourly cost. The math is straightforward: an LLM API call costs cents. A loop that makes hundreds of calls to complete a task that would take a human developer hours costs dollars, not hundreds of dollars. When the per-unit cost of code production drops by one or two orders of magnitude, the economics of the entire industry shift.
+
+```{mermaid}
+%%| fig-cap: "The scarcity shift — what was scarce becomes abundant, what was assumed becomes scarce"
+flowchart LR
+    subgraph OldWorld
+        direction TB
+        OS["Old Scarcity"] --> TC["Typing Code"]
+        TC --> MT["Manual Throughput"]
+    end
+    subgraph NewWorld
+        direction TB
+        NS["New Scarcity"] --> SD["System Design"]
+        SD --> CE["Context Engineering"]
+        CE --> SA["Safe Autonomy"]
+    end
+    OldWorld -->|"Commoditized by loops"| NewWorld
+    style OS fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style NS fill:#dcfce7,stroke:#166534,color:#166534
+    style SA fill:#dbeafe,stroke:#1e40af,color:#1e40af
+```
+
+## What Gets Cheaper {#sec-econ-cheaper}
+
+- **Implementation of well-defined features** — "Add a REST endpoint that returns user profiles filtered by role" is exactly the kind of bounded, testable task a loop excels at
+- **Bug fixes with clear reproduction steps** — feed the failing test and stack trace into the loop, let it iterate until the test passes
+- **Boilerplate and glue code** — API integrations, data transformation layers, CRUD operations
+- **Test writing** — given a function signature and requirements, generating test cases is highly automatable
+- **Documentation** — generating docs from code is already common; loops can also update docs as code changes
+
+## What Doesn't Get Cheaper {#sec-econ-expensive}
+
+- **Understanding what to build** — requirements gathering, stakeholder alignment, product decisions
+- **Architectural decisions** — choosing between monolith and microservices, selecting databases, designing data models
+- **Failure mode analysis** — predicting how systems break under load, under partial failure, under adversarial input
+- **Observability design** — deciding what to monitor, what alerts matter, what dashboards to build
+- **Cross-system integration** — understanding how a change in one system affects others
+
+The pattern: anything that requires **understanding the problem domain** and **anticipating consequences** remains expensive. Anything that requires **translating a known solution into code** gets cheap.
+
+## Implications for Organizations {#sec-econ-orgs}
+
+**Team structure changes.** If one engineer with autonomous loops can produce the code output of several manual developers, teams get smaller. But they need *different* people — more architects, more SREs, more product thinkers, fewer implementers.
+
+**Hiring criteria shift.** "Can you implement a binary search tree?" becomes less relevant. "Can you design a system where autonomous agents safely modify a production database?" becomes the question that matters.
+
+**Code review becomes a bottleneck.** When agents produce code faster than humans can review it, manual code review may be the wrong control point. The solution isn't to skip review — it's to shift quality enforcement to automated gates: pre-commit hooks, property-based tests, snapshot tests, release gates (see Chapter 12).
+
+**Velocity stops being a differentiator.** If everyone has access to the same cheap code production capability, the competitive advantage moves to what you build (product decisions) and how safely you build it (engineering quality), not how fast you type.
+
+## Key Takeaways {#sec-econ-takeaways}
+
+- Looped coding agents collapse the effective cost of raw code production by 1-2 orders of magnitude
+- Implementation of well-defined tasks, bug fixes, boilerplate, and tests get dramatically cheaper
+- Problem definition, architecture, failure analysis, and observability design remain expensive
+- Organizations need fewer implementers and more architects, SREs, and product thinkers
+- The competitive advantage shifts from velocity to product decisions and engineering quality
+
+## Concept Map {#sec-econ-concept-map}
+
+```{mermaid}
+%%| fig-cap: "Economic impact of autonomous coding loops"
+flowchart TD
+    A["Cheap Looped Execution"] --> B["Code Production Cost Drops"]
+    B --> C["Implementation Commoditized"]
+    B --> D["Manual Throughput Devalued"]
+    C --> E["New Scarcity"]
+    E --> F["System Design"]
+    E --> G["Problem Definition"]
+    E --> H["Safe Autonomy"]
+    D --> I["Org Structure Changes"]
+    I --> J["Smaller Teams"]
+    I --> K["Different Hiring"]
+    style A fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style B fill:#fef3c7,stroke:#92400e,color:#92400e
+    style C fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style E fill:#dcfce7,stroke:#166534,color:#166534
+    style I fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+```

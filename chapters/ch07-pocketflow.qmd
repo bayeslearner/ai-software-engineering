@@ -1,0 +1,855 @@
+---
+title: "Building Agents from Scratch — Then Shipping Them"
+subtitle: "PocketFlow's 100-Line Framework and Burr + Pydantic's Production Guardrails"
+author: "AI-Powered SE Tutorial"
+date: today
+abstract: |
+  Chapters 5 and 6 showed how to embed and build Claude's loop — but it's still Claude's loop. What if you want to build agents with any LLM, any tools, any orchestration logic? PocketFlow proves this takes ~100 lines of code. Its minimalist Graph + Shared Store model strips agents to their essence: nodes that prep, execute, and post-process, connected by action edges. This chapter builds three patterns (workflow, agent, RAG) in PocketFlow, showing that the hard part was never the framework — it was the design. Then it graduates to the production version of the same model: **Burr + Pydantic** replaces the mutable shared dict with typed state, immutable snapshots, and fork-from-state replay — the guardrails that turn a learning exercise into a deployable system.
+---
+
+## Why Build from Scratch? {#sec-pf-why}
+
+Chapters 2–6 explained how agents work — conceptually (Chapters 2–4), via the SDK (Chapter 5), and by building a clone from scratch (Chapter 6). But all of those are Claude-specific. What about:
+
+- Using a different LLM (Llama, Gemini, Mistral)?
+- Building a custom orchestration pattern that doesn't fit the ReAct mold?
+- Understanding what's *really* happening underneath the abstractions?
+
+[PocketFlow](https://the-pocket.github.io/PocketFlow/) answers all three. It's a ~100-line Python framework with zero dependencies that implements the same patterns as LangChain/LangGraph — agents, workflows, RAG, multi-agent systems — but with the machinery fully visible. No magic, no hidden state, no vendor lock-in.
+
+::: {.callout-note}
+PocketFlow has 10,000+ GitHub stars and an active community. It's not a toy — it's a deliberately minimal framework that proves sophisticated agent patterns don't require sophisticated infrastructure.
+:::
+
+## The Core Model: Graph + Shared Store {#sec-pf-model}
+
+PocketFlow has exactly two concepts:
+
+1. **Node** — a unit of work with three steps: `prep()` → `exec()` → `post()`
+2. **Flow** — a directed graph of nodes connected by labeled edges (actions)
+
+Nodes communicate through a **shared store** — a dictionary that all nodes can read and write. That's the entire framework.
+
+```{mermaid}
+%%| fig-cap: "PocketFlow's architecture — nodes connected by action edges, communicating via shared store"
+flowchart TD
+    S["Shared Store (dict)"] -.->|"prep() reads"| N1["Node A"]
+    N1 -->|"action: default"| N2["Node B"]
+    N1 -->|"action: retry"| N1
+    N2 -->|"action: done"| N3["Node C"]
+    N3 -.->|"post() writes"| S
+    style S fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style N1 fill:#dcfce7,stroke:#166534,color:#166534
+    style N2 fill:#fef3c7,stroke:#92400e,color:#92400e
+    style N3 fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+```
+
+### The Node lifecycle
+
+Every node follows the same three-step pattern:
+
+| Step | Purpose | Has access to |
+|---|---|---|
+| `prep(shared)` | Read data from shared store | Shared store (read) |
+| `exec(prep_res)` | Do the work (LLM call, API call, computation) | Only prep's output |
+| `post(shared, prep_res, exec_res)` | Write results back, decide next action | Shared store (write) |
+
+The critical design constraint: **`exec()` cannot access the shared store.** This separation means `exec()` is pure computation — idempotent, retriable, testable in isolation.
+
+```python
+from pocketflow import Node, Flow
+
+class Summarize(Node):
+    def prep(self, shared):
+        return shared["document"]          # Read from store
+
+    def exec(self, text):
+        return call_llm(f"Summarize: {text}")  # Pure computation
+
+    def post(self, shared, prep_res, exec_res):
+        shared["summary"] = exec_res       # Write to store
+        return "default"                   # Next action (edge label)
+```
+
+::: {.callout-tip title="Why exec() can't touch the shared store"}
+This isn't arbitrary — it enables **automatic retries**. If an LLM call fails (rate limit, network timeout), PocketFlow can re-run `exec()` without fear of corrupting state. Since `exec()` only sees `prep_res` (a snapshot), retrying it is safe — it's a pure function over its input. If `exec()` could write to the shared store, a failed-then-retried call might write partial results twice.
+
+This is the same principle as database transactions: separate the read (prep), the computation (exec), and the write (post) so failures at any stage are recoverable.
+:::
+
+::: {.callout-tip title="What the return value from post() does"}
+The string returned by `post()` is the **routing decision** — it selects which outgoing edge to follow. `return "default"` follows the `>>` edge. `return "error"` follows the `- "error" >>` edge. `return None` also means `"default"`. If you return a string that has no matching edge, **the flow stops** — that's how terminal nodes work (no outgoing edges means "done").
+
+This is PocketFlow's equivalent of Chapter 6's `stop_reason` check. Instead of `if response.stop_reason != "tool_use"`, the graph structure itself encodes when to stop.
+:::
+
+### Connecting nodes into flows
+
+Nodes connect with `>>` (default edge) or `- "action" >>` (named edge):
+
+```python
+node_a >> node_b                    # default transition
+node_a - "error" >> error_handler   # named transition
+node_a - "retry" >> node_a          # self-loop
+```
+
+A `Flow` starts at a designated node and follows edges until there's nowhere to go:
+
+```python
+flow = Flow(start=node_a)
+flow.run({"document": "...", "summary": None})
+```
+
+::: {.callout-tip title="How >> works — operator overloading"}
+The `>>` syntax is Python **operator overloading** — PocketFlow's `Node` class defines `__rshift__` to register edges. Similarly, `node_a - "error"` overloads `__sub__` to create a temporary edge-builder that waits for `>>`. Under the hood, this just builds an adjacency list: `{node_a: {"default": node_b, "error": error_handler, "retry": node_a}}`. The `Flow` walks this adjacency list at runtime.
+
+The `self-loop` (`node_a - "retry" >> node_a`) is how you create retry behavior without `while True`. The node's `post()` returns `"retry"` when it wants another attempt, and the graph routes back to itself. After success, it returns `"default"` and moves forward.
+:::
+
+## Pattern 1: Workflow (Prompt Chaining) {#sec-pf-workflow}
+
+The simplest pattern — nodes execute sequentially, each transforming the shared state. Let's trace how data flows through three nodes:
+
+```python
+from pocketflow import Node, Flow
+
+def call_llm(prompt):
+    """Your LLM wrapper — any provider, any model."""
+    ...  # OpenAI, Anthropic, Ollama, etc.
+
+class GenerateOutline(Node):
+    def prep(self, shared):
+        return shared["topic"]               # <1>
+
+    def exec(self, topic):                   # <2>
+        return call_llm(f"Create a 5-point outline for: {topic}")
+
+    def post(self, shared, prep_res, exec_res):
+        shared["outline"] = exec_res         # <3>
+```
+1. **Reads** the topic from the shared store — this is the only data the node needs.
+2. **Computes** — `exec` receives `"Why context engineering matters"` (whatever `prep` returned), calls the LLM, and returns the outline. It has no idea about the shared store.
+3. **Writes** the outline back — now `shared["outline"]` exists for the next node. No explicit return means `"default"` → follow the `>>` edge.
+
+```python
+class WriteDraft(Node):
+    def prep(self, shared):
+        return shared["outline"]             # <1>
+
+    def exec(self, outline):                 # <2>
+        return call_llm(f"Write a 200-word article following this outline:\n{outline}")
+
+    def post(self, shared, prep_res, exec_res):
+        shared["draft"] = exec_res           # <3>
+```
+1. **Reads** the outline that `GenerateOutline` just wrote — nodes communicate only through the shared store, never directly.
+2. **Different LLM call, different prompt** — each node is a focused task with a single responsibility.
+3. **Writes** the draft for the next node to consume.
+
+```python
+class ReviewDraft(Node):
+    def prep(self, shared):
+        return shared["draft"]
+
+    def exec(self, draft):
+        return call_llm(f"Review this draft. List 3 improvements:\n{draft}")
+
+    def post(self, shared, prep_res, exec_res):
+        shared["review"] = exec_res
+```
+
+Now wire them into a sequential flow:
+
+```python
+outline = GenerateOutline()
+write = WriteDraft()
+review = ReviewDraft()
+
+outline >> write >> review             # <1>
+pipeline = Flow(start=outline)         # <2>
+
+shared = {"topic": "Why context engineering matters for AI agents"}
+pipeline.run(shared)                   # <3>
+print(shared["review"])                # <4>
+```
+1. **`>>`** chains nodes with default edges — after `outline` completes, the flow moves to `write`, then `review`.
+2. **`Flow(start=...)`** designates where execution begins. The flow follows edges until it reaches a node with no outgoing edge.
+3. **`run(shared)`** executes the full pipeline — all three nodes run in sequence, each reading what the previous one wrote.
+4. **Results live in the shared dict** — after `run()` completes, `shared` contains `"topic"`, `"outline"`, `"draft"`, and `"review"`. The entire pipeline's intermediate state is inspectable.
+
+This is prompt chaining — the same pattern from Chapter 2, but now you're building the pipeline yourself. Each node is a focused LLM call. Data flows through the shared store rather than through the message array.
+
+## Pattern 2: Agent (ReAct Loop) {#sec-pf-agent}
+
+The agent pattern adds **branching and looping**. A decision node evaluates context and returns an action label that routes the flow — exactly the "text or tool call?" decision from Chapter 2, but explicit. Let's build it piece by piece.
+
+### The decision node — "should I act or respond?"
+
+This is the brain of the agent. It reads the current context and decides what to do next:
+
+```python
+import yaml
+from pocketflow import Node, Flow
+
+class DecideAction(Node):
+    def prep(self, shared):                                          # <1>
+        return shared["query"], shared.get("context", "No results yet")
+
+    def exec(self, inputs):                                          # <2>
+        query, context = inputs
+        prompt = f"""Given this question: {query}
+Previous search results: {context}
+
+Should I: (1) search the web for more info, or (2) answer with current knowledge?
+
+Return YAML:
+```yaml
+action: search or answer
+search_term: phrase to search (if action is search)
+```"""
+        resp = call_llm(prompt)                                      # <3>
+        yaml_str = resp.split("```yaml")[1].split("```")[0].strip()
+        return yaml.safe_load(yaml_str)                              # <4>
+
+    def post(self, shared, prep_res, exec_res):                      # <5>
+        if exec_res["action"] == "search":
+            shared["search_term"] = exec_res["search_term"]
+        return exec_res["action"]                                    # <6>
+```
+1. **`prep` gathers context** — pulls the original query and any search results accumulated so far. On the first iteration, context is empty.
+2. **`exec` receives only what `prep` returned** — it can't see the shared store directly. This tuple `(query, context)` is all it knows.
+3. **The LLM makes the routing decision** — the prompt asks it to choose between "search" and "answer." This is the equivalent of `stop_reason` in Chapter 6, but the model decides explicitly rather than implicitly.
+4. **Structured output via YAML parsing** — since PocketFlow is LLM-agnostic, we can't rely on Claude's native `tool_use`. Instead, we prompt for YAML and parse it. Less reliable than native tool calls, but works with any model.
+5. **`post` writes side effects and routes** — if the model chose "search," we stash the search term in the store so the next node can find it.
+6. **The return value IS the routing decision** — returning `"search"` follows the `- "search" >>` edge. Returning `"answer"` follows the `- "answer" >>` edge. This one line controls the entire flow.
+
+### The action node — executing the tool
+
+When the decision node returns `"search"`, the flow routes here:
+
+```python
+class SearchWeb(Node):
+    def prep(self, shared):
+        return shared["search_term"]                                 # <1>
+
+    def exec(self, term):
+        return search_web(term)                                      # <2>
+
+    def post(self, shared, prep_res, exec_res):
+        prev = shared.get("context", [])                             # <3>
+        shared["context"] = prev + [{"term": shared["search_term"], "result": exec_res}]
+        return "decide"                                              # <4>
+```
+1. **Reads the search term** that `DecideAction.post()` just wrote to the store.
+2. **Pure execution** — calls your search utility. Could be a web API, a local database, a vector store. The node doesn't care.
+3. **Accumulates results** — appends this search result to the context list. Next time `DecideAction` runs, it will see all previous searches in `prep()`.
+4. **Routes back to the decision node** — this creates the loop. The agent will keep searching until `DecideAction` decides it has enough context and returns `"answer"` instead.
+
+### The terminal node — producing the final answer
+
+When the decision node returns `"answer"`, the flow routes here instead:
+
+```python
+class Answer(Node):
+    def prep(self, shared):
+        return shared["query"], shared.get("context", "")            # <1>
+
+    def exec(self, inputs):
+        query, context = inputs
+        return call_llm(f"Based on this context:\n{context}\n\nAnswer: {query}")  # <2>
+
+    def post(self, shared, prep_res, exec_res):
+        shared["answer"] = exec_res                                  # <3>
+        # No return — defaults to "default", but there's no outgoing edge, so flow stops
+```
+1. **Gathers everything** — the original query plus all accumulated search results.
+2. **Final LLM call** — synthesizes an answer from the gathered context. This is the "text response" equivalent from Chapter 2.
+3. **Writes the answer and stops** — no return value means `"default"`, but since `Answer` has no outgoing edges, the flow terminates here. This is how PocketFlow encodes "done" — not with `if stop_reason`, but with graph topology.
+
+### Wiring it together
+
+```python
+decide = DecideAction()
+search = SearchWeb()
+answer = Answer()
+
+decide - "search" >> search    # <1>
+decide - "answer" >> answer    # <2>
+search - "decide" >> decide    # <3>
+
+agent = Flow(start=decide)
+agent.run({"query": "Who won the Nobel Prize in Physics 2024?"})
+```
+1. **If `decide.post()` returns `"search"`** → go to `SearchWeb`
+2. **If `decide.post()` returns `"answer"`** → go to `Answer` (terminal — no outgoing edges)
+3. **After `search.post()` returns `"decide"`** → loop back to `DecideAction`
+
+Three lines define the entire control flow. The loop, the exit condition, and the branching are all encoded in the graph edges — not in `if` statements or `while` loops.
+
+### Map to the ReAct loop
+
+| ReAct concept (Chapter 2) | PocketFlow equivalent |
+|---|---|
+| "Text or tool call?" decision | `DecideAction.exec()` returns action label |
+| Tool execution | `SearchWeb.exec()` runs the tool |
+| Tool result appended to context | `SearchWeb.post()` updates shared store |
+| Loop continues | Edge `search - "decide" >> decide` routes back |
+| Final text response | `Answer` node — no outgoing edges, flow ends |
+
+The mechanism is identical. PocketFlow just makes every piece explicit — there's no hidden framework magic deciding what happens next. The `post()` return value IS the routing decision.
+
+::: {.callout-tip title="The agent loop is encoded in the graph topology, not in code"}
+In Chapter 6, the agent loop was a `while True` with an `if stop_reason` check. Here, the same behavior emerges from **graph structure**: `decide → search → decide` creates the loop, and `decide → answer` (with no outgoing edge from `answer`) creates the exit. The LLM doesn't know it's in a graph — it just sees its prompt and returns YAML. The `post()` method parses that YAML and returns the action string that routes the flow.
+
+This is more powerful than `while True` because you can have **multiple loop shapes** in the same graph — a search loop, a verification loop, a refinement loop — all as different subgraphs with their own entry and exit points.
+:::
+
+::: {.callout-tip title="Why YAML output instead of tool_use?"}
+Chapter 6's approach uses the model's native `tool_use` mechanism — the API returns structured tool calls directly. PocketFlow is LLM-agnostic, so it can't rely on any provider's tool-calling API. Instead, it prompts the model to output structured text (YAML here) and parses it in `exec()`. The tradeoff: tool_use is more reliable (the API enforces the schema), but YAML/JSON output works with any model, including local ones that don't support function calling.
+
+In production, you'd add validation (`assert result["action"] in ["search", "answer"]`) and retry logic to handle malformed outputs — which PocketFlow's built-in retry mechanism supports via `max_retries`.
+:::
+
+## Pattern 3: RAG (Retrieval-Augmented Generation) {#sec-pf-rag}
+
+RAG splits into two flows that share the same store: offline indexing (run once) and online retrieval (run per query).
+
+::: {.callout-tip title="Why two separate flows?"}
+Indexing is expensive — chunking, embedding, and storing thousands of documents. Querying is cheap — embed one question, search, generate. By splitting them into separate `Flow` objects that share the same `shared` dictionary, you index once and query many times. The shared store acts as the bridge: `offline_flow` writes `shared["index"]`, then `online_flow` reads it. This is the same pattern as building a database (expensive, once) and querying it (cheap, many times).
+:::
+
+### Offline flow: chunking and indexing
+
+```python
+from pocketflow import Node, BatchNode, Flow
+
+class ChunkDocs(BatchNode):                                   # <1>
+    def prep(self, shared):
+        text = shared["raw_text"]
+        shared["chunks"] = [text[i:i+500] for i in range(0, len(text), 500)]
+        return shared["chunks"]                               # <2>
+```
+1. **`BatchNode`** (not `Node`) — signals that this node processes a *list* of items rather than a single value.
+2. **Returns a list** — when `prep()` returns a list in a `BatchNode`, PocketFlow will call `exec()` once per item. A regular `Node` would pass the entire list to `exec()` as one argument.
+
+```python
+class EmbedChunks(BatchNode):
+    def prep(self, shared):
+        return shared["chunks"]                               # <1>
+
+    def exec(self, chunk):                                    # <2>
+        return get_embedding(chunk)
+
+    def post(self, shared, prep_res, exec_res):
+        shared["embeddings"] = exec_res                       # <3>
+```
+1. **Prep returns the list** of chunks — 50 chunks means 50 calls to `exec()`.
+2. **`exec()` receives ONE chunk at a time** — not the whole list. PocketFlow handles the iteration internally. This is the "map" in map/reduce.
+3. **`exec_res` is a list of ALL results** — after all 50 `exec()` calls complete, PocketFlow collects them into a list and passes it to `post()`. This is the "reduce."
+
+```python
+class BuildIndex(Node):                                       # <1>
+    def prep(self, shared):
+        return shared["chunks"], shared["embeddings"]
+
+    def exec(self, inputs):
+        chunks, embeddings = inputs
+        return create_vector_index(chunks, embeddings)         # <2>
+
+    def post(self, shared, prep_res, exec_res):
+        shared["index"] = exec_res                            # <3>
+
+chunk = ChunkDocs()
+embed = EmbedChunks()
+index = BuildIndex()
+chunk >> embed >> index
+offline_flow = Flow(start=chunk)                              # <4>
+```
+1. **Back to regular `Node`** — building the index is a single operation, not per-item.
+2. **Creates a searchable structure** — your vector DB, FAISS index, or in-memory cosine similarity store.
+3. **The index lives in the shared store** — available for the online flow to read.
+4. **This flow runs once** — indexing is expensive. You do it once, then query many times.
+
+### Online flow: retrieve and answer
+
+```python
+class RetrieveContext(Node):
+    def prep(self, shared):
+        return shared["question"], shared["index"]            # <1>
+
+    def exec(self, inputs):
+        question, index = inputs
+        q_embedding = get_embedding(question)                 # <2>
+        return search_index(index, q_embedding, top_k=3)      # <3>
+
+    def post(self, shared, prep_res, exec_res):
+        shared["retrieved"] = exec_res
+
+class GenerateAnswer(Node):
+    def prep(self, shared):
+        return shared["question"], shared["retrieved"]        # <4>
+
+    def exec(self, inputs):
+        question, context = inputs
+        return call_llm(f"Context:\n{context}\n\nAnswer: {question}")  # <5>
+
+    def post(self, shared, prep_res, exec_res):
+        shared["answer"] = exec_res
+
+retrieve = RetrieveContext()
+generate = GenerateAnswer()
+retrieve >> generate
+online_flow = Flow(start=retrieve)
+```
+1. **Reads the index** that the offline flow built — the shared store bridges the two flows.
+2. **Embeds the question** using the same embedding function as the chunks — this ensures the vectors are in the same space.
+3. **Semantic search** — finds the 3 most similar chunks to the question.
+4. **Reads retrieved context** — the chunks most relevant to the question.
+5. **Grounded generation** — the LLM answers using only the retrieved context, not its training data. This is what makes RAG reliable: the answer is traceable to specific source chunks.
+
+### Running both flows
+
+```python
+shared = {"raw_text": open("docs.txt").read()}
+offline_flow.run(shared)                                      # <1>
+
+shared["question"] = "What is context engineering?"
+online_flow.run(shared)                                       # <2>
+print(shared["answer"])
+```
+1. **Index once** — after this, `shared` contains `"chunks"`, `"embeddings"`, and `"index"`.
+2. **Query many times** — each query adds `"question"`, `"retrieved"`, and `"answer"` to the shared store. The index is reused.
+
+::: {.callout-tip title="Production consideration: persistence"}
+The shared dict lives in memory — if the process dies, the index is lost. In production, you'd serialize `shared["index"]` to disk in `BuildIndex.post()` and deserialize in `RetrieveContext.prep()`. PocketFlow also has a `ParallelBatchNode` that runs `exec()` calls concurrently — useful when embedding 1000 chunks against a rate-limited API.
+:::
+
+## The Design Is the Hard Part {#sec-pf-design}
+
+PocketFlow's creator makes a point that applies directly to the SE tutorial's thesis:
+
+> **"If Humans can't specify the flow, AI Agents can't automate it!"**
+
+Their Agentic Coding methodology maps human vs. AI responsibility:
+
+| Step | Human | AI | Why |
+|---|---|---|---|
+| Requirements | ★★★ | ★☆☆ | Humans understand the problem |
+| Flow design | ★★☆ | ★★☆ | Humans specify structure, AI fills details |
+| Utilities | ★★☆ | ★★☆ | Humans know the APIs, AI implements |
+| Implementation | ★☆☆ | ★★★ | AI writes the node code |
+| Testing | ★☆☆ | ★★★ | AI generates test cases |
+
+This is the same argument from Chapter 1: **development is commoditized, engineering is not.** The framework is 100 lines. The hard part is deciding what nodes to build, what edges to draw, and what data flows through the shared store. That's design — and it requires human judgment.
+
+## Comparison: PocketFlow vs. Agent SDK {#sec-pf-comparison}
+
+| | Agent SDK (Chapter 5) | PocketFlow |
+|---|---|---|
+| **Model** | Claude only | Any LLM |
+| **Loop** | Built-in ReAct (you configure it) | You build the loop yourself |
+| **Tools** | Built-in (Read, Edit, Bash, etc.) | You implement utilities |
+| **Context management** | Automatic (compaction, sessions) | Manual (shared store) |
+| **Production readiness** | High (Anthropic-hosted) | You own the infrastructure |
+| **Learning value** | "How to use an agent" | "How an agent works inside" |
+| **When to use** | Claude-powered applications | Custom agents, other LLMs, learning |
+
+The Agent SDK is a car — you drive it. PocketFlow is a kit car — you build it, so you understand every bolt.
+
+## When PocketFlow Stops Being Enough {#sec-prod-pressures}
+
+PocketFlow's mutable shared dictionary is great for learning but a liability at scale. Three pressures emerge between the toy and the deployment:
+
+1. **Multiple people touch the agent.** A mutable shared dict is a contract anyone can break. Without declared `reads`/`writes`, any node can silently overwrite any other's data — and the breakage shows up two iterations downstream, not where it happened.
+2. **A production run fails at 3 a.m. and you need to debug it.** "What was `shared["context"]` when the model went off the rails?" The answer requires either a print statement you added in advance or a state snapshot you kept. PocketFlow has neither.
+3. **You need audit trails and reproducibility.** Regulators, customers, or your own future self will ask "why did the agent do X?" Without immutable state snapshots, you can't answer.
+
+The mental model — state machine over actions — is the right one. What's missing are the production guardrails: typed contracts on state, immutable snapshots, fork-from-state replay, and observability that doesn't rely on print statements.
+
+The rest of this chapter takes that exact model and upgrades it with **Burr + Pydantic** — the production version of everything PocketFlow teaches. Chapter 8 covers two more production frameworks (**Agno** and **mcp-agent**) that solve adjacent problems — batteries-included multi-agent orchestration and MCP-native pattern composition. Chapter 9 covers **Mastra**, the TypeScript equivalent for teams working in that ecosystem.
+
+```{mermaid}
+%%| fig-cap: "From learning to shipping — PocketFlow's model, production-hardened by Burr"
+flowchart TD
+    P["PocketFlow<br/>(learn the model)"] --> B["Burr + Pydantic<br/>typed FSM + replay"]
+    P --> A["Agno (Ch 8)<br/>batteries-included platform"]
+    P --> M["mcp-agent (Ch 8)<br/>MCP-native patterns"]
+    P --> MA["Mastra (Ch 9)<br/>TypeScript agents"]
+    B --> Q["Production deployment"]
+    A --> Q
+    M --> Q
+    MA --> Q
+    style P fill:#fef3c7,stroke:#92400e,color:#92400e
+    style B fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style A fill:#dcfce7,stroke:#166534,color:#166534
+    style M fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style MA fill:#e0f2fe,stroke:#0369a1,color:#0369a1
+    style Q fill:#fce7f3,stroke:#9d174d,color:#9d174d
+```
+
+## Burr + Pydantic: Typed FSM with Replay {#sec-prod-burr}
+
+[Apache Burr](https://burr.dagworks.io/) (incubating) preserves PocketFlow's mental model — a state machine over actions — but replaces every loose part with a guardrail. The mutable shared dict becomes an immutable `State`. The `prep → exec → post` lifecycle becomes an `@action` that declares its `reads` and `writes`. The hand-drawn flow diagram becomes a graph you can ask the framework to draw for you.
+
+And — the key reason we're treating Burr as the typed upgrade — it has a first-class Pydantic integration. You can declare your state as a `BaseModel`, attach it to the application, and write actions that take a typed state object instead of a string-keyed dict. The IDE autocompletes the fields. Pydantic validates writes. The "any action can corrupt any key" problem becomes a typed-attribute problem.
+
+### The core API
+
+The smallest possible Burr application:
+
+```python
+from burr.core import ApplicationBuilder, State
+from burr.core.action import action
+
+@action(reads=["query"], writes=["answer"])                          # <1>
+def answer_question(state: State, llm) -> State:                     # <2>
+    answer = llm.complete(f"Answer: {state['query']}")
+    return state.update(answer=answer)                               # <3>
+
+app = (
+    ApplicationBuilder()
+    .with_actions(answer_question)                                   # <4>
+    .with_transitions()                                              # <5>
+    .with_state(query="What is context engineering?", answer="")
+    .with_entrypoint("answer_question")
+    .build()
+)
+
+action_run, result, state = app.run(halt_after=["answer_question"]) # <6>
+print(state["answer"])
+```
+1. **`@action(reads=..., writes=...)`** is the declaration that replaces PocketFlow's shared-dict free-for-all. The framework reads this at build time to detect missing keys, enforce write boundaries, and figure out which actions can run in parallel.
+2. **The action receives a `State` and any bound dependencies** (here `llm`). The shared-store-vs-exec separation from PocketFlow collapses into one function with explicit declarations.
+3. **`state.update(...)` returns a new `State`** — it does not mutate. Every transition produces a new snapshot, which is what makes replay possible (@sec-prod-burr-replay).
+4. **`with_actions(...)`** registers actions. Multiple actions get wired by name.
+5. **`with_transitions(...)`** declares the edges. For a one-action app there are none — left empty here. The full syntax (label, label, `Condition`) is covered in @sec-prod-burr-transitions.
+6. **`run(halt_after=[...])`** drives the loop until a halt condition fires. Burr also has `step`, `iterate`, and `stream_result` variants — see the next subsection.
+
+::: {.callout-tip title="Why declared reads/writes matter"}
+In PocketFlow, `SearchWeb.post()` accidentally overwriting `shared["query"]` breaks the agent silently — and you don't notice until the next decision node reads the wrong question. Burr's `@action(reads=["query"], writes=["context"])` lets the framework *enforce* that the action cannot write to `query`. The framework also uses these declarations to: (1) detect missing entries at build time, (2) figure out which actions are independent and could run in parallel, (3) attribute every state change to a specific action in the debugging UI. The principle is the same as database column-level permissions — limit the blast radius before the blast.
+:::
+
+### Typed state with Pydantic {#sec-prod-burr-pydantic}
+
+The stringly-typed `reads=["query"]` declaration is still string-typed — a typo in the key gives you a runtime error, not a compile-time one. The Pydantic integration upgrades that to a real type:
+
+```python
+from pydantic import BaseModel, Field
+from burr.core import ApplicationBuilder
+from burr.core.action import action
+from burr.integrations.pydantic import PydanticTypingSystem
+
+class QAState(BaseModel):                                            # <1>
+    query: str
+    context: list[str] = Field(default_factory=list)
+    answer: str | None = None
+
+@action.pydantic(reads=["query", "context"], writes=["answer"])      # <2>
+def synthesize(state: QAState, llm) -> QAState:                      # <3>
+    state.answer = llm.complete(                                     # <4>
+        f"Question: {state.query}\nContext: {state.context}\nAnswer:"
+    )
+    return state
+
+app = (
+    ApplicationBuilder()
+    .with_actions(synthesize)
+    .with_typing(PydanticTypingSystem(QAState))                      # <5>
+    .with_state(QAState(query="What is context engineering?"))
+    .with_entrypoint("synthesize")
+    .build()
+)
+
+_, _, state = app.run(halt_after=["synthesize"])
+print(state.data.answer)                                             # <6>
+```
+1. **State is a Pydantic `BaseModel`.** Fields are typed; defaults are real Python values, not magic strings.
+2. **`@action.pydantic`** is the typed sibling of `@action`. It still declares `reads`/`writes`, but the action body sees a typed object.
+3. **`state: QAState`** — the IDE autocompletes `state.query`, `state.context`, `state.answer`. A typo (`state.querry`) is a static-analysis error before you run.
+4. **Field mutation looks normal.** Burr's runtime captures the change and produces a new immutable snapshot under the hood; you write idiomatic Python.
+5. **`with_typing(PydanticTypingSystem(QAState))`** attaches the type system to the application. Burr now validates state transitions against the schema.
+6. **`state.data` returns the typed object** after `run()`. `state.data.answer` is what you get; `state["answer"]` still works but you've left the typed path.
+
+For streaming actions, the typed decorator is `@streaming_action.pydantic` with explicit `state_input_type`, `state_output_type`, and `stream_type` parameters. The streaming story matters when you want token-by-token output to a UI while still preserving the typed-state contract.
+
+::: {.callout-tip title="Why not Pydantic AI's pydantic-graph?"}
+[Pydantic AI](https://ai.pydantic.dev/) and its sibling `pydantic-graph` give you a typed agent and a typed graph respectively — `BaseNode[StateT, DepsT, RunEndT]` with edges inferred from `run()` return annotations, plus first-class Logfire/OpenTelemetry observability. It's a coherent typed-FSM story.
+
+The reason we're treating Burr-plus-Pydantic as the typed pick instead: `pydantic-graph` does not have a documented persistence or fork-from-state story. You get the typed graph, but you don't get the replay debugger. Burr-plus-Pydantic gives you typed state *and* fork-from-state in the same framework. If you don't need replay and you do want the agent-level typing (deps, output schemas), reach for Pydantic AI — it's the cleaner choice for that specific job.
+:::
+
+### Transitions: the edges of the FSM {#sec-prod-burr-transitions}
+
+Before persistence makes sense, we need to look at the edge syntax. The first two snippets used `.with_transitions()` either empty or hand-waved with `(...)` — fine for a single-action app, misleading once the FSM has branches. The real shape:
+
+```python
+from burr.core import when, expr, default                            # <1>
+
+.with_transitions(
+    ("decide",   "search",   expr("next_action == 'search'")),      # <2>
+    ("decide",   "answer",   expr("next_action == 'answer'")),      # <2>
+    ("search",   "decide",   default),                              # <3>
+    (["search", "answer"], "decide"),                               # <4>
+)
+```
+1. **Three condition forms** ship with `burr.core`: `when(field=value)` for equality (with operator suffixes `__gt`, `__lt`, `__in`, `__ne`), `expr("python expression")` for arbitrary Python evaluated against state, and the sentinel `default` for the catch-all branch. Negate with `~when(...)` or `~expr(...)`.
+2. **Each tuple is `(from_label, to_label, Condition)`.** Slots 1 and 2 are **strings** — the action names you registered in `with_actions(...)`. Slot 3 is a **`Condition` object**, not an arbitrary callable. Conditions are evaluated in declaration order; the first one that returns true wins.
+3. **`default` is a sentinel imported from `burr.core`** — not a user-defined function despite reading like one. Reach for it as the fallback branch after the typed conditions.
+4. **Length-2 shortcut** — omit the condition and Burr inserts `default` for you. A list in slot 1 fans multiple sources into one destination.
+
+If no condition is true and there's no default, the run halts. That's a feature: it surfaces missing edges instead of looping silently.
+
+### State persistence and fork-from-state {#sec-prod-burr-replay}
+
+The immutable `state.update(...)` pattern isn't aesthetics — it's the foundation of Burr's killer feature. Because every transition produces a new snapshot rather than mutating, the framework can save those snapshots and, later, *fork* execution from any one of them. This is what makes a production failure debuggable: you don't have to reproduce the bug, you replay the exact state that led to it.
+
+```python
+from burr.core import ApplicationBuilder, when, expr, default
+from burr.core.persistence import SQLLitePersister                  # <1>
+from burr.integrations.pydantic import PydanticTypingSystem
+
+persister = SQLLitePersister(db_path="./burr.db", table_name="qa_states")
+persister.initialize()                                              # <2>
+
+app = (
+    ApplicationBuilder()
+    .with_actions(decide=decide, search=search, synthesize=synthesize)
+    .with_transitions(
+        ("decide",   "search",     expr("next_action == 'search'")),
+        ("decide",   "synthesize", expr("next_action == 'answer'")),
+        ("search",   "decide",     default),
+    )
+    .with_typing(PydanticTypingSystem(QAState))
+    .with_identifiers(app_id="qa-2026-05-29-001",                   # <3>
+                      partition_key="user-42")                      # <4>
+    .with_state_persister(persister)                                # <5>
+    .with_entrypoint("decide")
+    .build()
+)
+```
+1. **`SQLLitePersister`** — the double `L` is intentional, not a typo. Postgres ships as `PostgreSQLPersister`; async versions live under `burr.integrations.persisters` (e.g. `AsyncPGPersister`). Custom backends extend `BaseStatePersister` or `AsyncBaseStatePersister`.
+2. **`persister.initialize()` creates the table** if it doesn't exist. Easy to forget — Burr will not auto-run schema setup at build time.
+3. **`app_id`** uniquely identifies this run. Auto-generated if omitted. This is what you fork *from*.
+4. **`partition_key`** groups runs (per-user, per-session, per-tenant). Snapshots within a partition are queryable together.
+5. **`with_state_persister(persister)`** wires up automatic snapshot-after-action. Every `state.update(...)` lands a row.
+
+Once persistence is on, replay is another builder call. The forked builder needs the same actions, transitions, and typing as the original — it's still a Burr application, just one whose initial state comes from a snapshot instead of `with_state(...)`:
+
+```python
+forked = (
+    ApplicationBuilder()
+    .with_actions(decide=decide, search=search, synthesize=synthesize)
+    .with_transitions(
+        ("decide",   "search",     expr("next_action == 'search'")),
+        ("decide",   "synthesize", expr("next_action == 'answer'")),
+        ("search",   "decide",     default),
+    )
+    .with_typing(PydanticTypingSystem(QAState))
+    .with_identifiers(app_id="qa-2026-05-29-001-fork-a",            # <1>
+                      partition_key="user-42")
+    .initialize_from(                                               # <2>
+        persister,
+        resume_at_next_action=True,
+        default_state=None,
+        default_entrypoint="decide",
+        fork_from_app_id="qa-2026-05-29-001",                       # <3>
+        fork_from_partition_key="user-42",
+        fork_from_sequence_id=7,                                    # <4>
+    )
+    .with_state_persister(persister)
+    .build()
+)
+```
+1. **New `app_id` for the fork.** The forked run gets its own identity so the original's history isn't overwritten — you can compare branches side by side in the UI.
+2. **`initialize_from(...)` replaces `with_state(...)`.** It tells the builder: load initial state from this persister rather than constructing it inline.
+3. **`fork_from_app_id` + `fork_from_partition_key`** locate the source run within the persister.
+4. **`fork_from_sequence_id=7`** picks the snapshot written after the 7th action of the source run. Execution resumes from that state; `resume_at_next_action=True` means the next action runs against it (set false to re-run the action that produced it). Change one thing — a prompt, a model, a tool binding — and observe whether the new branch goes right.
+
+::: {.callout-tip title="Why fork-from-state is the production differentiator"}
+Production bugs are non-deterministic. A retry has different LLM output. A new vector DB query returns different chunks. The "reproduce the bug" step that's routine in normal software is a research project in agent debugging.
+
+Fork-from-state replaces reproduction with replay. You don't reconstruct what the world looked like when the bug fired — Burr already saved that. You just point `fork_from_sequence_id` at the snapshot before the bad decision, change one thing, and observe whether the new branch goes right. It's `git checkout` for agent state.
+:::
+
+### The Burr UI {#sec-prod-burr-ui}
+
+Burr ships a local dashboard that reads the persister and visualizes runs:
+
+- **Graph view** — the state machine, with actions colored by frequency
+- **Run timeline** — every action of a specific `app_id`, with input/output state for each
+- **State diff** — between any two snapshots, what changed and which action changed it
+- **Fork button** — pick a snapshot, change a prompt, kick off a forked run from the UI
+
+Combined with the OpenTelemetry exporter (and the [Traceloop](https://www.traceloop.com/) integration for hosted tracing), this gives you a single picture of "what the agent did, why it did it, and what state it had when it did it." That's the closest thing in the open-source agent ecosystem to a real debugger.
+
+### Hamilton as the sibling {#sec-prod-burr-hamilton}
+
+Burr is maintained alongside [Hamilton](https://hamilton.dagworks.io/), the same company's DAG library for data pipelines. If you already use Hamilton, Burr is the natural agent layer on top — the same `reads`/`writes` discipline carries over, and a Burr action can wrap a Hamilton driver for the data-prep half of a RAG pipeline. The combination shows up in the official Conversational RAG example.
+
+For agents that need RAG, this is the Burr path: Hamilton for the index pipeline, Burr for the conversational loop, both inspectable through the same UI.
+
+::: {.callout-note}
+Burr is currently in the Apache Software Foundation incubator. The library is stable and used in production; the governance maturation is the work-in-progress.
+:::
+
+## Worked Example: Q&A Agent in Burr + Pydantic {#sec-prod-burr-example}
+
+Earlier in this chapter we built a Q&A agent in PocketFlow: a `DecideAction` node returning `"search"` or `"answer"`, a `SearchWeb` node, and an `Answer` node. Now let's port it to Burr + Pydantic and see what the production version of the same logic looks like.
+
+### The state schema
+
+The state schema names every field the actions touch:
+
+```python
+from pydantic import BaseModel, Field
+
+class QAState(BaseModel):
+    query: str
+    context: list[dict] = Field(default_factory=list)                # <1>
+    next_action: str | None = None
+    search_term: str | None = None
+    answer: str | None = None
+```
+1. **`context` accumulates** — each search appends a dict; the decide step reads the whole list.
+
+### Three typed actions
+
+```python
+import yaml
+from burr.core.action import action
+
+@action.pydantic(reads=["query", "context"],
+                 writes=["next_action", "search_term"])
+def decide(state: QAState, llm) -> QAState:
+    prompt = f"""Question: {state.query}
+Previous searches: {state.context or "none"}
+
+Reply in YAML:
+```yaml
+action: search | answer
+search_term: <if action is search>
+```"""
+    raw = llm.complete(prompt)
+    parsed = yaml.safe_load(raw.split("```yaml")[1].split("```")[0])
+    state.next_action = parsed["action"]
+    state.search_term = parsed.get("search_term")
+    return state
+
+@action.pydantic(reads=["search_term", "context"], writes=["context"])
+def search(state: QAState, web) -> QAState:
+    result = web.search(state.search_term)
+    state.context = state.context + [{"term": state.search_term,
+                                       "result": result}]
+    return state
+
+@action.pydantic(reads=["query", "context"], writes=["answer"])
+def answer(state: QAState, llm) -> QAState:
+    state.answer = llm.complete(
+        f"Question: {state.query}\nContext: {state.context}\nAnswer:"
+    )
+    return state
+```
+
+Each action declares the exact fields it touches. The framework can now check, before any LLM call, that `search` never writes to `query`.
+
+### Transitions and persistence
+
+Transitions encode the loop using `next_action` as the routing field:
+
+```python
+from burr.core import ApplicationBuilder, expr
+from burr.integrations.pydantic import PydanticTypingSystem
+from burr.core.persistence import SQLLitePersister
+
+persister = SQLLitePersister("qa.db", "runs")
+persister.initialize()                                               # <1>
+
+app = (
+    ApplicationBuilder()
+    .with_actions(decide=decide, search=search, answer=answer)
+    .with_transitions(
+        ("decide", "search", expr("next_action == 'search'")),       # <2>
+        ("decide", "answer", expr("next_action == 'answer'")),       # <2>
+        ("search", "decide"),                                        # <3>
+    )
+    .with_typing(PydanticTypingSystem(QAState))
+    .with_state(QAState(query="Who won the 2024 Physics Nobel?"))
+    .with_state_persister(persister)                                 # <4>
+    .with_identifiers(app_id="qa-001", partition_key="demo")
+    .with_entrypoint("decide")
+    .build()
+)
+
+_, _, final = app.run(halt_after=["answer"])
+print(final.data.answer)
+```
+1. **Create the table.** `persister.initialize()` is required on first use; Burr does not run schema setup implicitly.
+2. **Conditional transitions.** `expr(...)` evaluates a Python expression against the typed state. Conditions are checked in order; the first true one wins.
+3. **Length-2 tuple = implicit `default`.** `("search", "decide")` is the same as `("search", "decide", default)` — unconditional after `search`.
+4. **Persistence on.** Every snapshot lands in `qa.db`. If a future run goes wrong, fork from the bad `sequence_id` (see @sec-prod-burr-replay) and try a different prompt.
+
+### What you gained over PocketFlow
+
+The PocketFlow version was roughly the same number of lines, but the Burr version ships with three guarantees the PocketFlow version doesn't have:
+
+| Guarantee | PocketFlow | Burr + Pydantic |
+|---|---|---|
+| **State contract** | Any node can write any key — typos are silent bugs | `reads`/`writes` declared and enforced; Pydantic validates types |
+| **Immutable snapshots** | State is a mutable dict — no history | Every action produces a new snapshot; full audit trail |
+| **Fork-from-state replay** | Not available — reproduce bugs manually | `fork_from_sequence_id` lets you rewind and retry from any point |
+
+The shape is identical — decide/search/answer with edges encoding the loop. The difference is entirely in what the framework guarantees about the state flowing through that shape.
+
+## Forward Link: From Typed State to the Ralph Loop {#sec-prod-ralph}
+
+The next chapters introduce more frameworks and then Ralph — Geoffrey Huntley's minimal autonomous coding loop: load spec, select task, execute, observe, repeat. Burr and the frameworks in Chapters 8–9 are different layers of the same stack. They provide the *state machine*; Ralph provides the *loop shape* that runs on it.
+
+Two connections worth flagging now:
+
+- **Burr's `@action.pydantic` is what makes a Ralph harness inspectable.** When the loop runs for 200 iterations and one of them edits the wrong file, you want to know which action wrote which field. Typed reads/writes are not optional at that scale.
+- **The Evaluator-Optimizer pattern is the Ralph loop in disguise.** Generate a candidate change; evaluate against the spec/tests; iterate. @sec-ralph-loop will show that the "spec → execute → test → re-evaluate" loop is structurally the same pattern, just with code edits as the action space.
+
+The book's path is: this chapter picks the state machine, Chapter 8 covers more production options, the Ralph loop in Chapter 10 wraps the loop around it, and Chapters 12–13 scale the loop into a fleet and a career.
+
+## Key Takeaways {#sec-pf-takeaways}
+
+- An agent framework is just Graph + Shared Store — nodes connected by action edges, communicating through a shared dictionary
+- The `prep → exec → post` lifecycle separates I/O (shared store access) from computation (LLM calls) — making nodes retriable and testable
+- The agent pattern is a decision node that returns different action labels, routing the flow to different nodes (including back to itself)
+- PocketFlow proves that 100 lines of framework code can implement workflows, agents, RAG, and multi-agent systems
+- **The framework isn't the hard part — the design is.** Deciding what nodes to build, what actions to route, and what data to share requires engineering judgment that no framework eliminates
+- PocketFlow's mutable shared dict stops being enough when multiple developers share an agent, production failures need debugging, or you need audit trails
+- **Burr + Pydantic** is the production upgrade of the same model. `@action.pydantic`, `PydanticTypingSystem`, and immutable `state.update()` give compile-time-ish guarantees on state changes; `fork_from_sequence_id` is the production debugger
+- The Burr UI provides graph visualization, run timelines, state diffs, and a fork button — the closest thing in open-source agents to a real debugger
+- Chapter 8 covers **Agno** (batteries-included multi-agent platform) and **mcp-agent** (MCP-native pattern composition) — two more frameworks that solve adjacent production pressures
+
+## Concept Map {#sec-pf-concept-map}
+
+```{mermaid}
+%%| fig-cap: "How the chapter's concepts connect — from learning model to production deployment"
+flowchart TD
+    GS["Graph + Shared Store"] --> PF["PocketFlow (100 lines)"]
+    PF --> W["Workflow pattern"]
+    PF --> AG["Agent pattern"]
+    PF --> RAG["RAG pattern"]
+    PF --> D["Design is the hard part"]
+    PF --> PR["Production pressures"]
+    PR --> T["Typed state contracts"]
+    PR --> R["Replayable state"]
+    PR --> A["Audit trails"]
+    T --> B["Burr + Pydantic"]
+    R --> B
+    A --> B
+    B --> UI["Burr UI (debugger)"]
+    B --> FS["Fork-from-state"]
+    B --> H["Hamilton (RAG pipelines)"]
+    B --> RL["Ralph loop (Ch 10)"]
+    PR --> CH8["Agno + mcp-agent (Ch 8)"]
+    PR --> CH9["Mastra (Ch 9)"]
+    style GS fill:#fef3c7,stroke:#92400e,color:#92400e
+    style PF fill:#fef3c7,stroke:#92400e,color:#92400e
+    style B fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style RL fill:#fce7f3,stroke:#9d174d,color:#9d174d
+    style CH8 fill:#dcfce7,stroke:#166534,color:#166534
+    style CH9 fill:#e0f2fe,stroke:#0369a1,color:#0369a1
+```

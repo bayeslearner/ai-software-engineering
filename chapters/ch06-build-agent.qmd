@@ -1,0 +1,368 @@
+---
+title: "Build a Claude Code Clone"
+subtitle: "30 Lines to a Working Agent — Then Layer Everything On"
+author: "AI-Powered SE Tutorial"
+date: today
+abstract: |
+  You've learned how the ReAct loop works (Chapter 2), how context accumulates and compacts (Chapter 3), and how extensions customize behavior (Chapter 4). Now build it yourself. Starting from a 30-line Python loop using the raw Anthropic Messages API, this chapter progressively adds tool dispatch, subagents, compaction, skills, and hooks — proving that Claude Code's sophistication grows from a trivial core. Based on the open-source [Learn Claude Code](https://learn.shareai.run/en/) course by shareAI.
+---
+
+## The Loop Is 30 Lines {#sec-build-loop}
+
+Every concept from Chapter 2 — the message array, tool calls, tool results, the "text or tool call?" decision — compiles down to this:
+
+```python
+import anthropic
+
+client = anthropic.Anthropic()
+MODEL = "claude-sonnet-4-20250514"
+SYSTEM = "You are a coding assistant. Use tools to complete tasks."
+
+TOOLS = [{
+    "name": "bash",
+    "description": "Run a shell command and return its output.",
+    "input_schema": {
+        "type": "object",
+        "properties": {"command": {"type": "string"}},
+        "required": ["command"],
+    },
+}]
+
+def run_bash(command: str) -> str:
+    import subprocess
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    return result.stdout + result.stderr
+
+def agent_loop(query: str):
+    messages = [{"role": "user", "content": query}]
+
+    while True:
+        response = client.messages.create(
+            model=MODEL, system=SYSTEM, messages=messages,
+            tools=TOOLS, max_tokens=8000,
+        )
+        messages.append({"role": "assistant", "content": response.content})
+
+        if response.stop_reason != "tool_use":
+            return response.content[0].text  # Done — final text response
+
+        # Execute tool calls, collect results
+        results = []
+        for block in response.content:
+            if block.type == "tool_use":
+                output = run_bash(block.input["command"])
+                results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": output,
+                })
+        messages.append({"role": "user", "content": results})
+```
+
+That's a complete autonomous agent. It reads files, runs tests, installs packages, and self-corrects — because the `while True` loop keeps spinning until the model decides it's done.
+
+### Map to Chapter 2's concepts
+
+| Chapter 2 concept | Code equivalent |
+|---|---|
+| Message array | `messages` list |
+| System message | `SYSTEM` string passed to API |
+| Tool definitions | `TOOLS` list with name + schema |
+| "Text or tool call?" decision | `response.stop_reason != "tool_use"` |
+| Tool execution | `run_bash(block.input["command"])` |
+| Tool result appended to array | `messages.append({"role": "user", "content": results})` |
+| Loop continues | `while True` |
+
+The **write-back step** — appending tool results as a new user message — is the single most important line. Without it, the model never sees what happened. With it, the loop is self-sustaining.
+
+## Adding Tools Without Changing the Loop {#sec-build-tools}
+
+A single bash tool is powerful but dangerous. The next step is a **dispatch map** — a dictionary routing tool names to handler functions:
+
+```python
+from pathlib import Path
+
+WORKDIR = Path(".")
+
+def safe_path(p: str) -> Path:
+    """Prevent directory escape."""
+    path = (WORKDIR / p).resolve()
+    if not path.is_relative_to(WORKDIR):
+        raise ValueError(f"Path escapes workspace: {p}")
+    return path
+
+def run_read(path: str, limit: int = None) -> str:
+    text = safe_path(path).read_text()
+    lines = text.splitlines()
+    if limit and limit < len(lines):
+        lines = lines[:limit]
+    return "\n".join(lines)[:50_000]
+
+def run_write(path: str, content: str) -> str:
+    safe_path(path).write_text(content)
+    return f"Written: {path}"
+
+def run_edit(path: str, old_text: str, new_text: str) -> str:
+    p = safe_path(path)
+    text = p.read_text()
+    if old_text not in text:
+        return f"ERROR: old_text not found in {path}"
+    p.write_text(text.replace(old_text, new_text, 1))
+    return f"Edited: {path}"
+
+# The dispatch map — add tools here, never touch the loop
+TOOL_HANDLERS = {
+    "bash":       lambda **kw: run_bash(kw["command"]),
+    "read_file":  lambda **kw: run_read(kw["path"], kw.get("limit")),
+    "write_file": lambda **kw: run_write(kw["path"], kw["content"]),
+    "edit_file":  lambda **kw: run_edit(kw["path"], kw["old_text"], kw["new_text"]),
+}
+```
+
+The loop's tool execution block becomes:
+
+```python
+for block in response.content:
+    if block.type == "tool_use":
+        handler = TOOL_HANDLERS.get(block.name)
+        output = handler(**block.input) if handler else f"Unknown tool: {block.name}"
+        results.append({
+            "type": "tool_result",
+            "tool_use_id": block.id,
+            "content": output,
+        })
+```
+
+The loop itself never changes. You add capabilities by adding entries to `TOOL_HANDLERS` and corresponding schemas to `TOOLS`. This is why the course's tagline is "Bash is all you need" — the loop structure established in s01 carries the entire 19-chapter curriculum.
+
+## Subagents as Context Boundaries {#sec-build-subagent}
+
+Chapter 4 explained that subagents get their own context window. Here's what that means in code:
+
+```python
+def run_subagent(task: str) -> str:
+    """Spawn a child agent with fresh context. Return only its final answer."""
+    child_messages = [{"role": "user", "content": task}]
+
+    while True:
+        response = client.messages.create(
+            model=MODEL, system=SYSTEM, messages=child_messages,
+            tools=TOOLS, max_tokens=8000,  # No "task" tool — prevents recursion
+        )
+        child_messages.append({"role": "assistant", "content": response.content})
+
+        if response.stop_reason != "tool_use":
+            # Return ONLY the final text — discard all intermediate context
+            return response.content[0].text
+
+        results = []
+        for block in response.content:
+            if block.type == "tool_use":
+                handler = TOOL_HANDLERS.get(block.name)
+                output = handler(**block.input) if handler else f"Unknown: {block.name}"
+                results.append({"type": "tool_result", "tool_use_id": block.id, "content": output})
+        child_messages.append({"role": "user", "content": results})
+```
+
+The subagent is the **same loop** with `child_messages = []` — a fresh context. It might read 10 files and run 5 commands, but the parent only sees the final summary. All intermediate tool calls and results are discarded when the function returns.
+
+This is the "disposable scratch pad" pattern: fresh context in, short summary out. The parent's message array stays lean.
+
+## Context Compaction {#sec-build-compact}
+
+Chapter 3 explained that context fills up and gets compressed. Here's the implementation — a multi-lever approach:
+
+```python
+def count_tokens(messages: list) -> int:
+    """Approximate token count."""
+    return sum(len(str(m)) // 4 for m in messages)
+
+def micro_compact(messages: list, keep_recent: int = 6) -> list:
+    """Replace old tool results with one-line placeholders."""
+    if len(messages) <= keep_recent:
+        return messages
+    compacted = []
+    for i, msg in enumerate(messages):
+        if i < len(messages) - keep_recent and msg["role"] == "user":
+            # Check if it's a tool result
+            content = msg.get("content", "")
+            if isinstance(content, list) and any(
+                item.get("type") == "tool_result" for item in content
+            ):
+                compacted.append({
+                    "role": "user",
+                    "content": "[Previous tool results compacted]"
+                })
+                continue
+        compacted.append(msg)
+    return compacted
+
+def full_compact(messages: list) -> list:
+    """Use the LLM itself to summarize the conversation so far."""
+    transcript = "\n".join(str(m) for m in messages)
+    summary = client.messages.create(
+        model=MODEL,
+        messages=[{"role": "user", "content":
+            f"Summarize this agent conversation. Preserve: "
+            f"(1) what was accomplished, (2) current state, "
+            f"(3) what remains to do.\n\n{transcript[:50000]}"
+        }],
+        max_tokens=2000,
+    ).content[0].text
+
+    return [{"role": "user", "content":
+        f"[Session compacted. Summary of prior work:]\n{summary}\n\n"
+        f"Continue from where you left off."
+    }]
+```
+
+Integrated into the loop:
+
+```python
+def agent_loop(query: str):
+    messages = [{"role": "user", "content": query}]
+
+    while True:
+        # Compaction check before each API call
+        if count_tokens(messages) > 50_000:
+            messages = full_compact(messages)
+        else:
+            messages = micro_compact(messages)
+
+        response = client.messages.create(...)
+        # ... rest of loop unchanged
+```
+
+This is exactly the mechanism from Chapter 3's "compaction is lossy compression" — now visible as code. The agent doesn't even know it happened; it just sees a summary of prior work and continues.
+
+## Skills: Lazy-Loading Knowledge {#sec-build-skills}
+
+Chapter 4 explained skills as on-demand knowledge packs. The implementation uses a two-layer architecture:
+
+**Layer 1** — cheap directory in the system prompt (~100 tokens per skill):
+
+```python
+class SkillLoader:
+    def __init__(self, skills_dir: Path):
+        self.skills = {}
+        for skill_file in skills_dir.glob("*/SKILL.md"):
+            text = skill_file.read_text()
+            # Parse YAML frontmatter
+            _, frontmatter, body = text.split("---", 2)
+            meta = yaml.safe_load(frontmatter)
+            self.skills[meta["name"]] = {
+                "description": meta["description"],
+                "body": body.strip(),
+            }
+
+    def get_directory(self) -> str:
+        """Layer 1: names + descriptions for system prompt."""
+        lines = ["Available skills:"]
+        for name, skill in self.skills.items():
+            lines.append(f"  - {name}: {skill['description']}")
+        return "\n".join(lines)
+
+    def load_skill(self, name: str) -> str:
+        """Layer 2: full body, loaded on demand via tool call."""
+        skill = self.skills.get(name)
+        if not skill:
+            return f"Unknown skill: {name}"
+        return f"<skill name=\"{name}\">\n{skill['body']}\n</skill>"
+```
+
+**Layer 2** — full content loaded via a `load_skill` tool when the model decides it needs it:
+
+```python
+TOOL_HANDLERS["load_skill"] = lambda **kw: skill_loader.load_skill(kw["name"])
+```
+
+The model sees "Available skills: deploy, db-migration, lecture-notes..." in every prompt. When the user says "deploy to staging," the model calls `load_skill("deploy")` and gets the full procedure — consuming tokens only when relevant.
+
+## Hooks: Deterministic Control Outside the Loop {#sec-build-hooks}
+
+Chapter 4's hooks fire at named moments. The implementation reads from a config file and runs shell commands:
+
+```python
+import subprocess, os, json
+
+def load_hooks(path: str = ".hooks.json") -> dict:
+    if not Path(path).exists():
+        return {}
+    return json.loads(Path(path).read_text()).get("hooks", {})
+
+def run_hooks(event: str, context: dict, hooks_config: dict) -> dict:
+    """Run all matching hooks for an event. Returns {blocked, messages}."""
+    result = {"blocked": False, "block_reason": "", "messages": []}
+
+    for hook in hooks_config.get(event, []):
+        matcher = hook.get("matcher")
+        if matcher and matcher != context.get("tool_name"):
+            continue  # Doesn't match this tool
+
+        env = {
+            **os.environ,
+            "HOOK_EVENT": event,
+            "HOOK_TOOL_NAME": context.get("tool_name", ""),
+            "HOOK_TOOL_INPUT": json.dumps(context.get("tool_input", {})),
+        }
+
+        proc = subprocess.run(hook["command"], shell=True, env=env,
+                              capture_output=True, text=True)
+
+        if proc.returncode == 1 and event == "PreToolUse":
+            result["blocked"] = True
+            result["block_reason"] = proc.stderr or "Blocked by hook"
+        elif proc.returncode == 2:
+            result["messages"].append(proc.stderr)
+
+    return result
+```
+
+In the loop:
+
+```python
+# Before tool execution
+pre = run_hooks("PreToolUse", {"tool_name": block.name, "tool_input": block.input}, hooks)
+if pre["blocked"]:
+    output = f"BLOCKED: {pre['block_reason']}"
+else:
+    output = handler(**block.input)
+    run_hooks("PostToolUse", {"tool_name": block.name, "tool_output": output}, hooks)
+```
+
+The loop doesn't know what the hooks do — it just calls them at the right moments. A lint hook, a security check, a logging hook — all configured externally, zero context cost.
+
+## The Full Picture {#sec-build-fullpicture}
+
+Every feature from chapters 2–4 is now code:
+
+```{mermaid}
+%%| fig-cap: "Building up from the 30-line loop — each layer adds without changing the core"
+flowchart TD
+    L["30-line Loop"] --> T["Tool Dispatch Map"]
+    T --> S["Subagents (fresh context)"]
+    T --> C["Compaction (when context fills)"]
+    T --> SK["Skills (lazy-load knowledge)"]
+    T --> H["Hooks (deterministic control)"]
+    S --> GA["Gas Town (many loops)"]
+    style L fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style T fill:#dcfce7,stroke:#166534,color:#166534
+    style S fill:#fef3c7,stroke:#92400e,color:#92400e
+    style C fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style SK fill:#fce7f3,stroke:#9d174d,color:#9d174d
+    style H fill:#dcfce7,stroke:#166534,color:#166534
+    style GA fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+```
+
+The [Learn Claude Code course](https://learn.shareai.run/en/) continues beyond what we've covered here — adding permission systems (s07), memory (s09), task graphs (s12), background execution (s13), agent teams (s15-s16), autonomous agents (s17), and worktree isolation (s18). All 19 sessions layer onto the same 30-line loop without restructuring it.
+
+## Key Takeaways {#sec-build-takeaways}
+
+- A complete autonomous agent is a `while True` loop that sends messages, executes tool calls, and appends results — 30 lines of Python
+- The **write-back step** (appending tool results as a user message) is the single most important line — it's what makes the loop self-sustaining
+- Tools are added via a dispatch map (`TOOL_HANDLERS` dict), never by modifying the loop
+- Subagents are the same loop with `messages = []` — fresh context, return only the final answer
+- Compaction summarizes old messages when tokens exceed a threshold — the agent doesn't know it happened
+- Skills load full knowledge on-demand via a tool call, keeping the system prompt lean
+- Hooks run shell commands at named moments (PreToolUse, PostToolUse) with zero context cost
+- **Every feature layers on without changing the core loop** — the 30-line foundation carries the entire system

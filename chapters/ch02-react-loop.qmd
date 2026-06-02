@@ -1,0 +1,196 @@
+---
+title: "The ReAct Loop"
+subtitle: "How an Agent Actually Works — Message Assembly and Tool Calling"
+author: "AI-Powered SE Tutorial"
+date: today
+abstract: |
+  Every agentic coding tool — Claude Code, Cursor, Copilot agents — runs the same core mechanism: the ReAct loop. Understanding how it works at the message level is the foundation for everything else in this tutorial. This chapter explains how messages are assembled into a conversation array, sent to the LLM, and how tool calls and tool results accumulate to drive autonomous behavior.
+---
+
+## The Message Array {#sec-react-messages}
+
+An LLM doesn't "remember" anything. Every time it generates a response, it receives a **message array** — a list of messages that constitutes the entire conversation so far. The model reads this array from top to bottom, then produces the next message.
+
+A simple chat looks like this:
+
+```
+Message Array:
+┌─────────────────────────────────────────────┐
+│ [system]  "You are a helpful assistant."    │
+│ [user]    "What is 2 + 2?"                  │
+└─────────────────────────────────────────────┘
+         ↓ sent to LLM ↓
+┌─────────────────────────────────────────────┐
+│ [assistant]  "4"                            │
+└─────────────────────────────────────────────┘
+```
+
+The LLM sees the system message and user message, then produces an assistant message. For a follow-up, the **entire conversation** is sent again:
+
+```
+Message Array (turn 2):
+┌─────────────────────────────────────────────┐
+│ [system]     "You are a helpful assistant." │
+│ [user]       "What is 2 + 2?"              │
+│ [assistant]  "4"                            │
+│ [user]       "Multiply that by 10"          │
+└─────────────────────────────────────────────┘
+         ↓ sent to LLM ↓
+┌─────────────────────────────────────────────┐
+│ [assistant]  "40"                           │
+└─────────────────────────────────────────────┘
+```
+
+The model doesn't "remember" saying 4 — it sees it in the array and reasons from there. This array **is** the context window. It's finite. Everything the agent knows lives here.
+
+## From Chat to Agent: Tool Calling {#sec-react-toolcall}
+
+A chat model can only produce text. An **agent** can also produce **tool calls** — structured requests to execute external functions. This is what turns a chatbot into something that can read files, run commands, and modify code.
+
+When tools are available, the LLM has a choice on every turn: respond with text, or respond with a tool call. Here's what happens when an agent needs to read a file:
+
+```
+Message Array:
+┌──────────────────────────────────────────────────────┐
+│ [system]  "You are a coding assistant.               │
+│            Available tools: Read, Edit, Bash"         │
+│ [user]    "What's in config.py?"                     │
+└──────────────────────────────────────────────────────┘
+         ↓ LLM decides to call a tool ↓
+┌──────────────────────────────────────────────────────┐
+│ [assistant/tool_call]  Read("config.py")             │
+└──────────────────────────────────────────────────────┘
+```
+
+The LLM didn't respond with text — it responded with a structured tool call. The **framework** (Claude Code) intercepts this, executes the actual file read, and appends the result:
+
+```
+Message Array (after tool execution):
+┌──────────────────────────────────────────────────────┐
+│ [system]       "You are a coding assistant..."       │
+│ [user]         "What's in config.py?"                │
+│ [assistant]    tool_call: Read("config.py")          │
+│ [tool_result]  "DEBUG=True\nPORT=8080\n..."          │
+└──────────────────────────────────────────────────────┘
+         ↓ sent to LLM again ↓
+┌──────────────────────────────────────────────────────┐
+│ [assistant]  "config.py contains two settings:       │
+│               DEBUG=True and PORT=8080."             │
+└──────────────────────────────────────────────────────┘
+```
+
+The model now sees its own tool call AND the result in the array. It uses both to produce a final text response. This is the fundamental mechanism.
+
+```{mermaid}
+%%| fig-cap: "Tool calling — the framework executes tools and appends results to the message array"
+sequenceDiagram
+    participant U as User
+    participant F as Framework
+    participant L as LLM
+    participant T as Tool
+
+    U->>F: "What's in config.py?"
+    F->>L: [system, user] messages
+    L->>F: tool_call: Read("config.py")
+    F->>T: Execute Read("config.py")
+    T->>F: "DEBUG=True\nPORT=8080"
+    F->>L: [system, user, tool_call, tool_result]
+    L->>F: "config.py contains DEBUG=True and PORT=8080"
+    F->>U: Display response
+```
+
+## The ReAct Loop: Chaining Tool Calls {#sec-react-loop}
+
+The real power emerges when the LLM chains **multiple tool calls** in sequence. After receiving a tool result, the model can decide to call another tool instead of responding with text. This creates the **ReAct loop** — Reasoning + Acting:
+
+```
+Turn 1: User says "Fix the failing test in test_auth.py"
+
+Turn 2: LLM → tool_call: Read("test_auth.py")
+        Framework executes → appends result
+
+Turn 3: LLM → tool_call: Read("src/auth.py")       ← reads the source
+        Framework executes → appends result
+
+Turn 4: LLM → tool_call: Edit("src/auth.py", ...)  ← fixes the bug
+        Framework executes → appends result
+
+Turn 5: LLM → tool_call: Bash("pytest test_auth.py") ← verifies
+        Framework executes → appends result
+
+Turn 6: LLM → "Fixed. The issue was a missing null check
+         on line 42. Tests now pass."               ← final response
+```
+
+Each turn, the message array grows. The LLM sees everything that happened — every file it read, every edit it made, every command output. It uses this accumulated context to decide the next action.
+
+**This is the entire mechanism.** There's no hidden intelligence. The agent is just an LLM making one decision at a time — "should I call a tool or respond with text?" — with the full conversation history as input.
+
+```{mermaid}
+%%| fig-cap: "The ReAct loop — each tool call/result pair adds to the message array"
+flowchart TD
+    U["User Goal"] --> A["LLM sees message array"]
+    A --> D{"Text or tool call?"}
+    D -->|"Tool call"| E["Framework executes tool"]
+    E --> F["Append tool_call + tool_result to array"]
+    F --> A
+    D -->|"Text"| G["Return final response to user"]
+    style U fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style A fill:#dcfce7,stroke:#166534,color:#166534
+    style D fill:#fef3c7,stroke:#92400e,color:#92400e
+    style E fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style G fill:#dcfce7,stroke:#166534,color:#166534
+```
+
+## What Claude Code Adds on Top {#sec-react-claudecode}
+
+Claude Code is a ReAct loop with a production-grade harness:
+
+| Component | What it does |
+|---|---|
+| **Six tool categories** | Files (read/edit/write), Search (grep/glob), Execution (bash/git), Web (fetch/search), LSP (definitions/types), Orchestration (subagents/tasks) |
+| **Permission system** | Controls which tools the agent can call without asking (deny → ask → allow) |
+| **Sandboxing** | OS-level filesystem and network limits — defense in depth |
+| **Session management** | Persists the message array across interactions (`--continue`, `--resume`, `--fork-session`) |
+| **CLAUDE.md** | Project rules injected into the system message every session |
+| **LSP integration** | Go-to-definition, find-references, type errors — highest ROI upgrade for refactors |
+
+### Permission modes
+
+| Mode | Behavior |
+|---|---|
+| `default` | Asks before destructive operations |
+| `acceptEdits` | Auto-accepts file edits, asks for shell commands |
+| `plan` | Read-only — no edits, no execution |
+| `dontAsk` | Auto-denies unless pre-approved |
+| `bypassPermissions` | Disposable environments only |
+
+## Prompting an Agent vs. Prompting a Chat {#sec-react-prompting}
+
+In a chat, your prompt is a question. In an agent, your prompt is a **delegation**. Prompt like an engineering lead:
+
+**Bad:** "Make the dashboard look better"
+
+**Good:** "Match this screenshot. Follow the pattern in `@src/components/OrdersTable.tsx`. Take a new screenshot. Compare and list differences. Run `npm test`."
+
+This works because it gives the agent: scope (dashboard), a pattern to follow (existing component), and verification (screenshot comparison + tests). The agent's ReAct loop has clear success criteria.
+
+### Verification is the highest leverage
+
+Every prompt should include verification. Without it, the loop has no feedback signal:
+
+| Type | Example |
+|---|---|
+| Test command | "Run `npm test` and fix failures" |
+| Failing test | "Make `test/auth.test.ts` pass" |
+| Typecheck | "Run `tsc --noEmit` and fix all errors" |
+| Screenshot | "Take a screenshot and compare" |
+
+## Key Takeaways {#sec-react-takeaways}
+
+- An LLM receives a **message array** every turn — it doesn't "remember" anything outside this array
+- Tool calling lets the LLM produce structured function calls instead of text; the framework executes them and appends results to the array
+- The **ReAct loop** is the LLM repeatedly deciding "tool call or text response?" with the growing message array as input
+- Claude Code is a ReAct loop with 6 tool categories, permissions, sandboxing, sessions, and CLAUDE.md
+- **Verification quality determines output quality** — always include a verification method in your prompt
+- Prompt like an engineering lead delegating work, not like a user asking for help

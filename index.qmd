@@ -1,0 +1,45 @@
+# Introduction {.unnumbered}
+
+*From Ralph Loops to Gas Town — A Practitioner's Guide to Autonomous Coding*
+
+Software development as typing code is being commoditized. What remains scarce — and increasingly valuable — is the ability to design safe, autonomous systems that predict failures, build safeguards, and enable observability. This book covers the paradigm shift from manual coding to engineered autonomy, drawing on Geoffrey Huntley's Ralph/Gas Town framework and hands-on Claude Code workflows. It's a practitioner's guide: less theory, more "here's how to actually do this."
+
+## Why This Book {#sec-why .unnumbered}
+
+A simple loop — load a spec, pick the next task, execute it, observe the result, repeat — can produce software at a fraction of the traditional cost. This isn't hypothetical. It's happening now, and it changes what it means to be a software engineer.
+
+```{mermaid}
+%%| fig-cap: "The shift: from writing code to engineering autonomous systems"
+flowchart LR
+    A["Manual Coding"] --> B["AI-Assisted Coding"]
+    B --> C["Ralph — Single Agent Loop"]
+    C --> D["Gas Town — Multi-Agent Systems"]
+    style A fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style B fill:#fef3c7,stroke:#92400e,color:#92400e
+    style C fill:#dcfce7,stroke:#166534,color:#166534
+    style D fill:#dbeafe,stroke:#1e40af,color:#1e40af
+```
+
+## What you will learn {#sec-what-learn}
+
+| Part | Chapters | What you get |
+|------|----------|-------------|
+| **Claude Code in Practice** | Runtime, Sessions, Extensions | Start here — hands-on workflows with a real agentic coding tool |
+| **The Paradigm Shift** | Core Thesis, Ralph Loop, Economics | Why coding is being commoditized and what replaces it |
+| **Context Engineering** | Memory, Hygiene, Model Behavior | The technical discipline of managing what the model knows |
+| **Scaling Up** | Gas Town, Safe Autonomy, Tooling | From one loop to many — multi-agent orchestration |
+| **Career & Learning** | Career Implications | Where to invest your time as the shift accelerates |
+
+## Sources {#sec-sources}
+
+This book synthesizes material from:
+
+- **Geoffrey Huntley's "Ralph, Gas Town, and the New Software Engineering"** — the philosophical and economic framework
+- **Claude Code documentation and advanced tutorials** — the practical tooling
+- **Agentic Design Patterns** by Marco Fago — the companion pattern catalog (see the [separate tutorial](../agent-pattern-book/_book/index.html))
+
+## Prerequisites {#sec-prerequisites}
+
+- Experience writing software professionally (any language)
+- Basic familiarity with LLMs (you've used ChatGPT or Claude interactively)
+- Willingness to rethink what "software engineering" means
