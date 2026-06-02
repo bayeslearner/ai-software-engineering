@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="AI-Powered SE Tutorial">
+<meta name="dcterms.date" content="2026-06-02">
+
+<title>4&nbsp; Extensions and Workflows – AI-Powered Software Engineering</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../chapters/ch05-agent-sdk.html" rel="next">
+<link href="../chapters/ch03-sessions-memory.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-48abc47ddc2cbc14860ddec9e9fdb395.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<meta name="mermaid-theme" content="default">
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../chapters/ch04-extensions-workflows.html"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Extensions and Workflows</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">AI-Powered Software Engineering</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch01-core-thesis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">The Core Thesis</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch02-react-loop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">The ReAct Loop</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch03-sessions-memory.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Sessions, Context, and Memory</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch04-extensions-workflows.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Extensions and Workflows</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch05-agent-sdk.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Building with the Agent SDK</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch06-build-agent.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Build a Claude Code Clone</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch07-pocketflow.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Building Agents from Scratch — Then Shipping Them</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch08-production-frameworks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Production Agent Platforms for Python</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch09-mastra.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Mastra: TypeScript Agents, End to End</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch10-ralph-loop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch11-economics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Economic Shock</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch12-gas-town.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Scaling Up</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch13-career.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Career &amp; What's Next</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#sec-extensions-types" id="toc-sec-extensions-types" class="nav-link active" data-scroll-target="#sec-extensions-types"><span class="header-section-number">4.1</span> The Five Extension Types</a>
+  <ul class="collapse">
+  <li><a href="#decision-guide" id="toc-decision-guide" class="nav-link" data-scroll-target="#decision-guide"><span class="header-section-number">4.1.1</span> Decision guide</a></li>
+  <li><a href="#claude.md-the-constitution" id="toc-claude.md-the-constitution" class="nav-link" data-scroll-target="#claude.md-the-constitution"><span class="header-section-number">4.1.2</span> CLAUDE.md — the constitution</a></li>
+  <li><a href="#sec-skills" id="toc-sec-skills" class="nav-link" data-scroll-target="#sec-skills"><span class="header-section-number">4.1.3</span> Skills — reusable knowledge packs</a></li>
+  <li><a href="#sec-mcp" id="toc-sec-mcp" class="nav-link" data-scroll-target="#sec-mcp"><span class="header-section-number">4.1.4</span> MCP — external system integration</a></li>
+  <li><a href="#sec-hooks" id="toc-sec-hooks" class="nav-link" data-scroll-target="#sec-hooks"><span class="header-section-number">4.1.5</span> Hooks — deterministic event automation</a></li>
+  <li><a href="#sec-subagents" id="toc-sec-subagents" class="nav-link" data-scroll-target="#sec-subagents"><span class="header-section-number">4.1.6</span> Subagents — delegated workers</a></li>
+  </ul></li>
+  <li><a href="#sec-harness" id="toc-sec-harness" class="nav-link" data-scroll-target="#sec-harness"><span class="header-section-number">4.2</span> The Harness: All Five Together</a></li>
+  <li><a href="#sec-extensions-workflow" id="toc-sec-extensions-workflow" class="nav-link" data-scroll-target="#sec-extensions-workflow"><span class="header-section-number">4.3</span> The 4-Phase Workflow</a>
+  <ul class="collapse">
+  <li><a href="#phase-1-explore" id="toc-phase-1-explore" class="nav-link" data-scroll-target="#phase-1-explore"><span class="header-section-number">4.3.1</span> Phase 1: Explore</a></li>
+  <li><a href="#phase-2-plan" id="toc-phase-2-plan" class="nav-link" data-scroll-target="#phase-2-plan"><span class="header-section-number">4.3.2</span> Phase 2: Plan</a></li>
+  <li><a href="#phase-3-implement" id="toc-phase-3-implement" class="nav-link" data-scroll-target="#phase-3-implement"><span class="header-section-number">4.3.3</span> Phase 3: Implement</a></li>
+  <li><a href="#phase-4-verify-commit" id="toc-phase-4-verify-commit" class="nav-link" data-scroll-target="#phase-4-verify-commit"><span class="header-section-number">4.3.4</span> Phase 4: Verify &amp; Commit</a></li>
+  <li><a href="#why-this-order-matters" id="toc-why-this-order-matters" class="nav-link" data-scroll-target="#why-this-order-matters"><span class="header-section-number">4.3.5</span> Why this order matters</a></li>
+  </ul></li>
+  <li><a href="#sec-extensions-choosing" id="toc-sec-extensions-choosing" class="nav-link" data-scroll-target="#sec-extensions-choosing"><span class="header-section-number">4.4</span> Choosing the Right Extension</a></li>
+  <li><a href="#sec-extensions-takeaways" id="toc-sec-extensions-takeaways" class="nav-link" data-scroll-target="#sec-extensions-takeaways"><span class="header-section-number">4.5</span> Key Takeaways</a></li>
+  <li><a href="#sec-extensions-concept-map" id="toc-sec-extensions-concept-map" class="nav-link" data-scroll-target="#sec-extensions-concept-map"><span class="header-section-number">4.6</span> Concept Map</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Extensions and Workflows</span></h1>
+<p class="subtitle lead">CLAUDE.md, Skills, MCP, Hooks, Subagents, and the 4-Phase Pattern</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>AI-Powered SE Tutorial </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">June 2, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>Claude Code’s power comes from five extension mechanisms — CLAUDE.md for always-on rules, Skills for reusable on-demand knowledge, MCP for external system integration, Hooks for deterministic automation, and Subagents for delegated parallel work. Combined with the 4-phase workflow pattern (Explore, Plan, Implement, Verify), these extensions turn a general-purpose agent into a specialized, project-aware engineering partner. This chapter covers when to use each type, the critical context cost rule, and the workflow pattern that produces the most reliable results.</p>
+  </div>
+</div>
+
+
+</header>
+
+
+<section id="sec-extensions-types" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="sec-extensions-types"><span class="header-section-number">4.1</span> The Five Extension Types</h2>
+<p>Claude Code has five extension mechanisms. The key decision factor is <strong>context cost</strong> — how much of your limited context window each extension consumes:</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A["CLAUDE.md"] --&gt; B["Always-on — high context cost"]
+    C["Skills"] --&gt; D["On-demand — cost only when used"]
+    E["MCP"] --&gt; F["External systems — live data"]
+    G["Hooks"] --&gt; H["Deterministic automation — zero cost"]
+    I["Subagents"] --&gt; J["Parallel work — own context"]
+    style A fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style C fill:#fef3c7,stroke:#92400e,color:#92400e
+    style E fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style G fill:#dcfce7,stroke:#166534,color:#166534
+    style I fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+</pre>
+</div>
+<p></p><figcaption> Five extension types — ordered by context cost</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Extension</th>
+<th>When loaded</th>
+<th>Best for</th>
+<th>Context cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>CLAUDE.md</strong></td>
+<td>Every session, automatically</td>
+<td>Project conventions, build/test commands, architecture rules</td>
+<td><strong>High</strong> — loads every session</td>
+</tr>
+<tr class="even">
+<td><strong>Skills</strong></td>
+<td>On demand, when triggered</td>
+<td>Complex procedures, specialized knowledge, templates</td>
+<td><strong>Medium</strong> — only when used</td>
+</tr>
+<tr class="odd">
+<td><strong>MCP</strong></td>
+<td>Connected at session start</td>
+<td>External systems, live data, APIs</td>
+<td><strong>Medium</strong> — tool defs loaded</td>
+</tr>
+<tr class="even">
+<td><strong>Hooks</strong></td>
+<td>Event-driven, automatic</td>
+<td>Deterministic automation (lint on save, format on commit)</td>
+<td><strong>Zero</strong> — runs outside context</td>
+</tr>
+<tr class="odd">
+<td><strong>Subagents</strong></td>
+<td>Spawned during execution</td>
+<td>Parallel tasks, independent research, code review</td>
+<td><strong>Separate</strong> — own context window</td>
+</tr>
+</tbody>
+</table>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>The Context Cost Rule:</strong> CLAUDE.md loads every session (high cost) | Skills only when used (medium cost) | Hooks zero cost. This is why CLAUDE.md must be short — every line consumes context in every session, even when irrelevant to the current task.</p>
+</div>
+</div>
+<section id="decision-guide" class="level3" data-number="4.1.1">
+<h3 data-number="4.1.1" class="anchored" data-anchor-id="decision-guide"><span class="header-section-number">4.1.1</span> Decision guide</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Situation</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Always-on, small, stable rules</td>
+<td><strong>CLAUDE.md</strong></td>
+</tr>
+<tr class="even">
+<td>On-demand, rich knowledge</td>
+<td><strong>Skill</strong></td>
+</tr>
+<tr class="odd">
+<td>External system integration</td>
+<td><strong>MCP</strong></td>
+</tr>
+<tr class="even">
+<td>Deterministic automation on events</td>
+<td><strong>Hook</strong></td>
+</tr>
+<tr class="odd">
+<td>Heavy research or parallel work</td>
+<td><strong>Subagent</strong></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="claude.md-the-constitution" class="level3" data-number="4.1.2">
+<h3 data-number="4.1.2" class="anchored" data-anchor-id="claude.md-the-constitution"><span class="header-section-number">4.1.2</span> CLAUDE.md — the constitution</h3>
+<p>CLAUDE.md is loaded into every session. It’s the project’s constitution — short, stable rules that rarely change. Claude Code looks for CLAUDE.md files at three levels:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Level</th>
+<th>Location</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>User</strong></td>
+<td><code>~/.claude/CLAUDE.md</code></td>
+<td>All your projects</td>
+</tr>
+<tr class="even">
+<td><strong>Project</strong></td>
+<td><code>./CLAUDE.md</code> (repo root)</td>
+<td>This project</td>
+</tr>
+<tr class="odd">
+<td><strong>Folder</strong></td>
+<td><code>./src/api/CLAUDE.md</code></td>
+<td>This directory tree</td>
+</tr>
+</tbody>
+</table>
+<p>All matching files are concatenated and injected into the system message. A typical project CLAUDE.md:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># Build &amp; Test</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`npm run build`</span> to compile</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`npm test`</span> to run vitest</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`npm run lint`</span> to check style</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu"># Conventions</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>TypeScript strict mode, no <span class="in">`any`</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>React components in PascalCase</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>API routes return <span class="in">`{ data, error }`</span> shape</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu"># Architecture</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>src/api/ — Express routes</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>src/components/ — React UI</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>src/lib/ — shared utilities</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Keep it short.</strong> Every line consumes context window space in every session, even when irrelevant to the current task. If a rule only applies to specific tasks, put it in a Skill instead.</p>
+<p><strong>Keep it stable.</strong> CLAUDE.md should change less often than your code. If you’re editing it every session, the content probably belongs in a Skill or in the session prompt itself.</p>
+<p>You can also use <code>.claude/rules/*.md</code> files for <strong>topic-scoped rules</strong> — each file has a <code>paths</code> frontmatter that controls when it’s loaded:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="an">paths:</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">  - "src/api/**/*.ts"</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>Always validate request body with Zod before processing.</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>Return 422 for validation errors, not 400.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Rules with <code>paths</code> load only when the agent is working with matching files — targeted context without the always-on cost of CLAUDE.md. Rules without <code>paths</code> load at session start (like a scoped CLAUDE.md).</p>
+</section>
+<section id="sec-skills" class="level3" data-number="4.1.3">
+<h3 data-number="4.1.3" class="anchored" data-anchor-id="sec-skills"><span class="header-section-number">4.1.3</span> Skills — reusable knowledge packs</h3>
+<p>Skills are loaded on demand — either explicitly by the user (<code>/skill-name</code>) or automatically when the agent recognizes a relevant trigger. Each skill lives in its own directory with a <code>SKILL.md</code> file:</p>
+<pre><code>.claude/skills/
+├── deploy/
+│   └── SKILL.md           # invoked as /deploy
+├── lecture-notes/
+│   ├── SKILL.md           # invoked as /lecture-notes
+│   └── templates/         # supporting files
+└── db-migration/
+    ├── SKILL.md           # invoked as /db-migration
+    └── reference.md       # detailed docs loaded by SKILL.md</code></pre>
+<p>The directory name becomes the command name. The <code>SKILL.md</code> file has YAML frontmatter that controls behavior:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="an">name:</span><span class="co"> deploy</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Deploy the app to staging or production.</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">  Use when the user asks to deploy, push to staging,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">  or release a new version."</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="an">allowed-tools:</span><span class="co"> Bash(npm *) Bash(git *)</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="fu">## Current state</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>!<span class="in">`git status --short`</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="fu">## Deployment Procedure</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Run the test suite: <span class="in">`npm test`</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Build the production bundle: <span class="in">`npm run build`</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Deploy: <span class="in">`npm run deploy -- --env $ARGUMENTS`</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Several things to notice here:</p>
+<ul>
+<li><strong><code>description</code></strong> drives both manual trigger (<code>/deploy</code>) and auto-trigger (user says “deploy to staging” and Claude matches the description)</li>
+<li><strong><code>allowed-tools</code></strong> auto-approves specific tools when this skill is active — no permission prompts for <code>npm</code> and <code>git</code> commands</li>
+<li><strong><code>!`command`</code></strong> runs a shell command <em>before</em> Claude sees the skill — the output is injected inline as context</li>
+<li><strong><code>$ARGUMENTS</code></strong> is replaced with whatever the user passes after the command (e.g., <code>/deploy staging</code> → <code>$ARGUMENTS</code> = <code>staging</code>)</li>
+</ul>
+<p>Key frontmatter fields:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>description</code></td>
+<td>When/why to use — drives auto-invocation</td>
+</tr>
+<tr class="even">
+<td><code>allowed-tools</code></td>
+<td>Tools auto-approved when skill is active</td>
+</tr>
+<tr class="odd">
+<td><code>paths</code></td>
+<td>Glob patterns limiting when skill auto-activates</td>
+</tr>
+<tr class="even">
+<td><code>disable-model-invocation</code></td>
+<td><code>true</code> = only the user can trigger, not Claude</td>
+</tr>
+<tr class="odd">
+<td><code>user-invocable</code></td>
+<td><code>false</code> = only Claude can trigger (background knowledge)</td>
+</tr>
+<tr class="even">
+<td><code>model</code></td>
+<td>Override which Claude model runs this skill</td>
+</tr>
+<tr class="odd">
+<td><code>effort</code></td>
+<td>Override reasoning depth (<code>low</code>, <code>medium</code>, <code>high</code>, <code>max</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Skills can also live at the personal level (<code>~/.claude/skills/</code>) to apply across all your projects.</p>
+<p>Skills are the <strong>playbooks</strong> of the Claude Code system. They encode complex procedures that would be too long for CLAUDE.md and too specific for the model’s general training:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Use case</th>
+<th>Why not CLAUDE.md?</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>How to deploy to production</td>
+<td>Too long, only needed occasionally</td>
+</tr>
+<tr class="even">
+<td>Database migration procedures</td>
+<td>Complex multi-step procedure</td>
+</tr>
+<tr class="odd">
+<td>How to write a specific type of test</td>
+<td>Template + rules, not always relevant</td>
+</tr>
+<tr class="even">
+<td>Framework-specific patterns</td>
+<td>Only needed when touching that part of the code</td>
+</tr>
+</tbody>
+</table>
+<p>The key benefit: a skill only consumes context when it’s actually needed. A 500-line deployment playbook in CLAUDE.md would waste context in every coding session. As a skill, it loads only when someone types <code>/deploy</code>.</p>
+</section>
+<section id="sec-mcp" class="level3" data-number="4.1.4">
+<h3 data-number="4.1.4" class="anchored" data-anchor-id="sec-mcp"><span class="header-section-number">4.1.4</span> MCP — external system integration</h3>
+<p>Model Context Protocol (MCP) connects Claude Code to external systems through a standardized tool interface. An MCP server is a process that exposes <strong>tools</strong> the agent can call — the same way built-in tools like <code>Read</code> and <code>Bash</code> work, but connected to external systems.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    C["Claude Code"] --&gt;|"tool call"| M1["MCP: Database"]
+    C --&gt;|"tool call"| M2["MCP: Gmail"]
+    C --&gt;|"tool call"| M3["MCP: Calendar"]
+    C --&gt;|"tool call"| M4["MCP: Slack"]
+    C --&gt;|"built-in"| B["Read / Edit / Bash"]
+    style C fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style M1 fill:#dcfce7,stroke:#166534,color:#166534
+    style M2 fill:#dcfce7,stroke:#166534,color:#166534
+    style M3 fill:#dcfce7,stroke:#166534,color:#166534
+    style M4 fill:#dcfce7,stroke:#166534,color:#166534
+    style B fill:#fef3c7,stroke:#92400e,color:#92400e
+</pre>
+</div>
+<p></p><figcaption> MCP servers expose tools that Claude Code calls like built-in tools</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+<p>MCP servers are configured in <code>.mcp.json</code> at the project root:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"mcpServers"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"postgres"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"stdio"</span><span class="fu">,</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"command"</span><span class="fu">:</span> <span class="st">"npx"</span><span class="fu">,</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"args"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"-y"</span><span class="ot">,</span> <span class="st">"@modelcontextprotocol/server-postgres"</span><span class="ot">,</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>               <span class="st">"postgresql://localhost:5432/mydb"</span><span class="ot">]</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"github"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"stdio"</span><span class="fu">,</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"command"</span><span class="fu">:</span> <span class="st">"npx"</span><span class="fu">,</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"args"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"-y"</span><span class="ot">,</span> <span class="st">"@modelcontextprotocol/server-github"</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"env"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"GITHUB_TOKEN"</span><span class="fu">:</span> <span class="st">"ghp_..."</span> <span class="fu">}</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The <code>type</code> field specifies the transport: <code>"stdio"</code> for local processes, <code>"http"</code> for remote servers. For user-scope MCP servers (available across all projects), configure them in <code>~/.claude.json</code> instead.</p>
+<p>Once configured, the MCP tools appear alongside built-in tools. The agent can call <code>mcp__postgres__query("SELECT * FROM users LIMIT 5")</code> the same way it calls <code>Read("config.py")</code>. From the LLM’s perspective, an MCP tool is just another tool in the message array — it doesn’t know or care that the tool connects to an external system.</p>
+<p><strong>Context cost:</strong> MCP tool <em>definitions</em> (name, description, parameter schema) are loaded at session start, so they consume context. The tool <em>results</em> accumulate in the message array like any other tool result. Choose MCP when the agent needs to interact with a running system, not just follow a procedure.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>MCP server</th>
+<th>What it provides</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Database (Postgres, SQLite)</td>
+<td>Query, insert, schema inspection</td>
+</tr>
+<tr class="even">
+<td>GitHub</td>
+<td>Issues, PRs, repo management</td>
+</tr>
+<tr class="odd">
+<td>Gmail / Calendar</td>
+<td>Read emails, create events</td>
+</tr>
+<tr class="even">
+<td>Slack</td>
+<td>Send messages, read channels</td>
+</tr>
+<tr class="odd">
+<td>File system</td>
+<td>Sandboxed file access for external dirs</td>
+</tr>
+<tr class="even">
+<td>Custom</td>
+<td>Any API you wrap in the MCP protocol</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="sec-hooks" class="level3" data-number="4.1.5">
+<h3 data-number="4.1.5" class="anchored" data-anchor-id="sec-hooks"><span class="header-section-number">4.1.5</span> Hooks — deterministic event automation</h3>
+<p>Hooks run shell commands in response to specific agent events — deterministic automation with <strong>zero context cost</strong>. They execute outside the agent’s context window entirely: the LLM never sees the hook configuration, never decides whether to run it, and never pays context tokens for it.</p>
+<p>The main hook events correspond to key points in the ReAct loop:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Hook</th>
+<th>When it fires</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>PreToolUse</code></td>
+<td>Before a tool executes</td>
+<td>Validate inputs, block dangerous commands</td>
+</tr>
+<tr class="even">
+<td><code>PostToolUse</code></td>
+<td>After a tool returns</td>
+<td>Auto-format, lint, log actions</td>
+</tr>
+<tr class="odd">
+<td><code>Stop</code></td>
+<td>When the agent finishes</td>
+<td>Validate final output, run checks</td>
+</tr>
+<tr class="even">
+<td><code>SessionStart</code></td>
+<td>Session begins</td>
+<td>Set environment, load context</td>
+</tr>
+</tbody>
+</table>
+<p>Hooks are configured in <code>.claude/settings.json</code>. Notice the three-level nesting — each event contains an array of matchers, and each matcher contains a <code>hooks</code> array of actions:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"hooks"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"PreToolUse"</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"matcher"</span><span class="fu">:</span> <span class="st">"Bash"</span><span class="fu">,</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"hooks"</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"command"</span><span class="fu">,</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>            <span class="dt">"command"</span><span class="fu">:</span> <span class="st">"python3 .claude/hooks/check_dangerous.py"</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"PostToolUse"</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"matcher"</span><span class="fu">:</span> <span class="st">"Edit"</span><span class="fu">,</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"hooks"</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"command"</span><span class="fu">,</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>            <span class="dt">"command"</span><span class="fu">:</span> <span class="st">"npx prettier --write"</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"Stop"</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"hooks"</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"command"</span><span class="fu">,</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>            <span class="dt">"command"</span><span class="fu">:</span> <span class="st">"npm test --silent"</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The <code>matcher</code> field controls which tool triggers the hook — <code>"Bash"</code> matches the Bash tool, <code>"Edit|Write"</code> matches either. The <code>Stop</code> event fires unconditionally (no matcher needed).</p>
+<p>How this works in practice:</p>
+<ol type="1">
+<li>The agent calls <code>Edit("src/app.tsx", ...)</code> to modify a file</li>
+<li>The framework executes the edit (tool runs normally)</li>
+<li>The <code>PostToolUse</code> hook fires — Prettier formats the file automatically</li>
+<li>The agent never knows Prettier ran — the file is just formatted</li>
+</ol>
+<p>The <strong>PreToolUse</strong> hook can <em>block</em> tool execution. If the hook script exits with a non-zero status, the tool call is rejected and the agent receives an error message. This is how you enforce hard safety rules:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># .claude/hooks/check_dangerous.py</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys, json</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>input_data <span class="op">=</span> json.load(sys.stdin)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>command <span class="op">=</span> input_data.get(<span class="st">"tool_input"</span>, {}).get(<span class="st">"command"</span>, <span class="st">""</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>blocked <span class="op">=</span> [<span class="st">"rm -rf /"</span>, <span class="st">"DROP TABLE"</span>, <span class="st">"format c:"</span>]</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">any</span>(b <span class="kw">in</span> command <span class="cf">for</span> b <span class="kw">in</span> blocked):</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"BLOCKED: dangerous command detected"</span>)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    sys.exit(<span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Hook scripts receive <strong>JSON on stdin</strong> with the event context (tool name, inputs, etc.) — that’s how the script above reads the command being executed.</p>
+<p>The critical distinction: <strong>hooks are deterministic, the agent is probabilistic</strong>. If something should <em>always</em> happen (format on edit, lint on commit, block <code>rm -rf</code>), use a hook. If it requires judgment (“should I refactor this function?”), use the agent.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    A["Agent calls tool"] --&gt; B{"PreToolUse hook?"}
+    B --&gt;|"Pass"| C["Tool executes"]
+    B --&gt;|"Block"| D["Agent gets rejection"]
+    C --&gt; E{"PostToolUse hook?"}
+    E --&gt; F["Hook runs (format, lint, log)"]
+    F --&gt; G["Result returns to agent"]
+    E --&gt;|"No hook"| G
+    G --&gt; H{"Agent done?"}
+    H --&gt;|"Yes"| I{"Stop hook?"}
+    I --&gt; J["Final validation"]
+    H --&gt;|"No"| A
+    style B fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style E fill:#dcfce7,stroke:#166534,color:#166534
+    style I fill:#fef3c7,stroke:#92400e,color:#92400e
+</pre>
+</div>
+<p></p><figcaption> Hooks fire at four points in the ReAct loop — outside the context window</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+</section>
+<section id="sec-subagents" class="level3" data-number="4.1.6">
+<h3 data-number="4.1.6" class="anchored" data-anchor-id="sec-subagents"><span class="header-section-number">4.1.6</span> Subagents — delegated workers</h3>
+<p>Subagents are separate agent instances spawned during a session. Each gets its own context window and runs its own ReAct loop independently. The parent agent communicates with subagents through the <code>Agent</code> tool:</p>
+<pre><code>Agent(
+  prompt="Search for how rate limiting is implemented
+          in src/api/. Report the pattern in under 100 words.",
+  allowed_tools=["Read", "Grep", "Glob"]
+)</code></pre>
+<p>The subagent runs its own loop — reads files, searches, reasons — then returns a single result message to the parent. The parent’s context window only sees the final summary, not the subagent’s entire exploration.</p>
+<p>Use subagents for:</p>
+<ul>
+<li><strong>Parallel research</strong> — “Compare three auth libraries” → spawn three subagents, each investigates one</li>
+<li><strong>Code review</strong> — spawn a reviewer agent to examine changes while you continue implementing</li>
+<li><strong>Independent tasks</strong> — “Update the README” → subagent handles it in its own context</li>
+<li><strong>Isolation</strong> — <code>isolation: "worktree"</code> gives the subagent a separate git worktree, preventing file conflicts</li>
+</ul>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Subagents have their own context windows. They don’t share the parent’s context — you must pass them the information they need explicitly. Think of spawning a subagent like delegating to a colleague who just walked into the room: brief them on what they need to know.</p>
+</div>
+</div>
+<p>Subagents connect directly to the <strong>Gas Town</strong> concept from Chapter 12 — multiple autonomous loops operating concurrently, each with its own bounded context. A parent with three subagents is a miniature Gas Town.</p>
+</section>
+</section>
+<section id="sec-harness" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="sec-harness"><span class="header-section-number">4.2</span> The Harness: All Five Together</h2>
+<p>Individually, each extension type solves a specific problem. Together, they form a <strong>harness</strong> — the complete configuration that turns a generic agent into a project-specific engineering partner:</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    H["The Harness"] --&gt; C["CLAUDE.md"]
+    H --&gt; S["Skills"]
+    H --&gt; M["MCP Servers"]
+    H --&gt; K["Hooks"]
+    H --&gt; A["Subagents"]
+    C --&gt;|"always loaded"| R["Agent's Context Window"]
+    S --&gt;|"loaded on demand"| R
+    M --&gt;|"tool defs loaded"| R
+    K --&gt;|"outside context"| E["Event-driven automation"]
+    A --&gt;|"own context"| W["Parallel workers"]
+    style H fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style C fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style S fill:#fef3c7,stroke:#92400e,color:#92400e
+    style M fill:#dcfce7,stroke:#166534,color:#166534
+    style K fill:#dcfce7,stroke:#166534,color:#166534
+    style A fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style R fill:#dbeafe,stroke:#1e40af,color:#1e40af
+</pre>
+</div>
+<p></p><figcaption> The harness — five extension types working together</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+<p>A well-configured harness means the agent already knows your conventions (CLAUDE.md), can follow complex procedures (Skills), can talk to your systems (MCP), enforces invariants automatically (Hooks), and can parallelize work (Subagents) — before you type a single prompt.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Configures</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>CLAUDE.md</code></td>
+<td>Project rules and conventions</td>
+</tr>
+<tr class="even">
+<td><code>.claude/rules/*.md</code></td>
+<td>Topic-scoped rules (path-gated)</td>
+</tr>
+<tr class="odd">
+<td><code>.claude/skills/*/SKILL.md</code></td>
+<td>On-demand playbooks</td>
+</tr>
+<tr class="even">
+<td><code>.claude/settings.json</code></td>
+<td>Hooks, permissions</td>
+</tr>
+<tr class="odd">
+<td><code>.mcp.json</code></td>
+<td>MCP server connections</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="sec-extensions-workflow" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="sec-extensions-workflow"><span class="header-section-number">4.3</span> The 4-Phase Workflow</h2>
+<p>For medium-to-large tasks, the most reliable pattern is a four-phase approach:</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    E["1. Explore"] --&gt; P["2. Plan"]
+    P --&gt; I["3. Implement"]
+    I --&gt; V["4. Verify &amp; Commit"]
+    style E fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style P fill:#dcfce7,stroke:#166534,color:#166534
+    style I fill:#fef3c7,stroke:#92400e,color:#92400e
+    style V fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+</pre>
+</div>
+<p></p><figcaption> 4-phase workflow — explore before you plan, plan before you implement</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+<section id="phase-1-explore" class="level3" data-number="4.3.1">
+<h3 data-number="4.3.1" class="anchored" data-anchor-id="phase-1-explore"><span class="header-section-number">4.3.1</span> Phase 1: Explore</h3>
+<p>Read the codebase. Understand the existing patterns. Find the files that matter. Don’t write any code yet.</p>
+<pre><code>Read the src/api/ directory and understand how existing endpoints
+are structured. Look at the pagination pattern in /api/orders.
+Check what ORM we use and how queries are built. Don't make any
+changes — just report what you find.</code></pre>
+<p>This phase fills the agent’s context with relevant information. The better the exploration, the better the plan.</p>
+</section>
+<section id="phase-2-plan" class="level3" data-number="4.3.2">
+<h3 data-number="4.3.2" class="anchored" data-anchor-id="phase-2-plan"><span class="header-section-number">4.3.2</span> Phase 2: Plan</h3>
+<p>Based on what was found, create a concrete plan. Specify which files to create or modify, what the changes will be, and how to verify them.</p>
+<pre><code>Based on what you found, create a plan for adding cursor-based
+pagination to /api/users. List the specific files to modify,
+the approach for each, and what tests to write. Don't implement
+yet — just plan.</code></pre>
+<p>Using <code>plan</code> permission mode here ensures the agent can’t accidentally start implementing before the plan is reviewed.</p>
+</section>
+<section id="phase-3-implement" class="level3" data-number="4.3.3">
+<h3 data-number="4.3.3" class="anchored" data-anchor-id="phase-3-implement"><span class="header-section-number">4.3.3</span> Phase 3: Implement</h3>
+<p>Execute the plan step by step. The agent has full context from phases 1 and 2 — it knows the codebase patterns, the specific plan, and the acceptance criteria.</p>
+<pre><code>Implement the plan. Follow the existing patterns you found in
+the orders endpoint. Write tests as you go.</code></pre>
+</section>
+<section id="phase-4-verify-commit" class="level3" data-number="4.3.4">
+<h3 data-number="4.3.4" class="anchored" data-anchor-id="phase-4-verify-commit"><span class="header-section-number">4.3.4</span> Phase 4: Verify &amp; Commit</h3>
+<p>Run the full test suite, check for linting issues, review the diff, and commit with a clear message.</p>
+<pre><code>Run the full test suite. If anything fails, fix it. Then run the
+linter. Review the full diff and make sure it follows our conventions.
+Commit with a descriptive message.</code></pre>
+</section>
+<section id="why-this-order-matters" class="level3" data-number="4.3.5">
+<h3 data-number="4.3.5" class="anchored" data-anchor-id="why-this-order-matters"><span class="header-section-number">4.3.5</span> Why this order matters</h3>
+<p>The 4-phase pattern prevents the most common failure mode: the agent starts writing code before it understands the codebase. Without exploration, it invents patterns instead of following existing ones. Without a plan, it makes architectural decisions on the fly that may contradict project conventions. The phases force a discipline that produces more consistent results.</p>
+</section>
+</section>
+<section id="sec-extensions-choosing" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="sec-extensions-choosing"><span class="header-section-number">4.4</span> Choosing the Right Extension</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Situation</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>“Always use tabs, not spaces”</td>
+<td>CLAUDE.md</td>
+</tr>
+<tr class="even">
+<td>“Here’s how to deploy to staging”</td>
+<td>Skill</td>
+</tr>
+<tr class="odd">
+<td>“Review these changes for security issues”</td>
+<td>Subagent</td>
+</tr>
+<tr class="even">
+<td>“Our API uses JSON:API format”</td>
+<td>CLAUDE.md</td>
+</tr>
+<tr class="odd">
+<td>“Generate a migration for adding a users table”</td>
+<td>Skill</td>
+</tr>
+<tr class="even">
+<td>“Research three auth libraries and compare them”</td>
+<td>Subagent (parallel)</td>
+</tr>
+<tr class="odd">
+<td>“Run <code>npm test</code> to verify changes”</td>
+<td>CLAUDE.md</td>
+</tr>
+<tr class="even">
+<td>“Follow this template for new React components”</td>
+<td>Skill</td>
+</tr>
+</tbody>
+</table>
+<p>The rule of thumb: if it’s short and applies to every session, it’s CLAUDE.md. If it’s a procedure or template, it’s a Skill. If it’s work that can happen independently, it’s a Subagent.</p>
+</section>
+<section id="sec-extensions-takeaways" class="level2" data-number="4.5">
+<h2 data-number="4.5" class="anchored" data-anchor-id="sec-extensions-takeaways"><span class="header-section-number">4.5</span> Key Takeaways</h2>
+<ul>
+<li>Five extension types form the <strong>harness</strong> — the configuration that makes a generic agent project-specific</li>
+<li><strong>CLAUDE.md</strong> is the constitution: short, stable, always loaded. Use <code>.claude/rules/*.md</code> for topic-scoped rules</li>
+<li><strong>Skills</strong> are lazy-loaded playbooks — complex procedures that only consume context when triggered</li>
+<li><strong>MCP</strong> connects to external systems (databases, APIs, email) — tools appear alongside built-in ones</li>
+<li><strong>Hooks</strong> are deterministic automation at zero context cost — format on edit, block dangerous commands, validate on stop</li>
+<li><strong>Subagents</strong> get their own context windows — the building block of Gas Town</li>
+<li>The hooks vs.&nbsp;agent distinction matters: deterministic invariants → hook; judgment required → agent</li>
+<li>The 4-phase workflow (Explore → Plan → Implement → Verify) prevents the most common failure mode: coding before understanding</li>
+</ul>
+</section>
+<section id="sec-extensions-concept-map" class="level2" data-number="4.6">
+<h2 data-number="4.6" class="anchored" data-anchor-id="sec-extensions-concept-map"><span class="header-section-number">4.6</span> Concept Map</h2>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    A["The Harness"] --&gt; B["CLAUDE.md — Always loaded"]
+    A --&gt; C["Skills — On demand"]
+    A --&gt; M["MCP — External systems"]
+    A --&gt; K["Hooks — Zero cost automation"]
+    A --&gt; D["Subagents — Parallel workers"]
+    B --&gt; CTX["Context Window"]
+    C --&gt; CTX
+    M --&gt; CTX
+    K --&gt;|"outside context"| EVT["Event-driven"]
+    D --&gt;|"own context"| GT["Gas Town"]
+    CTX --&gt; R["ReAct Loop"]
+    EVT --&gt; R
+    W["4-Phase Workflow"] --&gt; E1["Explore"]
+    E1 --&gt; E2["Plan"]
+    E2 --&gt; E3["Implement"]
+    E3 --&gt; E4["Verify"]
+    style A fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style B fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    style C fill:#fef3c7,stroke:#92400e,color:#92400e
+    style M fill:#dcfce7,stroke:#166534,color:#166534
+    style K fill:#dcfce7,stroke:#166534,color:#166534
+    style D fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style R fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style W fill:#fce7f3,stroke:#9d174d,color:#9d174d
+</pre>
+</div>
+<p></p><figcaption> The harness — five extension types and how they relate</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../chapters/ch03-sessions-memory.html" class="pagination-link" aria-label="Sessions, Context, and Memory">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Sessions, Context, and Memory</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../chapters/ch05-agent-sdk.html" class="pagination-link" aria-label="Building with the Agent SDK">
+        <span class="nav-page-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Building with the Agent SDK</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

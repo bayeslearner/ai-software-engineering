@@ -1,0 +1,2051 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="AI-Powered SE Tutorial">
+<meta name="dcterms.date" content="2026-06-02">
+
+<title>7&nbsp; Building Agents from Scratch — Then Shipping Them – AI-Powered Software Engineering</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../chapters/ch08-production-frameworks.html" rel="next">
+<link href="../chapters/ch06-build-agent.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-48abc47ddc2cbc14860ddec9e9fdb395.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<meta name="mermaid-theme" content="default">
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../chapters/ch07-pocketflow.html"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Building Agents from Scratch — Then Shipping Them</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">AI-Powered Software Engineering</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch01-core-thesis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">The Core Thesis</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch02-react-loop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">The ReAct Loop</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch03-sessions-memory.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Sessions, Context, and Memory</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch04-extensions-workflows.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Extensions and Workflows</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch05-agent-sdk.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Building with the Agent SDK</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch06-build-agent.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Build a Claude Code Clone</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch07-pocketflow.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Building Agents from Scratch — Then Shipping Them</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch08-production-frameworks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Production Agent Platforms for Python</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch09-mastra.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Mastra: TypeScript Agents, End to End</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch10-ralph-loop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch11-economics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Economic Shock</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch12-gas-town.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Scaling Up</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch13-career.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Career &amp; What's Next</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#sec-pf-why" id="toc-sec-pf-why" class="nav-link active" data-scroll-target="#sec-pf-why"><span class="header-section-number">7.1</span> Why Build from Scratch?</a></li>
+  <li><a href="#sec-pf-model" id="toc-sec-pf-model" class="nav-link" data-scroll-target="#sec-pf-model"><span class="header-section-number">7.2</span> The Core Model: Graph + Shared Store</a>
+  <ul class="collapse">
+  <li><a href="#the-node-lifecycle" id="toc-the-node-lifecycle" class="nav-link" data-scroll-target="#the-node-lifecycle"><span class="header-section-number">7.2.1</span> The Node lifecycle</a></li>
+  <li><a href="#connecting-nodes-into-flows" id="toc-connecting-nodes-into-flows" class="nav-link" data-scroll-target="#connecting-nodes-into-flows"><span class="header-section-number">7.2.2</span> Connecting nodes into flows</a></li>
+  </ul></li>
+  <li><a href="#sec-pf-workflow" id="toc-sec-pf-workflow" class="nav-link" data-scroll-target="#sec-pf-workflow"><span class="header-section-number">7.3</span> Pattern 1: Workflow (Prompt Chaining)</a></li>
+  <li><a href="#sec-pf-agent" id="toc-sec-pf-agent" class="nav-link" data-scroll-target="#sec-pf-agent"><span class="header-section-number">7.4</span> Pattern 2: Agent (ReAct Loop)</a>
+  <ul class="collapse">
+  <li><a href="#the-decision-node-should-i-act-or-respond" id="toc-the-decision-node-should-i-act-or-respond" class="nav-link" data-scroll-target="#the-decision-node-should-i-act-or-respond"><span class="header-section-number">7.4.1</span> The decision node — “should I act or respond?”</a></li>
+  <li><a href="#the-action-node-executing-the-tool" id="toc-the-action-node-executing-the-tool" class="nav-link" data-scroll-target="#the-action-node-executing-the-tool"><span class="header-section-number">7.4.2</span> The action node — executing the tool</a></li>
+  <li><a href="#the-terminal-node-producing-the-final-answer" id="toc-the-terminal-node-producing-the-final-answer" class="nav-link" data-scroll-target="#the-terminal-node-producing-the-final-answer"><span class="header-section-number">7.4.3</span> The terminal node — producing the final answer</a></li>
+  <li><a href="#wiring-it-together" id="toc-wiring-it-together" class="nav-link" data-scroll-target="#wiring-it-together"><span class="header-section-number">7.4.4</span> Wiring it together</a></li>
+  <li><a href="#map-to-the-react-loop" id="toc-map-to-the-react-loop" class="nav-link" data-scroll-target="#map-to-the-react-loop"><span class="header-section-number">7.4.5</span> Map to the ReAct loop</a></li>
+  </ul></li>
+  <li><a href="#sec-pf-rag" id="toc-sec-pf-rag" class="nav-link" data-scroll-target="#sec-pf-rag"><span class="header-section-number">7.5</span> Pattern 3: RAG (Retrieval-Augmented Generation)</a>
+  <ul class="collapse">
+  <li><a href="#offline-flow-chunking-and-indexing" id="toc-offline-flow-chunking-and-indexing" class="nav-link" data-scroll-target="#offline-flow-chunking-and-indexing"><span class="header-section-number">7.5.1</span> Offline flow: chunking and indexing</a></li>
+  <li><a href="#online-flow-retrieve-and-answer" id="toc-online-flow-retrieve-and-answer" class="nav-link" data-scroll-target="#online-flow-retrieve-and-answer"><span class="header-section-number">7.5.2</span> Online flow: retrieve and answer</a></li>
+  <li><a href="#running-both-flows" id="toc-running-both-flows" class="nav-link" data-scroll-target="#running-both-flows"><span class="header-section-number">7.5.3</span> Running both flows</a></li>
+  </ul></li>
+  <li><a href="#sec-pf-design" id="toc-sec-pf-design" class="nav-link" data-scroll-target="#sec-pf-design"><span class="header-section-number">7.6</span> The Design Is the Hard Part</a></li>
+  <li><a href="#sec-pf-comparison" id="toc-sec-pf-comparison" class="nav-link" data-scroll-target="#sec-pf-comparison"><span class="header-section-number">7.7</span> Comparison: PocketFlow vs.&nbsp;Agent SDK</a></li>
+  <li><a href="#sec-prod-pressures" id="toc-sec-prod-pressures" class="nav-link" data-scroll-target="#sec-prod-pressures"><span class="header-section-number">7.8</span> When PocketFlow Stops Being Enough</a></li>
+  <li><a href="#sec-prod-burr" id="toc-sec-prod-burr" class="nav-link" data-scroll-target="#sec-prod-burr"><span class="header-section-number">7.9</span> Burr + Pydantic: Typed FSM with Replay</a>
+  <ul class="collapse">
+  <li><a href="#the-core-api" id="toc-the-core-api" class="nav-link" data-scroll-target="#the-core-api"><span class="header-section-number">7.9.1</span> The core API</a></li>
+  <li><a href="#sec-prod-burr-pydantic" id="toc-sec-prod-burr-pydantic" class="nav-link" data-scroll-target="#sec-prod-burr-pydantic"><span class="header-section-number">7.9.2</span> Typed state with Pydantic</a></li>
+  <li><a href="#sec-prod-burr-transitions" id="toc-sec-prod-burr-transitions" class="nav-link" data-scroll-target="#sec-prod-burr-transitions"><span class="header-section-number">7.9.3</span> Transitions: the edges of the FSM</a></li>
+  <li><a href="#sec-prod-burr-replay" id="toc-sec-prod-burr-replay" class="nav-link" data-scroll-target="#sec-prod-burr-replay"><span class="header-section-number">7.9.4</span> State persistence and fork-from-state</a></li>
+  <li><a href="#sec-prod-burr-ui" id="toc-sec-prod-burr-ui" class="nav-link" data-scroll-target="#sec-prod-burr-ui"><span class="header-section-number">7.9.5</span> The Burr UI</a></li>
+  <li><a href="#sec-prod-burr-hamilton" id="toc-sec-prod-burr-hamilton" class="nav-link" data-scroll-target="#sec-prod-burr-hamilton"><span class="header-section-number">7.9.6</span> Hamilton as the sibling</a></li>
+  </ul></li>
+  <li><a href="#sec-prod-burr-example" id="toc-sec-prod-burr-example" class="nav-link" data-scroll-target="#sec-prod-burr-example"><span class="header-section-number">7.10</span> Worked Example: Q&amp;A Agent in Burr + Pydantic</a>
+  <ul class="collapse">
+  <li><a href="#the-state-schema" id="toc-the-state-schema" class="nav-link" data-scroll-target="#the-state-schema"><span class="header-section-number">7.10.1</span> The state schema</a></li>
+  <li><a href="#three-typed-actions" id="toc-three-typed-actions" class="nav-link" data-scroll-target="#three-typed-actions"><span class="header-section-number">7.10.2</span> Three typed actions</a></li>
+  <li><a href="#transitions-and-persistence" id="toc-transitions-and-persistence" class="nav-link" data-scroll-target="#transitions-and-persistence"><span class="header-section-number">7.10.3</span> Transitions and persistence</a></li>
+  <li><a href="#what-you-gained-over-pocketflow" id="toc-what-you-gained-over-pocketflow" class="nav-link" data-scroll-target="#what-you-gained-over-pocketflow"><span class="header-section-number">7.10.4</span> What you gained over PocketFlow</a></li>
+  </ul></li>
+  <li><a href="#sec-prod-ralph" id="toc-sec-prod-ralph" class="nav-link" data-scroll-target="#sec-prod-ralph"><span class="header-section-number">7.11</span> Forward Link: From Typed State to the Ralph Loop</a></li>
+  <li><a href="#sec-pf-takeaways" id="toc-sec-pf-takeaways" class="nav-link" data-scroll-target="#sec-pf-takeaways"><span class="header-section-number">7.12</span> Key Takeaways</a></li>
+  <li><a href="#sec-pf-concept-map" id="toc-sec-pf-concept-map" class="nav-link" data-scroll-target="#sec-pf-concept-map"><span class="header-section-number">7.13</span> Concept Map</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Building Agents from Scratch — Then Shipping Them</span></h1>
+<p class="subtitle lead">PocketFlow’s 100-Line Framework and Burr + Pydantic’s Production Guardrails</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>AI-Powered SE Tutorial </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">June 2, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>Chapters 5 and 6 showed how to embed and build Claude’s loop — but it’s still Claude’s loop. What if you want to build agents with any LLM, any tools, any orchestration logic? PocketFlow proves this takes ~100 lines of code. Its minimalist Graph + Shared Store model strips agents to their essence: nodes that prep, execute, and post-process, connected by action edges. This chapter builds three patterns (workflow, agent, RAG) in PocketFlow, showing that the hard part was never the framework — it was the design. Then it graduates to the production version of the same model: <strong>Burr + Pydantic</strong> replaces the mutable shared dict with typed state, immutable snapshots, and fork-from-state replay — the guardrails that turn a learning exercise into a deployable system.</p>
+  </div>
+</div>
+
+
+</header>
+
+
+<section id="sec-pf-why" class="level2" data-number="7.1">
+<h2 data-number="7.1" class="anchored" data-anchor-id="sec-pf-why"><span class="header-section-number">7.1</span> Why Build from Scratch?</h2>
+<p>Chapters 2–6 explained how agents work — conceptually (Chapters 2–4), via the SDK (Chapter 5), and by building a clone from scratch (Chapter 6). But all of those are Claude-specific. What about:</p>
+<ul>
+<li>Using a different LLM (Llama, Gemini, Mistral)?</li>
+<li>Building a custom orchestration pattern that doesn’t fit the ReAct mold?</li>
+<li>Understanding what’s <em>really</em> happening underneath the abstractions?</li>
+</ul>
+<p><a href="https://the-pocket.github.io/PocketFlow/">PocketFlow</a> answers all three. It’s a ~100-line Python framework with zero dependencies that implements the same patterns as LangChain/LangGraph — agents, workflows, RAG, multi-agent systems — but with the machinery fully visible. No magic, no hidden state, no vendor lock-in.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>PocketFlow has 10,000+ GitHub stars and an active community. It’s not a toy — it’s a deliberately minimal framework that proves sophisticated agent patterns don’t require sophisticated infrastructure.</p>
+</div>
+</div>
+</section>
+<section id="sec-pf-model" class="level2" data-number="7.2">
+<h2 data-number="7.2" class="anchored" data-anchor-id="sec-pf-model"><span class="header-section-number">7.2</span> The Core Model: Graph + Shared Store</h2>
+<p>PocketFlow has exactly two concepts:</p>
+<ol type="1">
+<li><strong>Node</strong> — a unit of work with three steps: <code>prep()</code> → <code>exec()</code> → <code>post()</code></li>
+<li><strong>Flow</strong> — a directed graph of nodes connected by labeled edges (actions)</li>
+</ol>
+<p>Nodes communicate through a <strong>shared store</strong> — a dictionary that all nodes can read and write. That’s the entire framework.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    S["Shared Store (dict)"] -.-&gt;|"prep() reads"| N1["Node A"]
+    N1 --&gt;|"action: default"| N2["Node B"]
+    N1 --&gt;|"action: retry"| N1
+    N2 --&gt;|"action: done"| N3["Node C"]
+    N3 -.-&gt;|"post() writes"| S
+    style S fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style N1 fill:#dcfce7,stroke:#166534,color:#166534
+    style N2 fill:#fef3c7,stroke:#92400e,color:#92400e
+    style N3 fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+</pre>
+</div>
+<p></p><figcaption> PocketFlow’s architecture — nodes connected by action edges, communicating via shared store</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+<section id="the-node-lifecycle" class="level3" data-number="7.2.1">
+<h3 data-number="7.2.1" class="anchored" data-anchor-id="the-node-lifecycle"><span class="header-section-number">7.2.1</span> The Node lifecycle</h3>
+<p>Every node follows the same three-step pattern:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Step</th>
+<th>Purpose</th>
+<th>Has access to</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>prep(shared)</code></td>
+<td>Read data from shared store</td>
+<td>Shared store (read)</td>
+</tr>
+<tr class="even">
+<td><code>exec(prep_res)</code></td>
+<td>Do the work (LLM call, API call, computation)</td>
+<td>Only prep’s output</td>
+</tr>
+<tr class="odd">
+<td><code>post(shared, prep_res, exec_res)</code></td>
+<td>Write results back, decide next action</td>
+<td>Shared store (write)</td>
+</tr>
+</tbody>
+</table>
+<p>The critical design constraint: <strong><code>exec()</code> cannot access the shared store.</strong> This separation means <code>exec()</code> is pure computation — idempotent, retriable, testable in isolation.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pocketflow <span class="im">import</span> Node, Flow</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Summarize(Node):</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"document"</span>]          <span class="co"># Read from store</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, text):</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> call_llm(<span class="ss">f"Summarize: </span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">"</span>)  <span class="co"># Pure computation</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"summary"</span>] <span class="op">=</span> exec_res       <span class="co"># Write to store</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"default"</span>                   <span class="co"># Next action (edge label)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="callout callout-style-default callout-tip callout-titled" title="Why exec() can't touch the shared store">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Why exec() can’t touch the shared store
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>This isn’t arbitrary — it enables <strong>automatic retries</strong>. If an LLM call fails (rate limit, network timeout), PocketFlow can re-run <code>exec()</code> without fear of corrupting state. Since <code>exec()</code> only sees <code>prep_res</code> (a snapshot), retrying it is safe — it’s a pure function over its input. If <code>exec()</code> could write to the shared store, a failed-then-retried call might write partial results twice.</p>
+<p>This is the same principle as database transactions: separate the read (prep), the computation (exec), and the write (post) so failures at any stage are recoverable.</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled" title="What the return value from post() does">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>What the return value from post() does
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The string returned by <code>post()</code> is the <strong>routing decision</strong> — it selects which outgoing edge to follow. <code>return "default"</code> follows the <code>&gt;&gt;</code> edge. <code>return "error"</code> follows the <code>- "error" &gt;&gt;</code> edge. <code>return None</code> also means <code>"default"</code>. If you return a string that has no matching edge, <strong>the flow stops</strong> — that’s how terminal nodes work (no outgoing edges means “done”).</p>
+<p>This is PocketFlow’s equivalent of Chapter 6’s <code>stop_reason</code> check. Instead of <code>if response.stop_reason != "tool_use"</code>, the graph structure itself encodes when to stop.</p>
+</div>
+</div>
+</section>
+<section id="connecting-nodes-into-flows" class="level3" data-number="7.2.2">
+<h3 data-number="7.2.2" class="anchored" data-anchor-id="connecting-nodes-into-flows"><span class="header-section-number">7.2.2</span> Connecting nodes into flows</h3>
+<p>Nodes connect with <code>&gt;&gt;</code> (default edge) or <code>- "action" &gt;&gt;</code> (named edge):</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>node_a <span class="op">&gt;&gt;</span> node_b                    <span class="co"># default transition</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>node_a <span class="op">-</span> <span class="st">"error"</span> <span class="op">&gt;&gt;</span> error_handler   <span class="co"># named transition</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>node_a <span class="op">-</span> <span class="st">"retry"</span> <span class="op">&gt;&gt;</span> node_a          <span class="co"># self-loop</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>A <code>Flow</code> starts at a designated node and follows edges until there’s nowhere to go:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>flow <span class="op">=</span> Flow(start<span class="op">=</span>node_a)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>flow.run({<span class="st">"document"</span>: <span class="st">"..."</span>, <span class="st">"summary"</span>: <span class="va">None</span>})</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="callout callout-style-default callout-tip callout-titled" title="How >> works — operator overloading">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>How &gt;&gt; works — operator overloading
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The <code>&gt;&gt;</code> syntax is Python <strong>operator overloading</strong> — PocketFlow’s <code>Node</code> class defines <code>__rshift__</code> to register edges. Similarly, <code>node_a - "error"</code> overloads <code>__sub__</code> to create a temporary edge-builder that waits for <code>&gt;&gt;</code>. Under the hood, this just builds an adjacency list: <code>{node_a: {"default": node_b, "error": error_handler, "retry": node_a}}</code>. The <code>Flow</code> walks this adjacency list at runtime.</p>
+<p>The <code>self-loop</code> (<code>node_a - "retry" &gt;&gt; node_a</code>) is how you create retry behavior without <code>while True</code>. The node’s <code>post()</code> returns <code>"retry"</code> when it wants another attempt, and the graph routes back to itself. After success, it returns <code>"default"</code> and moves forward.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-pf-workflow" class="level2" data-number="7.3">
+<h2 data-number="7.3" class="anchored" data-anchor-id="sec-pf-workflow"><span class="header-section-number">7.3</span> Pattern 1: Workflow (Prompt Chaining)</h2>
+<p>The simplest pattern — nodes execute sequentially, each transforming the shared state. Let’s trace how data flows through three nodes:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-4"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-4-1"><a href="#annotated-cell-4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pocketflow <span class="im">import</span> Node, Flow</span>
+<span id="annotated-cell-4-2"><a href="#annotated-cell-4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-4-3"><a href="#annotated-cell-4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> call_llm(prompt):</span>
+<span id="annotated-cell-4-4"><a href="#annotated-cell-4-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Your LLM wrapper — any provider, any model."""</span></span>
+<span id="annotated-cell-4-5"><a href="#annotated-cell-4-5" aria-hidden="true" tabindex="-1"></a>    ...  <span class="co"># OpenAI, Anthropic, Ollama, etc.</span></span>
+<span id="annotated-cell-4-6"><a href="#annotated-cell-4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-4-7"><a href="#annotated-cell-4-7" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> GenerateOutline(Node):</span>
+<span id="annotated-cell-4-8"><a href="#annotated-cell-4-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-4-9" class="code-annotation-target"><a href="#annotated-cell-4-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"topic"</span>]</span>
+<span id="annotated-cell-4-10"><a href="#annotated-cell-4-10" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-4-11" class="code-annotation-target"><a href="#annotated-cell-4-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, topic):</span>
+<span id="annotated-cell-4-12"><a href="#annotated-cell-4-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> call_llm(<span class="ss">f"Create a 5-point outline for: </span><span class="sc">{</span>topic<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="annotated-cell-4-13"><a href="#annotated-cell-4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-4-14"><a href="#annotated-cell-4-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-4-15" class="code-annotation-target"><a href="#annotated-cell-4-15" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"outline"</span>] <span class="op">=</span> exec_res</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-4" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-4" data-code-lines="9" data-code-annotation="1"><strong>Reads</strong> the topic from the shared store — this is the only data the node needs.</span>
+</dd>
+<dt data-target-cell="annotated-cell-4" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-4" data-code-lines="11" data-code-annotation="2"><strong>Computes</strong> — <code>exec</code> receives <code>"Why context engineering matters"</code> (whatever <code>prep</code> returned), calls the LLM, and returns the outline. It has no idea about the shared store.</span>
+</dd>
+<dt data-target-cell="annotated-cell-4" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-4" data-code-lines="15" data-code-annotation="3"><strong>Writes</strong> the outline back — now <code>shared["outline"]</code> exists for the next node. No explicit return means <code>"default"</code> → follow the <code>&gt;&gt;</code> edge.</span>
+</dd>
+</dl>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-5"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-5-1"><a href="#annotated-cell-5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> WriteDraft(Node):</span>
+<span id="annotated-cell-5-2"><a href="#annotated-cell-5-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-5" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-5-3" class="code-annotation-target"><a href="#annotated-cell-5-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"outline"</span>]</span>
+<span id="annotated-cell-5-4"><a href="#annotated-cell-5-4" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-5" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-5-5" class="code-annotation-target"><a href="#annotated-cell-5-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, outline):</span>
+<span id="annotated-cell-5-6"><a href="#annotated-cell-5-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> call_llm(<span class="ss">f"Write a 200-word article following this outline:</span><span class="ch">\n</span><span class="sc">{</span>outline<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="annotated-cell-5-7"><a href="#annotated-cell-5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-5-8"><a href="#annotated-cell-5-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-5" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-5-9" class="code-annotation-target"><a href="#annotated-cell-5-9" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"draft"</span>] <span class="op">=</span> exec_res</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-5" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-5" data-code-lines="3" data-code-annotation="1"><strong>Reads</strong> the outline that <code>GenerateOutline</code> just wrote — nodes communicate only through the shared store, never directly.</span>
+</dd>
+<dt data-target-cell="annotated-cell-5" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-5" data-code-lines="5" data-code-annotation="2"><strong>Different LLM call, different prompt</strong> — each node is a focused task with a single responsibility.</span>
+</dd>
+<dt data-target-cell="annotated-cell-5" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-5" data-code-lines="9" data-code-annotation="3"><strong>Writes</strong> the draft for the next node to consume.</span>
+</dd>
+</dl>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ReviewDraft(Node):</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"draft"</span>]</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, draft):</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> call_llm(<span class="ss">f"Review this draft. List 3 improvements:</span><span class="ch">\n</span><span class="sc">{</span>draft<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"review"</span>] <span class="op">=</span> exec_res</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Now wire them into a sequential flow:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-7"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-7-1"><a href="#annotated-cell-7-1" aria-hidden="true" tabindex="-1"></a>outline <span class="op">=</span> GenerateOutline()</span>
+<span id="annotated-cell-7-2"><a href="#annotated-cell-7-2" aria-hidden="true" tabindex="-1"></a>write <span class="op">=</span> WriteDraft()</span>
+<span id="annotated-cell-7-3"><a href="#annotated-cell-7-3" aria-hidden="true" tabindex="-1"></a>review <span class="op">=</span> ReviewDraft()</span>
+<span id="annotated-cell-7-4"><a href="#annotated-cell-7-4" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-7" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-7-5" class="code-annotation-target"><a href="#annotated-cell-7-5" aria-hidden="true" tabindex="-1"></a>outline <span class="op">&gt;&gt;</span> write <span class="op">&gt;&gt;</span> review</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-7" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-7-6" class="code-annotation-target"><a href="#annotated-cell-7-6" aria-hidden="true" tabindex="-1"></a>pipeline <span class="op">=</span> Flow(start<span class="op">=</span>outline)</span>
+<span id="annotated-cell-7-7"><a href="#annotated-cell-7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-7-8"><a href="#annotated-cell-7-8" aria-hidden="true" tabindex="-1"></a>shared <span class="op">=</span> {<span class="st">"topic"</span>: <span class="st">"Why context engineering matters for AI agents"</span>}</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-7" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-7-9" class="code-annotation-target"><a href="#annotated-cell-7-9" aria-hidden="true" tabindex="-1"></a>pipeline.run(shared)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-7" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-7-10" class="code-annotation-target"><a href="#annotated-cell-7-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(shared[<span class="st">"review"</span>])</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-7" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-7" data-code-lines="5" data-code-annotation="1"><strong><code>&gt;&gt;</code></strong> chains nodes with default edges — after <code>outline</code> completes, the flow moves to <code>write</code>, then <code>review</code>.</span>
+</dd>
+<dt data-target-cell="annotated-cell-7" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-7" data-code-lines="6" data-code-annotation="2"><strong><code>Flow(start=...)</code></strong> designates where execution begins. The flow follows edges until it reaches a node with no outgoing edge.</span>
+</dd>
+<dt data-target-cell="annotated-cell-7" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-7" data-code-lines="9" data-code-annotation="3"><strong><code>run(shared)</code></strong> executes the full pipeline — all three nodes run in sequence, each reading what the previous one wrote.</span>
+</dd>
+<dt data-target-cell="annotated-cell-7" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-7" data-code-lines="10" data-code-annotation="4"><strong>Results live in the shared dict</strong> — after <code>run()</code> completes, <code>shared</code> contains <code>"topic"</code>, <code>"outline"</code>, <code>"draft"</code>, and <code>"review"</code>. The entire pipeline’s intermediate state is inspectable.</span>
+</dd>
+</dl>
+<p>This is prompt chaining — the same pattern from Chapter 2, but now you’re building the pipeline yourself. Each node is a focused LLM call. Data flows through the shared store rather than through the message array.</p>
+</section>
+<section id="sec-pf-agent" class="level2" data-number="7.4">
+<h2 data-number="7.4" class="anchored" data-anchor-id="sec-pf-agent"><span class="header-section-number">7.4</span> Pattern 2: Agent (ReAct Loop)</h2>
+<p>The agent pattern adds <strong>branching and looping</strong>. A decision node evaluates context and returns an action label that routes the flow — exactly the “text or tool call?” decision from Chapter 2, but explicit. Let’s build it piece by piece.</p>
+<section id="the-decision-node-should-i-act-or-respond" class="level3" data-number="7.4.1">
+<h3 data-number="7.4.1" class="anchored" data-anchor-id="the-decision-node-should-i-act-or-respond"><span class="header-section-number">7.4.1</span> The decision node — “should I act or respond?”</h3>
+<p>This is the brain of the agent. It reads the current context and decides what to do next:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-8"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-8-1"><a href="#annotated-cell-8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> yaml</span>
+<span id="annotated-cell-8-2"><a href="#annotated-cell-8-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pocketflow <span class="im">import</span> Node, Flow</span>
+<span id="annotated-cell-8-3"><a href="#annotated-cell-8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-8-4"><a href="#annotated-cell-8-4" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> DecideAction(Node):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-8" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-8-5" class="code-annotation-target"><a href="#annotated-cell-8-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<span id="annotated-cell-8-6"><a href="#annotated-cell-8-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"query"</span>], shared.get(<span class="st">"context"</span>, <span class="st">"No results yet"</span>)</span>
+<span id="annotated-cell-8-7"><a href="#annotated-cell-8-7" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-8" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-8-8" class="code-annotation-target"><a href="#annotated-cell-8-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, inputs):</span>
+<span id="annotated-cell-8-9"><a href="#annotated-cell-8-9" aria-hidden="true" tabindex="-1"></a>        query, context <span class="op">=</span> inputs</span>
+<span id="annotated-cell-8-10"><a href="#annotated-cell-8-10" aria-hidden="true" tabindex="-1"></a>        prompt <span class="op">=</span> <span class="ss">f"""Given this question: </span><span class="sc">{</span>query<span class="sc">}</span></span>
+<span id="annotated-cell-8-11"><a href="#annotated-cell-8-11" aria-hidden="true" tabindex="-1"></a><span class="ss">Previous search results: </span><span class="sc">{</span>context<span class="sc">}</span></span>
+<span id="annotated-cell-8-12"><a href="#annotated-cell-8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-8-13"><a href="#annotated-cell-8-13" aria-hidden="true" tabindex="-1"></a><span class="ss">Should I: (1) search the web for more info, or (2) answer with current knowledge?</span></span>
+<span id="annotated-cell-8-14"><a href="#annotated-cell-8-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-8-15"><a href="#annotated-cell-8-15" aria-hidden="true" tabindex="-1"></a><span class="ss">Return YAML:</span></span>
+<span id="annotated-cell-8-16"><a href="#annotated-cell-8-16" aria-hidden="true" tabindex="-1"></a><span class="ss">```yaml</span></span>
+<span id="annotated-cell-8-17"><a href="#annotated-cell-8-17" aria-hidden="true" tabindex="-1"></a><span class="ss">action: search or answer</span></span>
+<span id="annotated-cell-8-18"><a href="#annotated-cell-8-18" aria-hidden="true" tabindex="-1"></a><span class="ss">search_term: phrase to search (if action is search)</span></span>
+<span id="annotated-cell-8-19"><a href="#annotated-cell-8-19" aria-hidden="true" tabindex="-1"></a><span class="ss">```"""</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-8" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-8-20" class="code-annotation-target"><a href="#annotated-cell-8-20" aria-hidden="true" tabindex="-1"></a>        resp <span class="op">=</span> call_llm(prompt)</span>
+<span id="annotated-cell-8-21"><a href="#annotated-cell-8-21" aria-hidden="true" tabindex="-1"></a>        yaml_str <span class="op">=</span> resp.split(<span class="st">"```yaml"</span>)[<span class="dv">1</span>].split(<span class="st">"```"</span>)[<span class="dv">0</span>].strip()</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-8" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-8-22" class="code-annotation-target"><a href="#annotated-cell-8-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> yaml.safe_load(yaml_str)</span>
+<span id="annotated-cell-8-23"><a href="#annotated-cell-8-23" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-8" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-8-24" class="code-annotation-target"><a href="#annotated-cell-8-24" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<span id="annotated-cell-8-25"><a href="#annotated-cell-8-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> exec_res[<span class="st">"action"</span>] <span class="op">==</span> <span class="st">"search"</span>:</span>
+<span id="annotated-cell-8-26"><a href="#annotated-cell-8-26" aria-hidden="true" tabindex="-1"></a>            shared[<span class="st">"search_term"</span>] <span class="op">=</span> exec_res[<span class="st">"search_term"</span>]</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-8" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-8-27" class="code-annotation-target"><a href="#annotated-cell-8-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> exec_res[<span class="st">"action"</span>]</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-8" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-8" data-code-lines="5" data-code-annotation="1"><strong><code>prep</code> gathers context</strong> — pulls the original query and any search results accumulated so far. On the first iteration, context is empty.</span>
+</dd>
+<dt data-target-cell="annotated-cell-8" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-8" data-code-lines="8" data-code-annotation="2"><strong><code>exec</code> receives only what <code>prep</code> returned</strong> — it can’t see the shared store directly. This tuple <code>(query, context)</code> is all it knows.</span>
+</dd>
+<dt data-target-cell="annotated-cell-8" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-8" data-code-lines="20" data-code-annotation="3"><strong>The LLM makes the routing decision</strong> — the prompt asks it to choose between “search” and “answer.” This is the equivalent of <code>stop_reason</code> in Chapter 6, but the model decides explicitly rather than implicitly.</span>
+</dd>
+<dt data-target-cell="annotated-cell-8" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-8" data-code-lines="22" data-code-annotation="4"><strong>Structured output via YAML parsing</strong> — since PocketFlow is LLM-agnostic, we can’t rely on Claude’s native <code>tool_use</code>. Instead, we prompt for YAML and parse it. Less reliable than native tool calls, but works with any model.</span>
+</dd>
+<dt data-target-cell="annotated-cell-8" data-target-annotation="5">5</dt>
+<dd>
+<span data-code-cell="annotated-cell-8" data-code-lines="24" data-code-annotation="5"><strong><code>post</code> writes side effects and routes</strong> — if the model chose “search,” we stash the search term in the store so the next node can find it.</span>
+</dd>
+<dt data-target-cell="annotated-cell-8" data-target-annotation="6">6</dt>
+<dd>
+<span data-code-cell="annotated-cell-8" data-code-lines="27" data-code-annotation="6"><strong>The return value IS the routing decision</strong> — returning <code>"search"</code> follows the <code>- "search" &gt;&gt;</code> edge. Returning <code>"answer"</code> follows the <code>- "answer" &gt;&gt;</code> edge. This one line controls the entire flow.</span>
+</dd>
+</dl>
+</section>
+<section id="the-action-node-executing-the-tool" class="level3" data-number="7.4.2">
+<h3 data-number="7.4.2" class="anchored" data-anchor-id="the-action-node-executing-the-tool"><span class="header-section-number">7.4.2</span> The action node — executing the tool</h3>
+<p>When the decision node returns <code>"search"</code>, the flow routes here:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-9"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-9-1"><a href="#annotated-cell-9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> SearchWeb(Node):</span>
+<span id="annotated-cell-9-2"><a href="#annotated-cell-9-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-9-3" class="code-annotation-target"><a href="#annotated-cell-9-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"search_term"</span>]</span>
+<span id="annotated-cell-9-4"><a href="#annotated-cell-9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-9-5"><a href="#annotated-cell-9-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, term):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-9-6" class="code-annotation-target"><a href="#annotated-cell-9-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> search_web(term)</span>
+<span id="annotated-cell-9-7"><a href="#annotated-cell-9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-9-8"><a href="#annotated-cell-9-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-9-9" class="code-annotation-target"><a href="#annotated-cell-9-9" aria-hidden="true" tabindex="-1"></a>        prev <span class="op">=</span> shared.get(<span class="st">"context"</span>, [])</span>
+<span id="annotated-cell-9-10"><a href="#annotated-cell-9-10" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"context"</span>] <span class="op">=</span> prev <span class="op">+</span> [{<span class="st">"term"</span>: shared[<span class="st">"search_term"</span>], <span class="st">"result"</span>: exec_res}]</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-9-11" class="code-annotation-target"><a href="#annotated-cell-9-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"decide"</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-9" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-9" data-code-lines="3" data-code-annotation="1"><strong>Reads the search term</strong> that <code>DecideAction.post()</code> just wrote to the store.</span>
+</dd>
+<dt data-target-cell="annotated-cell-9" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-9" data-code-lines="6" data-code-annotation="2"><strong>Pure execution</strong> — calls your search utility. Could be a web API, a local database, a vector store. The node doesn’t care.</span>
+</dd>
+<dt data-target-cell="annotated-cell-9" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-9" data-code-lines="9" data-code-annotation="3"><strong>Accumulates results</strong> — appends this search result to the context list. Next time <code>DecideAction</code> runs, it will see all previous searches in <code>prep()</code>.</span>
+</dd>
+<dt data-target-cell="annotated-cell-9" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-9" data-code-lines="11" data-code-annotation="4"><strong>Routes back to the decision node</strong> — this creates the loop. The agent will keep searching until <code>DecideAction</code> decides it has enough context and returns <code>"answer"</code> instead.</span>
+</dd>
+</dl>
+</section>
+<section id="the-terminal-node-producing-the-final-answer" class="level3" data-number="7.4.3">
+<h3 data-number="7.4.3" class="anchored" data-anchor-id="the-terminal-node-producing-the-final-answer"><span class="header-section-number">7.4.3</span> The terminal node — producing the final answer</h3>
+<p>When the decision node returns <code>"answer"</code>, the flow routes here instead:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-10"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-10-1"><a href="#annotated-cell-10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Answer(Node):</span>
+<span id="annotated-cell-10-2"><a href="#annotated-cell-10-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-10" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-10-3" class="code-annotation-target"><a href="#annotated-cell-10-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"query"</span>], shared.get(<span class="st">"context"</span>, <span class="st">""</span>)</span>
+<span id="annotated-cell-10-4"><a href="#annotated-cell-10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-10-5"><a href="#annotated-cell-10-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, inputs):</span>
+<span id="annotated-cell-10-6"><a href="#annotated-cell-10-6" aria-hidden="true" tabindex="-1"></a>        query, context <span class="op">=</span> inputs</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-10" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-10-7" class="code-annotation-target"><a href="#annotated-cell-10-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> call_llm(<span class="ss">f"Based on this context:</span><span class="ch">\n</span><span class="sc">{</span>context<span class="sc">}</span><span class="ch">\n\n</span><span class="ss">Answer: </span><span class="sc">{</span>query<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="annotated-cell-10-8"><a href="#annotated-cell-10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-10-9"><a href="#annotated-cell-10-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-10" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-10-10" class="code-annotation-target"><a href="#annotated-cell-10-10" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"answer"</span>] <span class="op">=</span> exec_res</span>
+<span id="annotated-cell-10-11"><a href="#annotated-cell-10-11" aria-hidden="true" tabindex="-1"></a>        <span class="co"># No return — defaults to "default", but there's no outgoing edge, so flow stops</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-10" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-10" data-code-lines="3" data-code-annotation="1"><strong>Gathers everything</strong> — the original query plus all accumulated search results.</span>
+</dd>
+<dt data-target-cell="annotated-cell-10" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-10" data-code-lines="7" data-code-annotation="2"><strong>Final LLM call</strong> — synthesizes an answer from the gathered context. This is the “text response” equivalent from Chapter 2.</span>
+</dd>
+<dt data-target-cell="annotated-cell-10" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-10" data-code-lines="10" data-code-annotation="3"><strong>Writes the answer and stops</strong> — no return value means <code>"default"</code>, but since <code>Answer</code> has no outgoing edges, the flow terminates here. This is how PocketFlow encodes “done” — not with <code>if stop_reason</code>, but with graph topology.</span>
+</dd>
+</dl>
+</section>
+<section id="wiring-it-together" class="level3" data-number="7.4.4">
+<h3 data-number="7.4.4" class="anchored" data-anchor-id="wiring-it-together"><span class="header-section-number">7.4.4</span> Wiring it together</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-11"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-11-1"><a href="#annotated-cell-11-1" aria-hidden="true" tabindex="-1"></a>decide <span class="op">=</span> DecideAction()</span>
+<span id="annotated-cell-11-2"><a href="#annotated-cell-11-2" aria-hidden="true" tabindex="-1"></a>search <span class="op">=</span> SearchWeb()</span>
+<span id="annotated-cell-11-3"><a href="#annotated-cell-11-3" aria-hidden="true" tabindex="-1"></a>answer <span class="op">=</span> Answer()</span>
+<span id="annotated-cell-11-4"><a href="#annotated-cell-11-4" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-11" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-11-5" class="code-annotation-target"><a href="#annotated-cell-11-5" aria-hidden="true" tabindex="-1"></a>decide <span class="op">-</span> <span class="st">"search"</span> <span class="op">&gt;&gt;</span> search</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-11" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-11-6" class="code-annotation-target"><a href="#annotated-cell-11-6" aria-hidden="true" tabindex="-1"></a>decide <span class="op">-</span> <span class="st">"answer"</span> <span class="op">&gt;&gt;</span> answer</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-11" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-11-7" class="code-annotation-target"><a href="#annotated-cell-11-7" aria-hidden="true" tabindex="-1"></a>search <span class="op">-</span> <span class="st">"decide"</span> <span class="op">&gt;&gt;</span> decide</span>
+<span id="annotated-cell-11-8"><a href="#annotated-cell-11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-11-9"><a href="#annotated-cell-11-9" aria-hidden="true" tabindex="-1"></a>agent <span class="op">=</span> Flow(start<span class="op">=</span>decide)</span>
+<span id="annotated-cell-11-10"><a href="#annotated-cell-11-10" aria-hidden="true" tabindex="-1"></a>agent.run({<span class="st">"query"</span>: <span class="st">"Who won the Nobel Prize in Physics 2024?"</span>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-11" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-11" data-code-lines="5" data-code-annotation="1"><strong>If <code>decide.post()</code> returns <code>"search"</code></strong> → go to <code>SearchWeb</code></span>
+</dd>
+<dt data-target-cell="annotated-cell-11" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-11" data-code-lines="6" data-code-annotation="2"><strong>If <code>decide.post()</code> returns <code>"answer"</code></strong> → go to <code>Answer</code> (terminal — no outgoing edges)</span>
+</dd>
+<dt data-target-cell="annotated-cell-11" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-11" data-code-lines="7" data-code-annotation="3"><strong>After <code>search.post()</code> returns <code>"decide"</code></strong> → loop back to <code>DecideAction</code></span>
+</dd>
+</dl>
+<p>Three lines define the entire control flow. The loop, the exit condition, and the branching are all encoded in the graph edges — not in <code>if</code> statements or <code>while</code> loops.</p>
+</section>
+<section id="map-to-the-react-loop" class="level3" data-number="7.4.5">
+<h3 data-number="7.4.5" class="anchored" data-anchor-id="map-to-the-react-loop"><span class="header-section-number">7.4.5</span> Map to the ReAct loop</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>ReAct concept (Chapter 2)</th>
+<th>PocketFlow equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>“Text or tool call?” decision</td>
+<td><code>DecideAction.exec()</code> returns action label</td>
+</tr>
+<tr class="even">
+<td>Tool execution</td>
+<td><code>SearchWeb.exec()</code> runs the tool</td>
+</tr>
+<tr class="odd">
+<td>Tool result appended to context</td>
+<td><code>SearchWeb.post()</code> updates shared store</td>
+</tr>
+<tr class="even">
+<td>Loop continues</td>
+<td>Edge <code>search - "decide" &gt;&gt; decide</code> routes back</td>
+</tr>
+<tr class="odd">
+<td>Final text response</td>
+<td><code>Answer</code> node — no outgoing edges, flow ends</td>
+</tr>
+</tbody>
+</table>
+<p>The mechanism is identical. PocketFlow just makes every piece explicit — there’s no hidden framework magic deciding what happens next. The <code>post()</code> return value IS the routing decision.</p>
+<div class="callout callout-style-default callout-tip callout-titled" title="The agent loop is encoded in the graph topology, not in code">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>The agent loop is encoded in the graph topology, not in code
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>In Chapter 6, the agent loop was a <code>while True</code> with an <code>if stop_reason</code> check. Here, the same behavior emerges from <strong>graph structure</strong>: <code>decide → search → decide</code> creates the loop, and <code>decide → answer</code> (with no outgoing edge from <code>answer</code>) creates the exit. The LLM doesn’t know it’s in a graph — it just sees its prompt and returns YAML. The <code>post()</code> method parses that YAML and returns the action string that routes the flow.</p>
+<p>This is more powerful than <code>while True</code> because you can have <strong>multiple loop shapes</strong> in the same graph — a search loop, a verification loop, a refinement loop — all as different subgraphs with their own entry and exit points.</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled" title="Why YAML output instead of tool_use?">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Why YAML output instead of tool_use?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Chapter 6’s approach uses the model’s native <code>tool_use</code> mechanism — the API returns structured tool calls directly. PocketFlow is LLM-agnostic, so it can’t rely on any provider’s tool-calling API. Instead, it prompts the model to output structured text (YAML here) and parses it in <code>exec()</code>. The tradeoff: tool_use is more reliable (the API enforces the schema), but YAML/JSON output works with any model, including local ones that don’t support function calling.</p>
+<p>In production, you’d add validation (<code>assert result["action"] in ["search", "answer"]</code>) and retry logic to handle malformed outputs — which PocketFlow’s built-in retry mechanism supports via <code>max_retries</code>.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-pf-rag" class="level2" data-number="7.5">
+<h2 data-number="7.5" class="anchored" data-anchor-id="sec-pf-rag"><span class="header-section-number">7.5</span> Pattern 3: RAG (Retrieval-Augmented Generation)</h2>
+<p>RAG splits into two flows that share the same store: offline indexing (run once) and online retrieval (run per query).</p>
+<div class="callout callout-style-default callout-tip callout-titled" title="Why two separate flows?">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Why two separate flows?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Indexing is expensive — chunking, embedding, and storing thousands of documents. Querying is cheap — embed one question, search, generate. By splitting them into separate <code>Flow</code> objects that share the same <code>shared</code> dictionary, you index once and query many times. The shared store acts as the bridge: <code>offline_flow</code> writes <code>shared["index"]</code>, then <code>online_flow</code> reads it. This is the same pattern as building a database (expensive, once) and querying it (cheap, many times).</p>
+</div>
+</div>
+<section id="offline-flow-chunking-and-indexing" class="level3" data-number="7.5.1">
+<h3 data-number="7.5.1" class="anchored" data-anchor-id="offline-flow-chunking-and-indexing"><span class="header-section-number">7.5.1</span> Offline flow: chunking and indexing</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-12"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-12-1"><a href="#annotated-cell-12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pocketflow <span class="im">import</span> Node, BatchNode, Flow</span>
+<span id="annotated-cell-12-2"><a href="#annotated-cell-12-2" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-12-3" class="code-annotation-target"><a href="#annotated-cell-12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ChunkDocs(BatchNode):</span>
+<span id="annotated-cell-12-4"><a href="#annotated-cell-12-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<span id="annotated-cell-12-5"><a href="#annotated-cell-12-5" aria-hidden="true" tabindex="-1"></a>        text <span class="op">=</span> shared[<span class="st">"raw_text"</span>]</span>
+<span id="annotated-cell-12-6"><a href="#annotated-cell-12-6" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"chunks"</span>] <span class="op">=</span> [text[i:i<span class="op">+</span><span class="dv">500</span>] <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, <span class="bu">len</span>(text), <span class="dv">500</span>)]</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-12-7" class="code-annotation-target"><a href="#annotated-cell-12-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"chunks"</span>]</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-12" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-12" data-code-lines="3" data-code-annotation="1"><strong><code>BatchNode</code></strong> (not <code>Node</code>) — signals that this node processes a <em>list</em> of items rather than a single value.</span>
+</dd>
+<dt data-target-cell="annotated-cell-12" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-12" data-code-lines="7" data-code-annotation="2"><strong>Returns a list</strong> — when <code>prep()</code> returns a list in a <code>BatchNode</code>, PocketFlow will call <code>exec()</code> once per item. A regular <code>Node</code> would pass the entire list to <code>exec()</code> as one argument.</span>
+</dd>
+</dl>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-13"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-13-1"><a href="#annotated-cell-13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> EmbedChunks(BatchNode):</span>
+<span id="annotated-cell-13-2"><a href="#annotated-cell-13-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-13-3" class="code-annotation-target"><a href="#annotated-cell-13-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"chunks"</span>]</span>
+<span id="annotated-cell-13-4"><a href="#annotated-cell-13-4" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-13-5" class="code-annotation-target"><a href="#annotated-cell-13-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, chunk):</span>
+<span id="annotated-cell-13-6"><a href="#annotated-cell-13-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> get_embedding(chunk)</span>
+<span id="annotated-cell-13-7"><a href="#annotated-cell-13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-13-8"><a href="#annotated-cell-13-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-13-9" class="code-annotation-target"><a href="#annotated-cell-13-9" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"embeddings"</span>] <span class="op">=</span> exec_res</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-13" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-13" data-code-lines="3" data-code-annotation="1"><strong>Prep returns the list</strong> of chunks — 50 chunks means 50 calls to <code>exec()</code>.</span>
+</dd>
+<dt data-target-cell="annotated-cell-13" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-13" data-code-lines="5" data-code-annotation="2"><strong><code>exec()</code> receives ONE chunk at a time</strong> — not the whole list. PocketFlow handles the iteration internally. This is the “map” in map/reduce.</span>
+</dd>
+<dt data-target-cell="annotated-cell-13" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-13" data-code-lines="9" data-code-annotation="3"><strong><code>exec_res</code> is a list of ALL results</strong> — after all 50 <code>exec()</code> calls complete, PocketFlow collects them into a list and passes it to <code>post()</code>. This is the “reduce.”</span>
+</dd>
+</dl>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-14"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><a class="code-annotation-anchor" data-target-cell="annotated-cell-14" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-14-1" class="code-annotation-target"><a href="#annotated-cell-14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> BuildIndex(Node):</span>
+<span id="annotated-cell-14-2"><a href="#annotated-cell-14-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<span id="annotated-cell-14-3"><a href="#annotated-cell-14-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"chunks"</span>], shared[<span class="st">"embeddings"</span>]</span>
+<span id="annotated-cell-14-4"><a href="#annotated-cell-14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-14-5"><a href="#annotated-cell-14-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, inputs):</span>
+<span id="annotated-cell-14-6"><a href="#annotated-cell-14-6" aria-hidden="true" tabindex="-1"></a>        chunks, embeddings <span class="op">=</span> inputs</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-14" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-14-7" class="code-annotation-target"><a href="#annotated-cell-14-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> create_vector_index(chunks, embeddings)</span>
+<span id="annotated-cell-14-8"><a href="#annotated-cell-14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-14-9"><a href="#annotated-cell-14-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-14" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-14-10" class="code-annotation-target"><a href="#annotated-cell-14-10" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"index"</span>] <span class="op">=</span> exec_res</span>
+<span id="annotated-cell-14-11"><a href="#annotated-cell-14-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-14-12"><a href="#annotated-cell-14-12" aria-hidden="true" tabindex="-1"></a>chunk <span class="op">=</span> ChunkDocs()</span>
+<span id="annotated-cell-14-13"><a href="#annotated-cell-14-13" aria-hidden="true" tabindex="-1"></a>embed <span class="op">=</span> EmbedChunks()</span>
+<span id="annotated-cell-14-14"><a href="#annotated-cell-14-14" aria-hidden="true" tabindex="-1"></a>index <span class="op">=</span> BuildIndex()</span>
+<span id="annotated-cell-14-15"><a href="#annotated-cell-14-15" aria-hidden="true" tabindex="-1"></a>chunk <span class="op">&gt;&gt;</span> embed <span class="op">&gt;&gt;</span> index</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-14" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-14-16" class="code-annotation-target"><a href="#annotated-cell-14-16" aria-hidden="true" tabindex="-1"></a>offline_flow <span class="op">=</span> Flow(start<span class="op">=</span>chunk)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-14" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-14" data-code-lines="1" data-code-annotation="1"><strong>Back to regular <code>Node</code></strong> — building the index is a single operation, not per-item.</span>
+</dd>
+<dt data-target-cell="annotated-cell-14" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-14" data-code-lines="7" data-code-annotation="2"><strong>Creates a searchable structure</strong> — your vector DB, FAISS index, or in-memory cosine similarity store.</span>
+</dd>
+<dt data-target-cell="annotated-cell-14" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-14" data-code-lines="10" data-code-annotation="3"><strong>The index lives in the shared store</strong> — available for the online flow to read.</span>
+</dd>
+<dt data-target-cell="annotated-cell-14" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-14" data-code-lines="16" data-code-annotation="4"><strong>This flow runs once</strong> — indexing is expensive. You do it once, then query many times.</span>
+</dd>
+</dl>
+</section>
+<section id="online-flow-retrieve-and-answer" class="level3" data-number="7.5.2">
+<h3 data-number="7.5.2" class="anchored" data-anchor-id="online-flow-retrieve-and-answer"><span class="header-section-number">7.5.2</span> Online flow: retrieve and answer</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-15"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-15-1"><a href="#annotated-cell-15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> RetrieveContext(Node):</span>
+<span id="annotated-cell-15-2"><a href="#annotated-cell-15-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-15" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-15-3" class="code-annotation-target"><a href="#annotated-cell-15-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"question"</span>], shared[<span class="st">"index"</span>]</span>
+<span id="annotated-cell-15-4"><a href="#annotated-cell-15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-15-5"><a href="#annotated-cell-15-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, inputs):</span>
+<span id="annotated-cell-15-6"><a href="#annotated-cell-15-6" aria-hidden="true" tabindex="-1"></a>        question, index <span class="op">=</span> inputs</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-15" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-15-7" class="code-annotation-target"><a href="#annotated-cell-15-7" aria-hidden="true" tabindex="-1"></a>        q_embedding <span class="op">=</span> get_embedding(question)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-15" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-15-8" class="code-annotation-target"><a href="#annotated-cell-15-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> search_index(index, q_embedding, top_k<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="annotated-cell-15-9"><a href="#annotated-cell-15-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-15-10"><a href="#annotated-cell-15-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<span id="annotated-cell-15-11"><a href="#annotated-cell-15-11" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"retrieved"</span>] <span class="op">=</span> exec_res</span>
+<span id="annotated-cell-15-12"><a href="#annotated-cell-15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-15-13"><a href="#annotated-cell-15-13" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> GenerateAnswer(Node):</span>
+<span id="annotated-cell-15-14"><a href="#annotated-cell-15-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-15" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-15-15" class="code-annotation-target"><a href="#annotated-cell-15-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"question"</span>], shared[<span class="st">"retrieved"</span>]</span>
+<span id="annotated-cell-15-16"><a href="#annotated-cell-15-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-15-17"><a href="#annotated-cell-15-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, inputs):</span>
+<span id="annotated-cell-15-18"><a href="#annotated-cell-15-18" aria-hidden="true" tabindex="-1"></a>        question, context <span class="op">=</span> inputs</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-15" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-15-19" class="code-annotation-target"><a href="#annotated-cell-15-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> call_llm(<span class="ss">f"Context:</span><span class="ch">\n</span><span class="sc">{</span>context<span class="sc">}</span><span class="ch">\n\n</span><span class="ss">Answer: </span><span class="sc">{</span>question<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="annotated-cell-15-20"><a href="#annotated-cell-15-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-15-21"><a href="#annotated-cell-15-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<span id="annotated-cell-15-22"><a href="#annotated-cell-15-22" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"answer"</span>] <span class="op">=</span> exec_res</span>
+<span id="annotated-cell-15-23"><a href="#annotated-cell-15-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-15-24"><a href="#annotated-cell-15-24" aria-hidden="true" tabindex="-1"></a>retrieve <span class="op">=</span> RetrieveContext()</span>
+<span id="annotated-cell-15-25"><a href="#annotated-cell-15-25" aria-hidden="true" tabindex="-1"></a>generate <span class="op">=</span> GenerateAnswer()</span>
+<span id="annotated-cell-15-26"><a href="#annotated-cell-15-26" aria-hidden="true" tabindex="-1"></a>retrieve <span class="op">&gt;&gt;</span> generate</span>
+<span id="annotated-cell-15-27"><a href="#annotated-cell-15-27" aria-hidden="true" tabindex="-1"></a>online_flow <span class="op">=</span> Flow(start<span class="op">=</span>retrieve)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-15" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-15" data-code-lines="3" data-code-annotation="1"><strong>Reads the index</strong> that the offline flow built — the shared store bridges the two flows.</span>
+</dd>
+<dt data-target-cell="annotated-cell-15" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-15" data-code-lines="7" data-code-annotation="2"><strong>Embeds the question</strong> using the same embedding function as the chunks — this ensures the vectors are in the same space.</span>
+</dd>
+<dt data-target-cell="annotated-cell-15" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-15" data-code-lines="8" data-code-annotation="3"><strong>Semantic search</strong> — finds the 3 most similar chunks to the question.</span>
+</dd>
+<dt data-target-cell="annotated-cell-15" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-15" data-code-lines="15" data-code-annotation="4"><strong>Reads retrieved context</strong> — the chunks most relevant to the question.</span>
+</dd>
+<dt data-target-cell="annotated-cell-15" data-target-annotation="5">5</dt>
+<dd>
+<span data-code-cell="annotated-cell-15" data-code-lines="19" data-code-annotation="5"><strong>Grounded generation</strong> — the LLM answers using only the retrieved context, not its training data. This is what makes RAG reliable: the answer is traceable to specific source chunks.</span>
+</dd>
+</dl>
+</section>
+<section id="running-both-flows" class="level3" data-number="7.5.3">
+<h3 data-number="7.5.3" class="anchored" data-anchor-id="running-both-flows"><span class="header-section-number">7.5.3</span> Running both flows</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-16"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-16-1"><a href="#annotated-cell-16-1" aria-hidden="true" tabindex="-1"></a>shared <span class="op">=</span> {<span class="st">"raw_text"</span>: <span class="bu">open</span>(<span class="st">"docs.txt"</span>).read()}</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-16" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-16-2" class="code-annotation-target"><a href="#annotated-cell-16-2" aria-hidden="true" tabindex="-1"></a>offline_flow.run(shared)</span>
+<span id="annotated-cell-16-3"><a href="#annotated-cell-16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-16-4"><a href="#annotated-cell-16-4" aria-hidden="true" tabindex="-1"></a>shared[<span class="st">"question"</span>] <span class="op">=</span> <span class="st">"What is context engineering?"</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-16" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-16-5" class="code-annotation-target"><a href="#annotated-cell-16-5" aria-hidden="true" tabindex="-1"></a>online_flow.run(shared)</span>
+<span id="annotated-cell-16-6"><a href="#annotated-cell-16-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(shared[<span class="st">"answer"</span>])</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-16" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-16" data-code-lines="2" data-code-annotation="1"><strong>Index once</strong> — after this, <code>shared</code> contains <code>"chunks"</code>, <code>"embeddings"</code>, and <code>"index"</code>.</span>
+</dd>
+<dt data-target-cell="annotated-cell-16" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-16" data-code-lines="5" data-code-annotation="2"><strong>Query many times</strong> — each query adds <code>"question"</code>, <code>"retrieved"</code>, and <code>"answer"</code> to the shared store. The index is reused.</span>
+</dd>
+</dl>
+<div class="callout callout-style-default callout-tip callout-titled" title="Production consideration: persistence">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Production consideration: persistence
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The shared dict lives in memory — if the process dies, the index is lost. In production, you’d serialize <code>shared["index"]</code> to disk in <code>BuildIndex.post()</code> and deserialize in <code>RetrieveContext.prep()</code>. PocketFlow also has a <code>ParallelBatchNode</code> that runs <code>exec()</code> calls concurrently — useful when embedding 1000 chunks against a rate-limited API.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-pf-design" class="level2" data-number="7.6">
+<h2 data-number="7.6" class="anchored" data-anchor-id="sec-pf-design"><span class="header-section-number">7.6</span> The Design Is the Hard Part</h2>
+<p>PocketFlow’s creator makes a point that applies directly to the SE tutorial’s thesis:</p>
+<blockquote class="blockquote">
+<p><strong>“If Humans can’t specify the flow, AI Agents can’t automate it!”</strong></p>
+</blockquote>
+<p>Their Agentic Coding methodology maps human vs.&nbsp;AI responsibility:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Step</th>
+<th>Human</th>
+<th>AI</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Requirements</td>
+<td>★★★</td>
+<td>★☆☆</td>
+<td>Humans understand the problem</td>
+</tr>
+<tr class="even">
+<td>Flow design</td>
+<td>★★☆</td>
+<td>★★☆</td>
+<td>Humans specify structure, AI fills details</td>
+</tr>
+<tr class="odd">
+<td>Utilities</td>
+<td>★★☆</td>
+<td>★★☆</td>
+<td>Humans know the APIs, AI implements</td>
+</tr>
+<tr class="even">
+<td>Implementation</td>
+<td>★☆☆</td>
+<td>★★★</td>
+<td>AI writes the node code</td>
+</tr>
+<tr class="odd">
+<td>Testing</td>
+<td>★☆☆</td>
+<td>★★★</td>
+<td>AI generates test cases</td>
+</tr>
+</tbody>
+</table>
+<p>This is the same argument from Chapter 1: <strong>development is commoditized, engineering is not.</strong> The framework is 100 lines. The hard part is deciding what nodes to build, what edges to draw, and what data flows through the shared store. That’s design — and it requires human judgment.</p>
+</section>
+<section id="sec-pf-comparison" class="level2" data-number="7.7">
+<h2 data-number="7.7" class="anchored" data-anchor-id="sec-pf-comparison"><span class="header-section-number">7.7</span> Comparison: PocketFlow vs.&nbsp;Agent SDK</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Agent SDK (Chapter 5)</th>
+<th>PocketFlow</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Model</strong></td>
+<td>Claude only</td>
+<td>Any LLM</td>
+</tr>
+<tr class="even">
+<td><strong>Loop</strong></td>
+<td>Built-in ReAct (you configure it)</td>
+<td>You build the loop yourself</td>
+</tr>
+<tr class="odd">
+<td><strong>Tools</strong></td>
+<td>Built-in (Read, Edit, Bash, etc.)</td>
+<td>You implement utilities</td>
+</tr>
+<tr class="even">
+<td><strong>Context management</strong></td>
+<td>Automatic (compaction, sessions)</td>
+<td>Manual (shared store)</td>
+</tr>
+<tr class="odd">
+<td><strong>Production readiness</strong></td>
+<td>High (Anthropic-hosted)</td>
+<td>You own the infrastructure</td>
+</tr>
+<tr class="even">
+<td><strong>Learning value</strong></td>
+<td>“How to use an agent”</td>
+<td>“How an agent works inside”</td>
+</tr>
+<tr class="odd">
+<td><strong>When to use</strong></td>
+<td>Claude-powered applications</td>
+<td>Custom agents, other LLMs, learning</td>
+</tr>
+</tbody>
+</table>
+<p>The Agent SDK is a car — you drive it. PocketFlow is a kit car — you build it, so you understand every bolt.</p>
+</section>
+<section id="sec-prod-pressures" class="level2" data-number="7.8">
+<h2 data-number="7.8" class="anchored" data-anchor-id="sec-prod-pressures"><span class="header-section-number">7.8</span> When PocketFlow Stops Being Enough</h2>
+<p>PocketFlow’s mutable shared dictionary is great for learning but a liability at scale. Three pressures emerge between the toy and the deployment:</p>
+<ol type="1">
+<li><strong>Multiple people touch the agent.</strong> A mutable shared dict is a contract anyone can break. Without declared <code>reads</code>/<code>writes</code>, any node can silently overwrite any other’s data — and the breakage shows up two iterations downstream, not where it happened.</li>
+<li><strong>A production run fails at 3 a.m. and you need to debug it.</strong> “What was <code>shared["context"]</code> when the model went off the rails?” The answer requires either a print statement you added in advance or a state snapshot you kept. PocketFlow has neither.</li>
+<li><strong>You need audit trails and reproducibility.</strong> Regulators, customers, or your own future self will ask “why did the agent do X?” Without immutable state snapshots, you can’t answer.</li>
+</ol>
+<p>The mental model — state machine over actions — is the right one. What’s missing are the production guardrails: typed contracts on state, immutable snapshots, fork-from-state replay, and observability that doesn’t rely on print statements.</p>
+<p>The rest of this chapter takes that exact model and upgrades it with <strong>Burr + Pydantic</strong> — the production version of everything PocketFlow teaches. Chapter 8 covers two more production frameworks (<strong>Agno</strong> and <strong>mcp-agent</strong>) that solve adjacent problems — batteries-included multi-agent orchestration and MCP-native pattern composition. Chapter 9 covers <strong>Mastra</strong>, the TypeScript equivalent for teams working in that ecosystem.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    P["PocketFlow&lt;br/&gt;(learn the model)"] --&gt; B["Burr + Pydantic&lt;br/&gt;typed FSM + replay"]
+    P --&gt; A["Agno (Ch 8)&lt;br/&gt;batteries-included platform"]
+    P --&gt; M["mcp-agent (Ch 8)&lt;br/&gt;MCP-native patterns"]
+    P --&gt; MA["Mastra (Ch 9)&lt;br/&gt;TypeScript agents"]
+    B --&gt; Q["Production deployment"]
+    A --&gt; Q
+    M --&gt; Q
+    MA --&gt; Q
+    style P fill:#fef3c7,stroke:#92400e,color:#92400e
+    style B fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style A fill:#dcfce7,stroke:#166534,color:#166534
+    style M fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style MA fill:#e0f2fe,stroke:#0369a1,color:#0369a1
+    style Q fill:#fce7f3,stroke:#9d174d,color:#9d174d
+</pre>
+</div>
+<p></p><figcaption> From learning to shipping — PocketFlow’s model, production-hardened by Burr</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+</section>
+<section id="sec-prod-burr" class="level2" data-number="7.9">
+<h2 data-number="7.9" class="anchored" data-anchor-id="sec-prod-burr"><span class="header-section-number">7.9</span> Burr + Pydantic: Typed FSM with Replay</h2>
+<p><a href="https://burr.dagworks.io/">Apache Burr</a> (incubating) preserves PocketFlow’s mental model — a state machine over actions — but replaces every loose part with a guardrail. The mutable shared dict becomes an immutable <code>State</code>. The <code>prep → exec → post</code> lifecycle becomes an <code>@action</code> that declares its <code>reads</code> and <code>writes</code>. The hand-drawn flow diagram becomes a graph you can ask the framework to draw for you.</p>
+<p>And — the key reason we’re treating Burr as the typed upgrade — it has a first-class Pydantic integration. You can declare your state as a <code>BaseModel</code>, attach it to the application, and write actions that take a typed state object instead of a string-keyed dict. The IDE autocompletes the fields. Pydantic validates writes. The “any action can corrupt any key” problem becomes a typed-attribute problem.</p>
+<section id="the-core-api" class="level3" data-number="7.9.1">
+<h3 data-number="7.9.1" class="anchored" data-anchor-id="the-core-api"><span class="header-section-number">7.9.1</span> The core API</h3>
+<p>The smallest possible Burr application:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-17"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-17-1"><a href="#annotated-cell-17-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core <span class="im">import</span> ApplicationBuilder, State</span>
+<span id="annotated-cell-17-2"><a href="#annotated-cell-17-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core.action <span class="im">import</span> action</span>
+<span id="annotated-cell-17-3"><a href="#annotated-cell-17-3" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-17-4" class="code-annotation-target"><a href="#annotated-cell-17-4" aria-hidden="true" tabindex="-1"></a><span class="at">@action</span>(reads<span class="op">=</span>[<span class="st">"query"</span>], writes<span class="op">=</span>[<span class="st">"answer"</span>])</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-17-5" class="code-annotation-target"><a href="#annotated-cell-17-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> answer_question(state: State, llm) <span class="op">-&gt;</span> State:</span>
+<span id="annotated-cell-17-6"><a href="#annotated-cell-17-6" aria-hidden="true" tabindex="-1"></a>    answer <span class="op">=</span> llm.complete(<span class="ss">f"Answer: </span><span class="sc">{</span>state[<span class="st">'query'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-17-7" class="code-annotation-target"><a href="#annotated-cell-17-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state.update(answer<span class="op">=</span>answer)</span>
+<span id="annotated-cell-17-8"><a href="#annotated-cell-17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-17-9"><a href="#annotated-cell-17-9" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (</span>
+<span id="annotated-cell-17-10"><a href="#annotated-cell-17-10" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-17-11" class="code-annotation-target"><a href="#annotated-cell-17-11" aria-hidden="true" tabindex="-1"></a>    .with_actions(answer_question)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-17-12" class="code-annotation-target"><a href="#annotated-cell-17-12" aria-hidden="true" tabindex="-1"></a>    .with_transitions()</span>
+<span id="annotated-cell-17-13"><a href="#annotated-cell-17-13" aria-hidden="true" tabindex="-1"></a>    .with_state(query<span class="op">=</span><span class="st">"What is context engineering?"</span>, answer<span class="op">=</span><span class="st">""</span>)</span>
+<span id="annotated-cell-17-14"><a href="#annotated-cell-17-14" aria-hidden="true" tabindex="-1"></a>    .with_entrypoint(<span class="st">"answer_question"</span>)</span>
+<span id="annotated-cell-17-15"><a href="#annotated-cell-17-15" aria-hidden="true" tabindex="-1"></a>    .build()</span>
+<span id="annotated-cell-17-16"><a href="#annotated-cell-17-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="annotated-cell-17-17"><a href="#annotated-cell-17-17" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-17-18" class="code-annotation-target"><a href="#annotated-cell-17-18" aria-hidden="true" tabindex="-1"></a>action_run, result, state <span class="op">=</span> app.run(halt_after<span class="op">=</span>[<span class="st">"answer_question"</span>])</span>
+<span id="annotated-cell-17-19"><a href="#annotated-cell-17-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(state[<span class="st">"answer"</span>])</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-17" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-17" data-code-lines="4" data-code-annotation="1"><strong><code>@action(reads=..., writes=...)</code></strong> is the declaration that replaces PocketFlow’s shared-dict free-for-all. The framework reads this at build time to detect missing keys, enforce write boundaries, and figure out which actions can run in parallel.</span>
+</dd>
+<dt data-target-cell="annotated-cell-17" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-17" data-code-lines="5" data-code-annotation="2"><strong>The action receives a <code>State</code> and any bound dependencies</strong> (here <code>llm</code>). The shared-store-vs-exec separation from PocketFlow collapses into one function with explicit declarations.</span>
+</dd>
+<dt data-target-cell="annotated-cell-17" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-17" data-code-lines="7" data-code-annotation="3"><strong><code>state.update(...)</code> returns a new <code>State</code></strong> — it does not mutate. Every transition produces a new snapshot, which is what makes replay possible (<a href="#sec-prod-burr-replay" class="quarto-xref"><span>Section 7.9.4</span></a>).</span>
+</dd>
+<dt data-target-cell="annotated-cell-17" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-17" data-code-lines="11" data-code-annotation="4"><strong><code>with_actions(...)</code></strong> registers actions. Multiple actions get wired by name.</span>
+</dd>
+<dt data-target-cell="annotated-cell-17" data-target-annotation="5">5</dt>
+<dd>
+<span data-code-cell="annotated-cell-17" data-code-lines="12" data-code-annotation="5"><strong><code>with_transitions(...)</code></strong> declares the edges. For a one-action app there are none — left empty here. The full syntax (label, label, <code>Condition</code>) is covered in <a href="#sec-prod-burr-transitions" class="quarto-xref"><span>Section 7.9.3</span></a>.</span>
+</dd>
+<dt data-target-cell="annotated-cell-17" data-target-annotation="6">6</dt>
+<dd>
+<span data-code-cell="annotated-cell-17" data-code-lines="18" data-code-annotation="6"><strong><code>run(halt_after=[...])</code></strong> drives the loop until a halt condition fires. Burr also has <code>step</code>, <code>iterate</code>, and <code>stream_result</code> variants — see the next subsection.</span>
+</dd>
+</dl>
+<div class="callout callout-style-default callout-tip callout-titled" title="Why declared reads/writes matter">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Why declared reads/writes matter
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>In PocketFlow, <code>SearchWeb.post()</code> accidentally overwriting <code>shared["query"]</code> breaks the agent silently — and you don’t notice until the next decision node reads the wrong question. Burr’s <code>@action(reads=["query"], writes=["context"])</code> lets the framework <em>enforce</em> that the action cannot write to <code>query</code>. The framework also uses these declarations to: (1) detect missing entries at build time, (2) figure out which actions are independent and could run in parallel, (3) attribute every state change to a specific action in the debugging UI. The principle is the same as database column-level permissions — limit the blast radius before the blast.</p>
+</div>
+</div>
+</section>
+<section id="sec-prod-burr-pydantic" class="level3" data-number="7.9.2">
+<h3 data-number="7.9.2" class="anchored" data-anchor-id="sec-prod-burr-pydantic"><span class="header-section-number">7.9.2</span> Typed state with Pydantic</h3>
+<p>The stringly-typed <code>reads=["query"]</code> declaration is still string-typed — a typo in the key gives you a runtime error, not a compile-time one. The Pydantic integration upgrades that to a real type:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-18"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-18-1"><a href="#annotated-cell-18-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pydantic <span class="im">import</span> BaseModel, Field</span>
+<span id="annotated-cell-18-2"><a href="#annotated-cell-18-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core <span class="im">import</span> ApplicationBuilder</span>
+<span id="annotated-cell-18-3"><a href="#annotated-cell-18-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core.action <span class="im">import</span> action</span>
+<span id="annotated-cell-18-4"><a href="#annotated-cell-18-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.integrations.pydantic <span class="im">import</span> PydanticTypingSystem</span>
+<span id="annotated-cell-18-5"><a href="#annotated-cell-18-5" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-18-6" class="code-annotation-target"><a href="#annotated-cell-18-6" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> QAState(BaseModel):</span>
+<span id="annotated-cell-18-7"><a href="#annotated-cell-18-7" aria-hidden="true" tabindex="-1"></a>    query: <span class="bu">str</span></span>
+<span id="annotated-cell-18-8"><a href="#annotated-cell-18-8" aria-hidden="true" tabindex="-1"></a>    context: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> Field(default_factory<span class="op">=</span><span class="bu">list</span>)</span>
+<span id="annotated-cell-18-9"><a href="#annotated-cell-18-9" aria-hidden="true" tabindex="-1"></a>    answer: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="annotated-cell-18-10"><a href="#annotated-cell-18-10" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-18-11" class="code-annotation-target"><a href="#annotated-cell-18-11" aria-hidden="true" tabindex="-1"></a><span class="at">@action.pydantic</span>(reads<span class="op">=</span>[<span class="st">"query"</span>, <span class="st">"context"</span>], writes<span class="op">=</span>[<span class="st">"answer"</span>])</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-18-12" class="code-annotation-target"><a href="#annotated-cell-18-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> synthesize(state: QAState, llm) <span class="op">-&gt;</span> QAState:</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-18-13" class="code-annotation-target"><a href="#annotated-cell-18-13" aria-hidden="true" tabindex="-1"></a>    state.answer <span class="op">=</span> llm.complete(</span>
+<span id="annotated-cell-18-14"><a href="#annotated-cell-18-14" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Question: </span><span class="sc">{</span>state<span class="sc">.</span>query<span class="sc">}</span><span class="ch">\n</span><span class="ss">Context: </span><span class="sc">{</span>state<span class="sc">.</span>context<span class="sc">}</span><span class="ch">\n</span><span class="ss">Answer:"</span></span>
+<span id="annotated-cell-18-15"><a href="#annotated-cell-18-15" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-18-16"><a href="#annotated-cell-18-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span>
+<span id="annotated-cell-18-17"><a href="#annotated-cell-18-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-18-18"><a href="#annotated-cell-18-18" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (</span>
+<span id="annotated-cell-18-19"><a href="#annotated-cell-18-19" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
+<span id="annotated-cell-18-20"><a href="#annotated-cell-18-20" aria-hidden="true" tabindex="-1"></a>    .with_actions(synthesize)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-18-21" class="code-annotation-target"><a href="#annotated-cell-18-21" aria-hidden="true" tabindex="-1"></a>    .with_typing(PydanticTypingSystem(QAState))</span>
+<span id="annotated-cell-18-22"><a href="#annotated-cell-18-22" aria-hidden="true" tabindex="-1"></a>    .with_state(QAState(query<span class="op">=</span><span class="st">"What is context engineering?"</span>))</span>
+<span id="annotated-cell-18-23"><a href="#annotated-cell-18-23" aria-hidden="true" tabindex="-1"></a>    .with_entrypoint(<span class="st">"synthesize"</span>)</span>
+<span id="annotated-cell-18-24"><a href="#annotated-cell-18-24" aria-hidden="true" tabindex="-1"></a>    .build()</span>
+<span id="annotated-cell-18-25"><a href="#annotated-cell-18-25" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="annotated-cell-18-26"><a href="#annotated-cell-18-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-18-27"><a href="#annotated-cell-18-27" aria-hidden="true" tabindex="-1"></a>_, _, state <span class="op">=</span> app.run(halt_after<span class="op">=</span>[<span class="st">"synthesize"</span>])</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-18-28" class="code-annotation-target"><a href="#annotated-cell-18-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(state.data.answer)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-18" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-18" data-code-lines="6" data-code-annotation="1"><strong>State is a Pydantic <code>BaseModel</code>.</strong> Fields are typed; defaults are real Python values, not magic strings.</span>
+</dd>
+<dt data-target-cell="annotated-cell-18" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-18" data-code-lines="11" data-code-annotation="2"><strong><code>@action.pydantic</code></strong> is the typed sibling of <code>@action</code>. It still declares <code>reads</code>/<code>writes</code>, but the action body sees a typed object.</span>
+</dd>
+<dt data-target-cell="annotated-cell-18" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-18" data-code-lines="12" data-code-annotation="3"><strong><code>state: QAState</code></strong> — the IDE autocompletes <code>state.query</code>, <code>state.context</code>, <code>state.answer</code>. A typo (<code>state.querry</code>) is a static-analysis error before you run.</span>
+</dd>
+<dt data-target-cell="annotated-cell-18" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-18" data-code-lines="13" data-code-annotation="4"><strong>Field mutation looks normal.</strong> Burr’s runtime captures the change and produces a new immutable snapshot under the hood; you write idiomatic Python.</span>
+</dd>
+<dt data-target-cell="annotated-cell-18" data-target-annotation="5">5</dt>
+<dd>
+<span data-code-cell="annotated-cell-18" data-code-lines="21" data-code-annotation="5"><strong><code>with_typing(PydanticTypingSystem(QAState))</code></strong> attaches the type system to the application. Burr now validates state transitions against the schema.</span>
+</dd>
+<dt data-target-cell="annotated-cell-18" data-target-annotation="6">6</dt>
+<dd>
+<span data-code-cell="annotated-cell-18" data-code-lines="28" data-code-annotation="6"><strong><code>state.data</code> returns the typed object</strong> after <code>run()</code>. <code>state.data.answer</code> is what you get; <code>state["answer"]</code> still works but you’ve left the typed path.</span>
+</dd>
+</dl>
+<p>For streaming actions, the typed decorator is <code>@streaming_action.pydantic</code> with explicit <code>state_input_type</code>, <code>state_output_type</code>, and <code>stream_type</code> parameters. The streaming story matters when you want token-by-token output to a UI while still preserving the typed-state contract.</p>
+<div class="callout callout-style-default callout-tip callout-titled" title="Why not Pydantic AI's pydantic-graph?">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Why not Pydantic AI’s pydantic-graph?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><a href="https://ai.pydantic.dev/">Pydantic AI</a> and its sibling <code>pydantic-graph</code> give you a typed agent and a typed graph respectively — <code>BaseNode[StateT, DepsT, RunEndT]</code> with edges inferred from <code>run()</code> return annotations, plus first-class Logfire/OpenTelemetry observability. It’s a coherent typed-FSM story.</p>
+<p>The reason we’re treating Burr-plus-Pydantic as the typed pick instead: <code>pydantic-graph</code> does not have a documented persistence or fork-from-state story. You get the typed graph, but you don’t get the replay debugger. Burr-plus-Pydantic gives you typed state <em>and</em> fork-from-state in the same framework. If you don’t need replay and you do want the agent-level typing (deps, output schemas), reach for Pydantic AI — it’s the cleaner choice for that specific job.</p>
+</div>
+</div>
+</section>
+<section id="sec-prod-burr-transitions" class="level3" data-number="7.9.3">
+<h3 data-number="7.9.3" class="anchored" data-anchor-id="sec-prod-burr-transitions"><span class="header-section-number">7.9.3</span> Transitions: the edges of the FSM</h3>
+<p>Before persistence makes sense, we need to look at the edge syntax. The first two snippets used <code>.with_transitions()</code> either empty or hand-waved with <code>(...)</code> — fine for a single-action app, misleading once the FSM has branches. The real shape:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-19"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-19-1" class="code-annotation-target"><a href="#annotated-cell-19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core <span class="im">import</span> when, expr, default</span>
+<span id="annotated-cell-19-2"><a href="#annotated-cell-19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-19-3"><a href="#annotated-cell-19-3" aria-hidden="true" tabindex="-1"></a>.with_transitions(</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-19-4" class="code-annotation-target"><a href="#annotated-cell-19-4" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"decide"</span>,   <span class="st">"search"</span>,   expr(<span class="st">"next_action == 'search'"</span>)),</span>
+<span id="annotated-cell-19-5"><a href="#annotated-cell-19-5" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"decide"</span>,   <span class="st">"answer"</span>,   expr(<span class="st">"next_action == 'answer'"</span>)),</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-19-6" class="code-annotation-target"><a href="#annotated-cell-19-6" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"search"</span>,   <span class="st">"decide"</span>,   default),</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-19-7" class="code-annotation-target"><a href="#annotated-cell-19-7" aria-hidden="true" tabindex="-1"></a>    ([<span class="st">"search"</span>, <span class="st">"answer"</span>], <span class="st">"decide"</span>),</span>
+<span id="annotated-cell-19-8"><a href="#annotated-cell-19-8" aria-hidden="true" tabindex="-1"></a>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-19" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-19" data-code-lines="1" data-code-annotation="1"><strong>Three condition forms</strong> ship with <code>burr.core</code>: <code>when(field=value)</code> for equality (with operator suffixes <code>__gt</code>, <code>__lt</code>, <code>__in</code>, <code>__ne</code>), <code>expr("python expression")</code> for arbitrary Python evaluated against state, and the sentinel <code>default</code> for the catch-all branch. Negate with <code>~when(...)</code> or <code>~expr(...)</code>.</span>
+</dd>
+<dt data-target-cell="annotated-cell-19" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-19" data-code-lines="4,5" data-code-annotation="2"><strong>Each tuple is <code>(from_label, to_label, Condition)</code>.</strong> Slots 1 and 2 are <strong>strings</strong> — the action names you registered in <code>with_actions(...)</code>. Slot 3 is a <strong><code>Condition</code> object</strong>, not an arbitrary callable. Conditions are evaluated in declaration order; the first one that returns true wins.</span>
+</dd>
+<dt data-target-cell="annotated-cell-19" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-19" data-code-lines="6" data-code-annotation="3"><strong><code>default</code> is a sentinel imported from <code>burr.core</code></strong> — not a user-defined function despite reading like one. Reach for it as the fallback branch after the typed conditions.</span>
+</dd>
+<dt data-target-cell="annotated-cell-19" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-19" data-code-lines="7" data-code-annotation="4"><strong>Length-2 shortcut</strong> — omit the condition and Burr inserts <code>default</code> for you. A list in slot 1 fans multiple sources into one destination.</span>
+</dd>
+</dl>
+<p>If no condition is true and there’s no default, the run halts. That’s a feature: it surfaces missing edges instead of looping silently.</p>
+</section>
+<section id="sec-prod-burr-replay" class="level3" data-number="7.9.4">
+<h3 data-number="7.9.4" class="anchored" data-anchor-id="sec-prod-burr-replay"><span class="header-section-number">7.9.4</span> State persistence and fork-from-state</h3>
+<p>The immutable <code>state.update(...)</code> pattern isn’t aesthetics — it’s the foundation of Burr’s killer feature. Because every transition produces a new snapshot rather than mutating, the framework can save those snapshots and, later, <em>fork</em> execution from any one of them. This is what makes a production failure debuggable: you don’t have to reproduce the bug, you replay the exact state that led to it.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-20"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-20-1"><a href="#annotated-cell-20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core <span class="im">import</span> ApplicationBuilder, when, expr, default</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-20" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-20-2" class="code-annotation-target"><a href="#annotated-cell-20-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core.persistence <span class="im">import</span> SQLLitePersister</span>
+<span id="annotated-cell-20-3"><a href="#annotated-cell-20-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.integrations.pydantic <span class="im">import</span> PydanticTypingSystem</span>
+<span id="annotated-cell-20-4"><a href="#annotated-cell-20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-20-5"><a href="#annotated-cell-20-5" aria-hidden="true" tabindex="-1"></a>persister <span class="op">=</span> SQLLitePersister(db_path<span class="op">=</span><span class="st">"./burr.db"</span>, table_name<span class="op">=</span><span class="st">"qa_states"</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-20" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-20-6" class="code-annotation-target"><a href="#annotated-cell-20-6" aria-hidden="true" tabindex="-1"></a>persister.initialize()</span>
+<span id="annotated-cell-20-7"><a href="#annotated-cell-20-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-20-8"><a href="#annotated-cell-20-8" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (</span>
+<span id="annotated-cell-20-9"><a href="#annotated-cell-20-9" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
+<span id="annotated-cell-20-10"><a href="#annotated-cell-20-10" aria-hidden="true" tabindex="-1"></a>    .with_actions(decide<span class="op">=</span>decide, search<span class="op">=</span>search, synthesize<span class="op">=</span>synthesize)</span>
+<span id="annotated-cell-20-11"><a href="#annotated-cell-20-11" aria-hidden="true" tabindex="-1"></a>    .with_transitions(</span>
+<span id="annotated-cell-20-12"><a href="#annotated-cell-20-12" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>,   <span class="st">"search"</span>,     expr(<span class="st">"next_action == 'search'"</span>)),</span>
+<span id="annotated-cell-20-13"><a href="#annotated-cell-20-13" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>,   <span class="st">"synthesize"</span>, expr(<span class="st">"next_action == 'answer'"</span>)),</span>
+<span id="annotated-cell-20-14"><a href="#annotated-cell-20-14" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"search"</span>,   <span class="st">"decide"</span>,     default),</span>
+<span id="annotated-cell-20-15"><a href="#annotated-cell-20-15" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-20-16"><a href="#annotated-cell-20-16" aria-hidden="true" tabindex="-1"></a>    .with_typing(PydanticTypingSystem(QAState))</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-20" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-20-17" class="code-annotation-target"><a href="#annotated-cell-20-17" aria-hidden="true" tabindex="-1"></a>    .with_identifiers(app_id<span class="op">=</span><span class="st">"qa-2026-05-29-001"</span>,</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-20" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-20-18" class="code-annotation-target"><a href="#annotated-cell-20-18" aria-hidden="true" tabindex="-1"></a>                      partition_key<span class="op">=</span><span class="st">"user-42"</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-20" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-20-19" class="code-annotation-target"><a href="#annotated-cell-20-19" aria-hidden="true" tabindex="-1"></a>    .with_state_persister(persister)</span>
+<span id="annotated-cell-20-20"><a href="#annotated-cell-20-20" aria-hidden="true" tabindex="-1"></a>    .with_entrypoint(<span class="st">"decide"</span>)</span>
+<span id="annotated-cell-20-21"><a href="#annotated-cell-20-21" aria-hidden="true" tabindex="-1"></a>    .build()</span>
+<span id="annotated-cell-20-22"><a href="#annotated-cell-20-22" aria-hidden="true" tabindex="-1"></a>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-20" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-20" data-code-lines="2" data-code-annotation="1"><strong><code>SQLLitePersister</code></strong> — the double <code>L</code> is intentional, not a typo. Postgres ships as <code>PostgreSQLPersister</code>; async versions live under <code>burr.integrations.persisters</code> (e.g.&nbsp;<code>AsyncPGPersister</code>). Custom backends extend <code>BaseStatePersister</code> or <code>AsyncBaseStatePersister</code>.</span>
+</dd>
+<dt data-target-cell="annotated-cell-20" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-20" data-code-lines="6" data-code-annotation="2"><strong><code>persister.initialize()</code> creates the table</strong> if it doesn’t exist. Easy to forget — Burr will not auto-run schema setup at build time.</span>
+</dd>
+<dt data-target-cell="annotated-cell-20" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-20" data-code-lines="17" data-code-annotation="3"><strong><code>app_id</code></strong> uniquely identifies this run. Auto-generated if omitted. This is what you fork <em>from</em>.</span>
+</dd>
+<dt data-target-cell="annotated-cell-20" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-20" data-code-lines="18" data-code-annotation="4"><strong><code>partition_key</code></strong> groups runs (per-user, per-session, per-tenant). Snapshots within a partition are queryable together.</span>
+</dd>
+<dt data-target-cell="annotated-cell-20" data-target-annotation="5">5</dt>
+<dd>
+<span data-code-cell="annotated-cell-20" data-code-lines="19" data-code-annotation="5"><strong><code>with_state_persister(persister)</code></strong> wires up automatic snapshot-after-action. Every <code>state.update(...)</code> lands a row.</span>
+</dd>
+</dl>
+<p>Once persistence is on, replay is another builder call. The forked builder needs the same actions, transitions, and typing as the original — it’s still a Burr application, just one whose initial state comes from a snapshot instead of <code>with_state(...)</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-21"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-21-1"><a href="#annotated-cell-21-1" aria-hidden="true" tabindex="-1"></a>forked <span class="op">=</span> (</span>
+<span id="annotated-cell-21-2"><a href="#annotated-cell-21-2" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
+<span id="annotated-cell-21-3"><a href="#annotated-cell-21-3" aria-hidden="true" tabindex="-1"></a>    .with_actions(decide<span class="op">=</span>decide, search<span class="op">=</span>search, synthesize<span class="op">=</span>synthesize)</span>
+<span id="annotated-cell-21-4"><a href="#annotated-cell-21-4" aria-hidden="true" tabindex="-1"></a>    .with_transitions(</span>
+<span id="annotated-cell-21-5"><a href="#annotated-cell-21-5" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>,   <span class="st">"search"</span>,     expr(<span class="st">"next_action == 'search'"</span>)),</span>
+<span id="annotated-cell-21-6"><a href="#annotated-cell-21-6" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>,   <span class="st">"synthesize"</span>, expr(<span class="st">"next_action == 'answer'"</span>)),</span>
+<span id="annotated-cell-21-7"><a href="#annotated-cell-21-7" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"search"</span>,   <span class="st">"decide"</span>,     default),</span>
+<span id="annotated-cell-21-8"><a href="#annotated-cell-21-8" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-21-9"><a href="#annotated-cell-21-9" aria-hidden="true" tabindex="-1"></a>    .with_typing(PydanticTypingSystem(QAState))</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-21-10" class="code-annotation-target"><a href="#annotated-cell-21-10" aria-hidden="true" tabindex="-1"></a>    .with_identifiers(app_id<span class="op">=</span><span class="st">"qa-2026-05-29-001-fork-a"</span>,</span>
+<span id="annotated-cell-21-11"><a href="#annotated-cell-21-11" aria-hidden="true" tabindex="-1"></a>                      partition_key<span class="op">=</span><span class="st">"user-42"</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-21-12" class="code-annotation-target"><a href="#annotated-cell-21-12" aria-hidden="true" tabindex="-1"></a>    .initialize_from(</span>
+<span id="annotated-cell-21-13"><a href="#annotated-cell-21-13" aria-hidden="true" tabindex="-1"></a>        persister,</span>
+<span id="annotated-cell-21-14"><a href="#annotated-cell-21-14" aria-hidden="true" tabindex="-1"></a>        resume_at_next_action<span class="op">=</span><span class="va">True</span>,</span>
+<span id="annotated-cell-21-15"><a href="#annotated-cell-21-15" aria-hidden="true" tabindex="-1"></a>        default_state<span class="op">=</span><span class="va">None</span>,</span>
+<span id="annotated-cell-21-16"><a href="#annotated-cell-21-16" aria-hidden="true" tabindex="-1"></a>        default_entrypoint<span class="op">=</span><span class="st">"decide"</span>,</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-21-17" class="code-annotation-target"><a href="#annotated-cell-21-17" aria-hidden="true" tabindex="-1"></a>        fork_from_app_id<span class="op">=</span><span class="st">"qa-2026-05-29-001"</span>,</span>
+<span id="annotated-cell-21-18"><a href="#annotated-cell-21-18" aria-hidden="true" tabindex="-1"></a>        fork_from_partition_key<span class="op">=</span><span class="st">"user-42"</span>,</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-21-19" class="code-annotation-target"><a href="#annotated-cell-21-19" aria-hidden="true" tabindex="-1"></a>        fork_from_sequence_id<span class="op">=</span><span class="dv">7</span>,</span>
+<span id="annotated-cell-21-20"><a href="#annotated-cell-21-20" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-21-21"><a href="#annotated-cell-21-21" aria-hidden="true" tabindex="-1"></a>    .with_state_persister(persister)</span>
+<span id="annotated-cell-21-22"><a href="#annotated-cell-21-22" aria-hidden="true" tabindex="-1"></a>    .build()</span>
+<span id="annotated-cell-21-23"><a href="#annotated-cell-21-23" aria-hidden="true" tabindex="-1"></a>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-21" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-21" data-code-lines="10" data-code-annotation="1"><strong>New <code>app_id</code> for the fork.</strong> The forked run gets its own identity so the original’s history isn’t overwritten — you can compare branches side by side in the UI.</span>
+</dd>
+<dt data-target-cell="annotated-cell-21" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-21" data-code-lines="12" data-code-annotation="2"><strong><code>initialize_from(...)</code> replaces <code>with_state(...)</code>.</strong> It tells the builder: load initial state from this persister rather than constructing it inline.</span>
+</dd>
+<dt data-target-cell="annotated-cell-21" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-21" data-code-lines="17" data-code-annotation="3"><strong><code>fork_from_app_id</code> + <code>fork_from_partition_key</code></strong> locate the source run within the persister.</span>
+</dd>
+<dt data-target-cell="annotated-cell-21" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-21" data-code-lines="19" data-code-annotation="4"><strong><code>fork_from_sequence_id=7</code></strong> picks the snapshot written after the 7th action of the source run. Execution resumes from that state; <code>resume_at_next_action=True</code> means the next action runs against it (set false to re-run the action that produced it). Change one thing — a prompt, a model, a tool binding — and observe whether the new branch goes right.</span>
+</dd>
+</dl>
+<div class="callout callout-style-default callout-tip callout-titled" title="Why fork-from-state is the production differentiator">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Why fork-from-state is the production differentiator
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Production bugs are non-deterministic. A retry has different LLM output. A new vector DB query returns different chunks. The “reproduce the bug” step that’s routine in normal software is a research project in agent debugging.</p>
+<p>Fork-from-state replaces reproduction with replay. You don’t reconstruct what the world looked like when the bug fired — Burr already saved that. You just point <code>fork_from_sequence_id</code> at the snapshot before the bad decision, change one thing, and observe whether the new branch goes right. It’s <code>git checkout</code> for agent state.</p>
+</div>
+</div>
+</section>
+<section id="sec-prod-burr-ui" class="level3" data-number="7.9.5">
+<h3 data-number="7.9.5" class="anchored" data-anchor-id="sec-prod-burr-ui"><span class="header-section-number">7.9.5</span> The Burr UI</h3>
+<p>Burr ships a local dashboard that reads the persister and visualizes runs:</p>
+<ul>
+<li><strong>Graph view</strong> — the state machine, with actions colored by frequency</li>
+<li><strong>Run timeline</strong> — every action of a specific <code>app_id</code>, with input/output state for each</li>
+<li><strong>State diff</strong> — between any two snapshots, what changed and which action changed it</li>
+<li><strong>Fork button</strong> — pick a snapshot, change a prompt, kick off a forked run from the UI</li>
+</ul>
+<p>Combined with the OpenTelemetry exporter (and the <a href="https://www.traceloop.com/">Traceloop</a> integration for hosted tracing), this gives you a single picture of “what the agent did, why it did it, and what state it had when it did it.” That’s the closest thing in the open-source agent ecosystem to a real debugger.</p>
+</section>
+<section id="sec-prod-burr-hamilton" class="level3" data-number="7.9.6">
+<h3 data-number="7.9.6" class="anchored" data-anchor-id="sec-prod-burr-hamilton"><span class="header-section-number">7.9.6</span> Hamilton as the sibling</h3>
+<p>Burr is maintained alongside <a href="https://hamilton.dagworks.io/">Hamilton</a>, the same company’s DAG library for data pipelines. If you already use Hamilton, Burr is the natural agent layer on top — the same <code>reads</code>/<code>writes</code> discipline carries over, and a Burr action can wrap a Hamilton driver for the data-prep half of a RAG pipeline. The combination shows up in the official Conversational RAG example.</p>
+<p>For agents that need RAG, this is the Burr path: Hamilton for the index pipeline, Burr for the conversational loop, both inspectable through the same UI.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Burr is currently in the Apache Software Foundation incubator. The library is stable and used in production; the governance maturation is the work-in-progress.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-prod-burr-example" class="level2" data-number="7.10">
+<h2 data-number="7.10" class="anchored" data-anchor-id="sec-prod-burr-example"><span class="header-section-number">7.10</span> Worked Example: Q&amp;A Agent in Burr + Pydantic</h2>
+<p>Earlier in this chapter we built a Q&amp;A agent in PocketFlow: a <code>DecideAction</code> node returning <code>"search"</code> or <code>"answer"</code>, a <code>SearchWeb</code> node, and an <code>Answer</code> node. Now let’s port it to Burr + Pydantic and see what the production version of the same logic looks like.</p>
+<section id="the-state-schema" class="level3" data-number="7.10.1">
+<h3 data-number="7.10.1" class="anchored" data-anchor-id="the-state-schema"><span class="header-section-number">7.10.1</span> The state schema</h3>
+<p>The state schema names every field the actions touch:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-22"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-22-1"><a href="#annotated-cell-22-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pydantic <span class="im">import</span> BaseModel, Field</span>
+<span id="annotated-cell-22-2"><a href="#annotated-cell-22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-22-3"><a href="#annotated-cell-22-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> QAState(BaseModel):</span>
+<span id="annotated-cell-22-4"><a href="#annotated-cell-22-4" aria-hidden="true" tabindex="-1"></a>    query: <span class="bu">str</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-22" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-22-5" class="code-annotation-target"><a href="#annotated-cell-22-5" aria-hidden="true" tabindex="-1"></a>    context: <span class="bu">list</span>[<span class="bu">dict</span>] <span class="op">=</span> Field(default_factory<span class="op">=</span><span class="bu">list</span>)</span>
+<span id="annotated-cell-22-6"><a href="#annotated-cell-22-6" aria-hidden="true" tabindex="-1"></a>    next_action: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="annotated-cell-22-7"><a href="#annotated-cell-22-7" aria-hidden="true" tabindex="-1"></a>    search_term: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="annotated-cell-22-8"><a href="#annotated-cell-22-8" aria-hidden="true" tabindex="-1"></a>    answer: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-22" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-22" data-code-lines="5" data-code-annotation="1"><strong><code>context</code> accumulates</strong> — each search appends a dict; the decide step reads the whole list.</span>
+</dd>
+</dl>
+</section>
+<section id="three-typed-actions" class="level3" data-number="7.10.2">
+<h3 data-number="7.10.2" class="anchored" data-anchor-id="three-typed-actions"><span class="header-section-number">7.10.2</span> Three typed actions</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> yaml</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core.action <span class="im">import</span> action</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="at">@action.pydantic</span>(reads<span class="op">=</span>[<span class="st">"query"</span>, <span class="st">"context"</span>],</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>                 writes<span class="op">=</span>[<span class="st">"next_action"</span>, <span class="st">"search_term"</span>])</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> decide(state: QAState, llm) <span class="op">-&gt;</span> QAState:</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    prompt <span class="op">=</span> <span class="ss">f"""Question: </span><span class="sc">{</span>state<span class="sc">.</span>query<span class="sc">}</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="ss">Previous searches: </span><span class="sc">{</span>state<span class="sc">.</span>context <span class="kw">or</span> <span class="st">"none"</span><span class="sc">}</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="ss">Reply in YAML:</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="ss">```yaml</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="ss">action: search | answer</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="ss">search_term: &lt;if action is search&gt;</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="ss">```"""</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    raw <span class="op">=</span> llm.complete(prompt)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    parsed <span class="op">=</span> yaml.safe_load(raw.split(<span class="st">"```yaml"</span>)[<span class="dv">1</span>].split(<span class="st">"```"</span>)[<span class="dv">0</span>])</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    state.next_action <span class="op">=</span> parsed[<span class="st">"action"</span>]</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    state.search_term <span class="op">=</span> parsed.get(<span class="st">"search_term"</span>)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="at">@action.pydantic</span>(reads<span class="op">=</span>[<span class="st">"search_term"</span>, <span class="st">"context"</span>], writes<span class="op">=</span>[<span class="st">"context"</span>])</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> search(state: QAState, web) <span class="op">-&gt;</span> QAState:</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> web.search(state.search_term)</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    state.context <span class="op">=</span> state.context <span class="op">+</span> [{<span class="st">"term"</span>: state.search_term,</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>                                       <span class="st">"result"</span>: result}]</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="at">@action.pydantic</span>(reads<span class="op">=</span>[<span class="st">"query"</span>, <span class="st">"context"</span>], writes<span class="op">=</span>[<span class="st">"answer"</span>])</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> answer(state: QAState, llm) <span class="op">-&gt;</span> QAState:</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    state.answer <span class="op">=</span> llm.complete(</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Question: </span><span class="sc">{</span>state<span class="sc">.</span>query<span class="sc">}</span><span class="ch">\n</span><span class="ss">Context: </span><span class="sc">{</span>state<span class="sc">.</span>context<span class="sc">}</span><span class="ch">\n</span><span class="ss">Answer:"</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Each action declares the exact fields it touches. The framework can now check, before any LLM call, that <code>search</code> never writes to <code>query</code>.</p>
+</section>
+<section id="transitions-and-persistence" class="level3" data-number="7.10.3">
+<h3 data-number="7.10.3" class="anchored" data-anchor-id="transitions-and-persistence"><span class="header-section-number">7.10.3</span> Transitions and persistence</h3>
+<p>Transitions encode the loop using <code>next_action</code> as the routing field:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-24"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-24-1"><a href="#annotated-cell-24-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core <span class="im">import</span> ApplicationBuilder, expr</span>
+<span id="annotated-cell-24-2"><a href="#annotated-cell-24-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.integrations.pydantic <span class="im">import</span> PydanticTypingSystem</span>
+<span id="annotated-cell-24-3"><a href="#annotated-cell-24-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core.persistence <span class="im">import</span> SQLLitePersister</span>
+<span id="annotated-cell-24-4"><a href="#annotated-cell-24-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-24-5"><a href="#annotated-cell-24-5" aria-hidden="true" tabindex="-1"></a>persister <span class="op">=</span> SQLLitePersister(<span class="st">"qa.db"</span>, <span class="st">"runs"</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-24" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-24-6" class="code-annotation-target"><a href="#annotated-cell-24-6" aria-hidden="true" tabindex="-1"></a>persister.initialize()</span>
+<span id="annotated-cell-24-7"><a href="#annotated-cell-24-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-24-8"><a href="#annotated-cell-24-8" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (</span>
+<span id="annotated-cell-24-9"><a href="#annotated-cell-24-9" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
+<span id="annotated-cell-24-10"><a href="#annotated-cell-24-10" aria-hidden="true" tabindex="-1"></a>    .with_actions(decide<span class="op">=</span>decide, search<span class="op">=</span>search, answer<span class="op">=</span>answer)</span>
+<span id="annotated-cell-24-11"><a href="#annotated-cell-24-11" aria-hidden="true" tabindex="-1"></a>    .with_transitions(</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-24" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-24-12" class="code-annotation-target"><a href="#annotated-cell-24-12" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>, <span class="st">"search"</span>, expr(<span class="st">"next_action == 'search'"</span>)),</span>
+<span id="annotated-cell-24-13"><a href="#annotated-cell-24-13" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>, <span class="st">"answer"</span>, expr(<span class="st">"next_action == 'answer'"</span>)),</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-24" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-24-14" class="code-annotation-target"><a href="#annotated-cell-24-14" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"search"</span>, <span class="st">"decide"</span>),</span>
+<span id="annotated-cell-24-15"><a href="#annotated-cell-24-15" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-24-16"><a href="#annotated-cell-24-16" aria-hidden="true" tabindex="-1"></a>    .with_typing(PydanticTypingSystem(QAState))</span>
+<span id="annotated-cell-24-17"><a href="#annotated-cell-24-17" aria-hidden="true" tabindex="-1"></a>    .with_state(QAState(query<span class="op">=</span><span class="st">"Who won the 2024 Physics Nobel?"</span>))</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-24" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-24-18" class="code-annotation-target"><a href="#annotated-cell-24-18" aria-hidden="true" tabindex="-1"></a>    .with_state_persister(persister)</span>
+<span id="annotated-cell-24-19"><a href="#annotated-cell-24-19" aria-hidden="true" tabindex="-1"></a>    .with_identifiers(app_id<span class="op">=</span><span class="st">"qa-001"</span>, partition_key<span class="op">=</span><span class="st">"demo"</span>)</span>
+<span id="annotated-cell-24-20"><a href="#annotated-cell-24-20" aria-hidden="true" tabindex="-1"></a>    .with_entrypoint(<span class="st">"decide"</span>)</span>
+<span id="annotated-cell-24-21"><a href="#annotated-cell-24-21" aria-hidden="true" tabindex="-1"></a>    .build()</span>
+<span id="annotated-cell-24-22"><a href="#annotated-cell-24-22" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="annotated-cell-24-23"><a href="#annotated-cell-24-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-24-24"><a href="#annotated-cell-24-24" aria-hidden="true" tabindex="-1"></a>_, _, final <span class="op">=</span> app.run(halt_after<span class="op">=</span>[<span class="st">"answer"</span>])</span>
+<span id="annotated-cell-24-25"><a href="#annotated-cell-24-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(final.data.answer)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-24" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-24" data-code-lines="6" data-code-annotation="1"><strong>Create the table.</strong> <code>persister.initialize()</code> is required on first use; Burr does not run schema setup implicitly.</span>
+</dd>
+<dt data-target-cell="annotated-cell-24" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-24" data-code-lines="12,13" data-code-annotation="2"><strong>Conditional transitions.</strong> <code>expr(...)</code> evaluates a Python expression against the typed state. Conditions are checked in order; the first true one wins.</span>
+</dd>
+<dt data-target-cell="annotated-cell-24" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-24" data-code-lines="14" data-code-annotation="3"><strong>Length-2 tuple = implicit <code>default</code>.</strong> <code>("search", "decide")</code> is the same as <code>("search", "decide", default)</code> — unconditional after <code>search</code>.</span>
+</dd>
+<dt data-target-cell="annotated-cell-24" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-24" data-code-lines="18" data-code-annotation="4"><strong>Persistence on.</strong> Every snapshot lands in <code>qa.db</code>. If a future run goes wrong, fork from the bad <code>sequence_id</code> (see <a href="#sec-prod-burr-replay" class="quarto-xref"><span>Section 7.9.4</span></a>) and try a different prompt.</span>
+</dd>
+</dl>
+</section>
+<section id="what-you-gained-over-pocketflow" class="level3" data-number="7.10.4">
+<h3 data-number="7.10.4" class="anchored" data-anchor-id="what-you-gained-over-pocketflow"><span class="header-section-number">7.10.4</span> What you gained over PocketFlow</h3>
+<p>The PocketFlow version was roughly the same number of lines, but the Burr version ships with three guarantees the PocketFlow version doesn’t have:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Guarantee</th>
+<th>PocketFlow</th>
+<th>Burr + Pydantic</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>State contract</strong></td>
+<td>Any node can write any key — typos are silent bugs</td>
+<td><code>reads</code>/<code>writes</code> declared and enforced; Pydantic validates types</td>
+</tr>
+<tr class="even">
+<td><strong>Immutable snapshots</strong></td>
+<td>State is a mutable dict — no history</td>
+<td>Every action produces a new snapshot; full audit trail</td>
+</tr>
+<tr class="odd">
+<td><strong>Fork-from-state replay</strong></td>
+<td>Not available — reproduce bugs manually</td>
+<td><code>fork_from_sequence_id</code> lets you rewind and retry from any point</td>
+</tr>
+</tbody>
+</table>
+<p>The shape is identical — decide/search/answer with edges encoding the loop. The difference is entirely in what the framework guarantees about the state flowing through that shape.</p>
+</section>
+</section>
+<section id="sec-prod-ralph" class="level2" data-number="7.11">
+<h2 data-number="7.11" class="anchored" data-anchor-id="sec-prod-ralph"><span class="header-section-number">7.11</span> Forward Link: From Typed State to the Ralph Loop</h2>
+<p>The next chapters introduce more frameworks and then Ralph — Geoffrey Huntley’s minimal autonomous coding loop: load spec, select task, execute, observe, repeat. Burr and the frameworks in Chapters 8–9 are different layers of the same stack. They provide the <em>state machine</em>; Ralph provides the <em>loop shape</em> that runs on it.</p>
+<p>Two connections worth flagging now:</p>
+<ul>
+<li><strong>Burr’s <code>@action.pydantic</code> is what makes a Ralph harness inspectable.</strong> When the loop runs for 200 iterations and one of them edits the wrong file, you want to know which action wrote which field. Typed reads/writes are not optional at that scale.</li>
+<li><strong>The Evaluator-Optimizer pattern is the Ralph loop in disguise.</strong> Generate a candidate change; evaluate against the spec/tests; iterate. <a href="ch10-ralph-loop.html#sec-ralph-loop" class="quarto-xref"><span>Section 10.2</span></a> will show that the “spec → execute → test → re-evaluate” loop is structurally the same pattern, just with code edits as the action space.</li>
+</ul>
+<p>The book’s path is: this chapter picks the state machine, Chapter 8 covers more production options, the Ralph loop in Chapter 10 wraps the loop around it, and Chapters 12–13 scale the loop into a fleet and a career.</p>
+</section>
+<section id="sec-pf-takeaways" class="level2" data-number="7.12">
+<h2 data-number="7.12" class="anchored" data-anchor-id="sec-pf-takeaways"><span class="header-section-number">7.12</span> Key Takeaways</h2>
+<ul>
+<li>An agent framework is just Graph + Shared Store — nodes connected by action edges, communicating through a shared dictionary</li>
+<li>The <code>prep → exec → post</code> lifecycle separates I/O (shared store access) from computation (LLM calls) — making nodes retriable and testable</li>
+<li>The agent pattern is a decision node that returns different action labels, routing the flow to different nodes (including back to itself)</li>
+<li>PocketFlow proves that 100 lines of framework code can implement workflows, agents, RAG, and multi-agent systems</li>
+<li><strong>The framework isn’t the hard part — the design is.</strong> Deciding what nodes to build, what actions to route, and what data to share requires engineering judgment that no framework eliminates</li>
+<li>PocketFlow’s mutable shared dict stops being enough when multiple developers share an agent, production failures need debugging, or you need audit trails</li>
+<li><strong>Burr + Pydantic</strong> is the production upgrade of the same model. <code>@action.pydantic</code>, <code>PydanticTypingSystem</code>, and immutable <code>state.update()</code> give compile-time-ish guarantees on state changes; <code>fork_from_sequence_id</code> is the production debugger</li>
+<li>The Burr UI provides graph visualization, run timelines, state diffs, and a fork button — the closest thing in open-source agents to a real debugger</li>
+<li>Chapter 8 covers <strong>Agno</strong> (batteries-included multi-agent platform) and <strong>mcp-agent</strong> (MCP-native pattern composition) — two more frameworks that solve adjacent production pressures</li>
+</ul>
+</section>
+<section id="sec-pf-concept-map" class="level2" data-number="7.13">
+<h2 data-number="7.13" class="anchored" data-anchor-id="sec-pf-concept-map"><span class="header-section-number">7.13</span> Concept Map</h2>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    GS["Graph + Shared Store"] --&gt; PF["PocketFlow (100 lines)"]
+    PF --&gt; W["Workflow pattern"]
+    PF --&gt; AG["Agent pattern"]
+    PF --&gt; RAG["RAG pattern"]
+    PF --&gt; D["Design is the hard part"]
+    PF --&gt; PR["Production pressures"]
+    PR --&gt; T["Typed state contracts"]
+    PR --&gt; R["Replayable state"]
+    PR --&gt; A["Audit trails"]
+    T --&gt; B["Burr + Pydantic"]
+    R --&gt; B
+    A --&gt; B
+    B --&gt; UI["Burr UI (debugger)"]
+    B --&gt; FS["Fork-from-state"]
+    B --&gt; H["Hamilton (RAG pipelines)"]
+    B --&gt; RL["Ralph loop (Ch 10)"]
+    PR --&gt; CH8["Agno + mcp-agent (Ch 8)"]
+    PR --&gt; CH9["Mastra (Ch 9)"]
+    style GS fill:#fef3c7,stroke:#92400e,color:#92400e
+    style PF fill:#fef3c7,stroke:#92400e,color:#92400e
+    style B fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style RL fill:#fce7f3,stroke:#9d174d,color:#9d174d
+    style CH8 fill:#dcfce7,stroke:#166534,color:#166534
+    style CH9 fill:#e0f2fe,stroke:#0369a1,color:#0369a1
+</pre>
+</div>
+<p></p><figcaption> How the chapter’s concepts connect — from learning model to production deployment</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../chapters/ch06-build-agent.html" class="pagination-link" aria-label="Build a Claude Code Clone">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Build a Claude Code Clone</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../chapters/ch08-production-frameworks.html" class="pagination-link" aria-label="Production Agent Platforms for Python">
+        <span class="nav-page-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Production Agent Platforms for Python</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
