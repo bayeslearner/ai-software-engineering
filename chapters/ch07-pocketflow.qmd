@@ -323,29 +323,35 @@ Indexing is expensive — chunking, embedding, and storing thousands of document
 ```python
 from pocketflow import Node, BatchNode, Flow
 
-class ChunkDocs(BatchNode):                                   # <1>
+class ChunkDocs(Node):                                        # <1>
     def prep(self, shared):
-        text = shared["raw_text"]
-        shared["chunks"] = [text[i:i+500] for i in range(0, len(text), 500)]
-        return shared["chunks"]                               # <2>
+        return shared["raw_text"]
+
+    def exec(self, text):                                     # <2>
+        return [text[i:i+500] for i in range(0, len(text), 500)]
+
+    def post(self, shared, prep_res, exec_res):
+        shared["chunks"] = exec_res                           # <3>
 ```
-1. **`BatchNode`** (not `Node`) — signals that this node processes a *list* of items rather than a single value.
-2. **Returns a list** — when `prep()` returns a list in a `BatchNode`, PocketFlow will call `exec()` once per item. A regular `Node` would pass the entire list to `exec()` as one argument.
+1. **Plain `Node`** — chunking is a single operation on a single input (the raw text). The *output* is a list, but the input isn't, so this is not the batch case.
+2. **`exec()` does the work** — keeps I/O (`shared` access) in `prep`/`post`, computation in `exec`. The retry/error semantics PocketFlow promises only apply to what's inside `exec()`.
+3. **Write to `shared` in `post()`** — never write to `shared` from `prep` or `exec`. The next node will read `shared["chunks"]` (see callout below — this implicit cross-node contract is what §7.8 calls out as PocketFlow's main liability).
 
 ```python
-class EmbedChunks(BatchNode):
+class EmbedChunks(BatchNode):                                 # <1>
     def prep(self, shared):
-        return shared["chunks"]                               # <1>
+        return shared["chunks"]                               # <2>
 
-    def exec(self, chunk):                                    # <2>
+    def exec(self, chunk):                                    # <3>
         return get_embedding(chunk)
 
     def post(self, shared, prep_res, exec_res):
-        shared["embeddings"] = exec_res                       # <3>
+        shared["embeddings"] = exec_res                       # <4>
 ```
-1. **Prep returns the list** of chunks — 50 chunks means 50 calls to `exec()`.
-2. **`exec()` receives ONE chunk at a time** — not the whole list. PocketFlow handles the iteration internally. This is the "map" in map/reduce.
-3. **`exec_res` is a list of ALL results** — after all 50 `exec()` calls complete, PocketFlow collects them into a list and passes it to `post()`. This is the "reduce."
+1. **`BatchNode` (not `Node`)** — signals that this node iterates `exec()` over a list. The input is *already* a list of chunks; we want one embedding call per chunk, not one call with all of them.
+2. **`prep` returns the list** — `shared["chunks"]` was written by `ChunkDocs.post()` in the previous step. **This is the implicit contract**: nothing in the type system says `EmbedChunks` needs `chunks` to exist. Rename a key upstream and this breaks silently at runtime. The Burr section (@sec-prod-burr) replaces this string-keyed handoff with declared `reads`/`writes`.
+3. **`exec()` receives ONE chunk at a time** — PocketFlow handles the iteration. This is the "map" in map/reduce.
+4. **`exec_res` is the list of ALL results** — after all `exec()` calls complete, PocketFlow collects them into a list and passes it to `post()`. This is the "reduce."
 
 ```python
 class BuildIndex(Node):                                       # <1>
@@ -421,7 +427,7 @@ print(shared["answer"])
 2. **Query many times** — each query adds `"question"`, `"retrieved"`, and `"answer"` to the shared store. The index is reused.
 
 ::: {.callout-tip title="Production consideration: persistence"}
-The shared dict lives in memory — if the process dies, the index is lost. In production, you'd serialize `shared["index"]` to disk in `BuildIndex.post()` and deserialize in `RetrieveContext.prep()`. PocketFlow also has a `ParallelBatchNode` that runs `exec()` calls concurrently — useful when embedding 1000 chunks against a rate-limited API.
+The shared dict lives in memory — if the process dies, the index is lost. In production, you'd serialize `shared["index"]` to disk in `BuildIndex.post()` and deserialize in `RetrieveContext.prep()`. PocketFlow also has an `AsyncParallelBatchNode` that runs `exec_async()` calls concurrently — useful when embedding 1000 chunks against a rate-limited API, but it requires an `AsyncFlow` and `async def exec_async()` overrides on the node.
 :::
 
 ## The Design Is the Hard Part {#sec-pf-design}
