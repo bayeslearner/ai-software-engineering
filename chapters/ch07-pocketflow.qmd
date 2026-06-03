@@ -497,9 +497,13 @@ And — the key reason we're treating Burr as the typed upgrade — it has a fir
 
 The smallest possible Burr application:
 
+Throughout this section, `llm` is whatever LLM client you use — anything with a `.complete(prompt) -> str` method. The Burr-specific piece is how dependencies like `llm` get injected into actions: declare the parameter, then pass it via `.bind()` at the builder. Unbound parameters become required runtime inputs to `app.run(inputs={...})` instead.
+
 ```python
 from burr.core import ApplicationBuilder, State
 from burr.core.action import action
+
+llm = MyLLMClient(...)                                               # <0>
 
 @action(reads=["query"], writes=["answer"])                          # <1>
 def answer_question(state: State, llm) -> State:                     # <2>
@@ -508,7 +512,7 @@ def answer_question(state: State, llm) -> State:                     # <2>
 
 app = (
     ApplicationBuilder()
-    .with_actions(answer_question)                                   # <4>
+    .with_actions(answer_question=answer_question.bind(llm=llm))     # <4>
     .with_transitions()                                              # <5>
     .with_state(query="What is context engineering?", answer="")
     .with_entrypoint("answer_question")
@@ -518,12 +522,13 @@ app = (
 action_run, result, state = app.run(halt_after=["answer_question"]) # <6>
 print(state["answer"])
 ```
+0. **`llm` is your LLM client** — Anthropic, OpenAI, whatever has a `.complete()` method. Shown as a placeholder here.
 1. **`@action(reads=..., writes=...)`** is the declaration that replaces PocketFlow's shared-dict free-for-all. The framework reads this at build time to detect missing keys, enforce write boundaries, and figure out which actions can run in parallel.
 2. **The action receives a `State` and any bound dependencies** (here `llm`). The shared-store-vs-exec separation from PocketFlow collapses into one function with explicit declarations.
 3. **`state.update(...)` returns a new `State`** — it does not mutate. Every transition produces a new snapshot, which is what makes replay possible (@sec-prod-burr-replay).
-4. **`with_actions(...)`** registers actions. Multiple actions get wired by name.
+4. **`with_actions(name=action.bind(...))`** registers actions and pre-binds their non-state dependencies. `.bind()` works like `functools.partial`. The kwarg key (`answer_question=`) becomes the action's name in the graph; positional form (`with_actions(answer_question)`) also works and uses `func.__name__`.
 5. **`with_transitions(...)`** declares the edges. For a one-action app there are none — left empty here. The full syntax (label, label, `Condition`) is covered in @sec-prod-burr-transitions.
-6. **`run(halt_after=[...])`** drives the loop until a halt condition fires. Burr also has `step`, `iterate`, and `stream_result` variants — see the next subsection.
+6. **`run(halt_after=[...])`** returns the `(action_obj, result_dict, final_state)` triple and stops after the named action completes. Burr also has `step`, `iterate`, and `stream_result` variants — see the next subsection.
 
 ::: {.callout-tip title="Why declared reads/writes matter"}
 In PocketFlow, `SearchWeb.post()` accidentally overwriting `shared["query"]` breaks the agent silently — and you don't notice until the next decision node reads the wrong question. Burr's `@action(reads=["query"], writes=["context"])` lets the framework *enforce* that the action cannot write to `query`. The framework also uses these declarations to: (1) detect missing entries at build time, (2) figure out which actions are independent and could run in parallel, (3) attribute every state change to a specific action in the debugging UI. The principle is the same as database column-level permissions — limit the blast radius before the blast.
@@ -531,7 +536,9 @@ In PocketFlow, `SearchWeb.post()` accidentally overwriting `shared["query"]` bre
 
 ### Typed state with Pydantic {#sec-prod-burr-pydantic}
 
-The stringly-typed `reads=["query"]` declaration is still string-typed — a typo in the key gives you a runtime error, not a compile-time one. The Pydantic integration upgrades that to a real type:
+The stringly-typed `reads=["query"]` declaration is still string-typed — a typo in the key gives you a runtime error, not a compile-time one. The Pydantic integration upgrades that to a real type.
+
+We're going to use one canonical `QAState` for the rest of the chapter. The full schema has five fields — three of them (`query`, `context`, `answer`) carry the question-and-answer data, two more (`next_action`, `search_term`) will be used by the routing logic in @sec-prod-burr-transitions. We introduce all five now so there's only ever one `QAState` to track:
 
 ```python
 from pydantic import BaseModel, Field
@@ -541,34 +548,38 @@ from burr.integrations.pydantic import PydanticTypingSystem
 
 class QAState(BaseModel):                                            # <1>
     query: str
-    context: list[str] = Field(default_factory=list)
+    context: list[dict] = Field(default_factory=list)                # <2>
+    next_action: str | None = None                                   # <3>
+    search_term: str | None = None                                   # <3>
     answer: str | None = None
 
-@action.pydantic(reads=["query", "context"], writes=["answer"])      # <2>
-def synthesize(state: QAState, llm) -> QAState:                      # <3>
-    state.answer = llm.complete(                                     # <4>
+@action.pydantic(reads=["query", "context"], writes=["answer"])      # <4>
+def synthesize(state: QAState, llm) -> QAState:                      # <5>
+    state.answer = llm.complete(                                     # <6>
         f"Question: {state.query}\nContext: {state.context}\nAnswer:"
     )
     return state
 
 app = (
     ApplicationBuilder()
-    .with_actions(synthesize)
-    .with_typing(PydanticTypingSystem(QAState))                      # <5>
+    .with_actions(synthesize=synthesize.bind(llm=llm))               # bind llm dep (see §7.9.1)
+    .with_typing(PydanticTypingSystem(QAState))                      # <7>
     .with_state(QAState(query="What is context engineering?"))
     .with_entrypoint("synthesize")
     .build()
 )
 
 _, _, state = app.run(halt_after=["synthesize"])
-print(state.data.answer)                                             # <6>
+print(state.data.answer)                                             # <8>
 ```
 1. **State is a Pydantic `BaseModel`.** Fields are typed; defaults are real Python values, not magic strings.
-2. **`@action.pydantic`** is the typed sibling of `@action`. It still declares `reads`/`writes`, but the action body sees a typed object.
-3. **`state: QAState`** — the IDE autocompletes `state.query`, `state.context`, `state.answer`. A typo (`state.querry`) is a static-analysis error before you run.
-4. **Field mutation looks normal.** Burr's runtime captures the change and produces a new immutable snapshot under the hood; you write idiomatic Python.
-5. **`with_typing(PydanticTypingSystem(QAState))`** attaches the type system to the application. Burr now validates state transitions against the schema.
-6. **`state.data` returns the typed object** after `run()`. `state.data.answer` is what you get; `state["answer"]` still works but you've left the typed path.
+2. **`context: list[dict]`** holds search results — each entry is `{"term": ..., "result": ...}`. The `synthesize` action below treats the whole list as opaque context for the LLM; the search action in the worked example is what appends to it.
+3. **`next_action` and `search_term` are unused by this minimal example** but declared up front so the schema is stable across sections. The `decide` action in the worked example writes them; the FSM transitions read `next_action` to choose the next edge.
+4. **`@action.pydantic`** is the typed sibling of `@action`. It still declares `reads`/`writes`, but the action body sees a typed object.
+5. **`state: QAState`** — the IDE autocompletes `state.query`, `state.context`, `state.answer`. A typo (`state.querry`) is a static-analysis error before you run.
+6. **Field mutation looks normal.** Burr's runtime captures the change and produces a new immutable snapshot under the hood; you write idiomatic Python.
+7. **`with_typing(PydanticTypingSystem(QAState))`** attaches the type system to the application. Burr now validates state transitions against the schema.
+8. **`state.data` returns the typed object** after `run()`. `state.data.answer` is what you get; `state["answer"]` still works but you've left the typed path.
 
 For streaming actions, the typed decorator is `@streaming_action.pydantic` with explicit `state_input_type`, `state_output_type`, and `stream_type` parameters. The streaming story matters when you want token-by-token output to a UI while still preserving the typed-state contract.
 
@@ -613,7 +624,11 @@ persister.initialize()                                              # <2>
 
 app = (
     ApplicationBuilder()
-    .with_actions(decide=decide, search=search, synthesize=synthesize)
+    .with_actions(                                                  # <2a>
+        decide=decide.bind(llm=llm),
+        search=search.bind(web=web),
+        synthesize=synthesize.bind(llm=llm),
+    )
     .with_transitions(
         ("decide",   "search",     expr("next_action == 'search'")),
         ("decide",   "synthesize", expr("next_action == 'answer'")),
@@ -638,7 +653,11 @@ Once persistence is on, replay is another builder call. The forked builder needs
 ```python
 forked = (
     ApplicationBuilder()
-    .with_actions(decide=decide, search=search, synthesize=synthesize)
+    .with_actions(
+        decide=decide.bind(llm=llm),
+        search=search.bind(web=web),
+        synthesize=synthesize.bind(llm=llm),
+    )
     .with_transitions(
         ("decide",   "search",     expr("next_action == 'search'")),
         ("decide",   "synthesize", expr("next_action == 'answer'")),
@@ -698,19 +717,18 @@ Earlier in this chapter we built a Q&A agent in PocketFlow: a `DecideAction` nod
 
 ### The state schema
 
-The state schema names every field the actions touch:
+We use the same `QAState` introduced in @sec-prod-burr-pydantic — five fields, one canonical schema for the whole chapter:
 
 ```python
-from pydantic import BaseModel, Field
-
 class QAState(BaseModel):
     query: str
     context: list[dict] = Field(default_factory=list)                # <1>
-    next_action: str | None = None
-    search_term: str | None = None
+    next_action: str | None = None                                   # <2>
+    search_term: str | None = None                                   # <2>
     answer: str | None = None
 ```
-1. **`context` accumulates** — each search appends a dict; the decide step reads the whole list.
+1. **`context` accumulates** — each search appends a dict `{"term": ..., "result": ...}`; the decide step reads the whole list.
+2. **Routing fields.** `decide` writes `next_action` (`"search"` or `"answer"`) and `search_term`; the transitions in @sec-prod-burr-transitions read `next_action` to pick the edge.
 
 ### Three typed actions
 
@@ -754,19 +772,26 @@ Each action declares the exact fields it touches. The framework can now check, b
 
 ### Transitions and persistence
 
-Transitions encode the loop using `next_action` as the routing field:
+Transitions encode the loop using `next_action` as the routing field. We bind the same `llm` from earlier and a `web` placeholder (anything with a `.search(term) -> str` method — a real search SDK, an MCP tool, or a stub for testing):
 
 ```python
 from burr.core import ApplicationBuilder, expr
 from burr.integrations.pydantic import PydanticTypingSystem
 from burr.core.persistence import SQLLitePersister
 
+llm = MyLLMClient(...)
+web = MyWebSearch(...)
+
 persister = SQLLitePersister("qa.db", "runs")
 persister.initialize()                                               # <1>
 
 app = (
     ApplicationBuilder()
-    .with_actions(decide=decide, search=search, answer=answer)
+    .with_actions(
+        decide=decide.bind(llm=llm),
+        search=search.bind(web=web),
+        answer=answer.bind(llm=llm),
+    )
     .with_transitions(
         ("decide", "search", expr("next_action == 'search'")),       # <2>
         ("decide", "answer", expr("next_action == 'answer'")),       # <2>
