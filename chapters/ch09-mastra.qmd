@@ -260,30 +260,28 @@ const agent = new Agent({
 
 ### Tool approval — human-in-the-loop for tool calls
 
-Not every tool call should execute automatically. For sensitive operations (database writes, financial transactions, external API mutations), Mastra supports tool approval:
+Not every tool call should execute automatically. For sensitive operations (database writes, financial transactions, external API mutations), Mastra's first-class HITL story is the **workflow suspend/resume pattern** — wrap the sensitive tool call as a workflow step, suspend before executing it, and resume only after a human approves. The full mechanism is covered in @sec-mastra-suspension; the shape:
 
 ```typescript
-const agent = new Agent({
-  id: 'cautious-agent',
-  tools: { deleteTool, readTool },
-  toolApproval: {                                                      // <1>
-    deleteTool: 'required',                                            // <2>
-    readTool: 'auto',                                                  // <3>
-  },
-})
-
-const result = await agent.generate('Delete user 42.', {
-  onToolApproval: async (toolCall) => {                                // <4>
-    console.log(`Agent wants to call: ${toolCall.name}(${JSON.stringify(toolCall.args)})`)
-    const approved = await askHuman('Approve this action? (y/n)')
-    return approved === 'y'
+const sensitiveOp = createStep({
+  id: 'delete-user',
+  inputSchema: z.object({ userId: z.number() }),
+  resumeSchema: z.object({ approved: z.boolean() }),
+  outputSchema: z.object({ deleted: z.boolean() }),
+  execute: async ({ inputData, resumeData, suspend }) => {
+    if (!resumeData) {
+      // First pass: pause and wait for human.
+      await suspend({ pendingAction: `delete user ${inputData.userId}` })
+      return { deleted: false }
+    }
+    if (!resumeData.approved) return { deleted: false }
+    await db.users.delete(inputData.userId)
+    return { deleted: true }
   },
 })
 ```
-1. **`toolApproval`** configures per-tool approval requirements.
-2. **`'required'`** — every invocation of `deleteTool` must be approved before execution.
-3. **`'auto'`** — `readTool` executes immediately without approval.
-4. **`onToolApproval`** is the callback that fires when approval is required. You implement the approval UX — a CLI prompt, a Slack message, a web form, whatever fits your deployment.
+
+The advantage over a per-tool approval flag is composability: the same suspend/resume primitive handles approvals, multi-step human input, and long-running external callbacks, and survives process restarts because the workflow state is checkpointed. For agent-driven flows where each tool is a candidate for review, expose the workflow as a tool and let the agent invoke it; the approval is enforced at the workflow boundary, not the agent boundary.
 
 ### MCPServer — exposing Mastra as an MCP server
 
@@ -295,17 +293,21 @@ import { MCPServer } from '@mastra/mcp'
 const server = new MCPServer({
   id: 'my-server',
   name: 'My Mastra Server',
-  agents: { researchAgent },                                           // <1>
-  tools: { weatherTool },                                              // <2>
-  workflows: { approvalWorkflow },                                     // <3>
+  version: '1.0.0',                                                    // <1>
+  agents: { researchAgent },                                           // <2>
+  tools: { weatherTool },                                              // <3>
+  workflows: { approvalWorkflow },                                     // <4>
 })
 
-server.start()                                                         // <4>
+await server.startStdio()                                              // <5>
+// Or, to serve over HTTP/SSE:
+// await server.startHonoSSE({ port: 4111 })
 ```
-1. **Agents become MCP tools.** Each agent is exposed as a tool that other MCP clients can invoke. The agent's instructions and capabilities are described in the tool's MCP metadata.
-2. **Native tools pass through.** `createTool()` tools are exposed with their Zod schemas translated to JSON Schema for MCP compatibility.
-3. **Workflows become tools.** Each workflow's input schema becomes the tool's input; the workflow's output becomes the tool's response.
-4. **`start()`** begins listening for MCP connections. The transport (stdio or HTTP) is determined by configuration.
+1. **`version`** is required by the MCP protocol — pick semver for your server.
+2. **Agents become MCP tools.** Each agent is exposed as a tool that other MCP clients can invoke. The agent's instructions and capabilities are described in the tool's MCP metadata.
+3. **Native tools pass through.** `createTool()` tools are exposed with their Zod schemas translated to JSON Schema for MCP compatibility.
+4. **Workflows become tools.** Each workflow's input schema becomes the tool's input; the workflow's output becomes the tool's response.
+5. **Transport-specific start methods.** There is no generic `server.start()` — pick `startStdio()` for local clients (Claude Desktop), `startHonoSSE()` or `startHTTP()` for network clients. Choose by where your consumers live.
 
 ::: {.callout-tip title="MCP registries — discovering tools at scale"}
 Mastra supports MCP registries — curated directories of MCP servers that your agents can discover tools from. Supported registries include Klavis, mcp.run, Composio, Smithery, Apify, and Ampersand. Instead of hardcoding server URLs, you can point your agent at a registry and let it discover relevant tools dynamically. This is the MCP equivalent of a package manager — your agent `npm install`s capabilities at runtime.
@@ -413,18 +415,20 @@ const searchStep = createStep({
   id: 'search',
   inputSchema: z.object({ query: z.string() }),
   outputSchema: z.object({ results: z.array(z.string()) }),
-  execute: async ({ inputData, setState, getState }) => {              // <2>
+  execute: async ({ inputData, state, setState }) => {                 // <2>
     const results = await search(inputData.query)
-    const prev = getState().searchResults
-    setState({ searchResults: [...prev, ...results],                   // <3>
-               attempts: getState().attempts + 1 })
+    setState({                                                         // <3>
+      ...state,
+      searchResults: [...state.searchResults, ...results],
+      attempts: state.attempts + 1,
+    })
     return { results }
   },
 })
 ```
 1. **`stateSchema`** declares the shape of shared workflow state. Zod validates it — a step can't write a string where a number is expected.
-2. **`setState` and `getState`** are available in every step's `execute` function when the workflow declares a `stateSchema`.
-3. **State updates are validated.** If you try to set `attempts` to `"three"`, Zod catches it at runtime.
+2. **`state` is a direct parameter, `setState` is the writer.** Both arrive on the execute context. (Despite what an LLM might guess, there is no `getState()` function.)
+3. **State updates are validated and replace the whole object.** Spread the current `state` and override the fields you're changing. If you try to set `attempts` to `"three"`, Zod catches it at runtime.
 
 ::: {.callout-tip title="Mastra workflows vs. PocketFlow's shared store"}
 PocketFlow's shared store is an untyped dict — any node can read or write any key, and the schema is implicit. Mastra's `stateSchema` is the typed equivalent: Zod validates every read and write. The tradeoff is the same one Burr's `PydanticTypingSystem` makes — you trade flexibility for safety. The difference: Mastra validates at runtime (JavaScript is not statically typed the way Pydantic is), but the Zod schemas give you IDE autocompletion and schema-based documentation.
@@ -507,23 +511,22 @@ console.log(result.status)  // 'success' (if no more suspensions)
 
 ### Time-based suspension
 
-Sometimes you don't need human input — you need to wait for time to pass:
+Sometimes you don't need human input — you need to wait for time to pass. `sleep` and `sleepUntil` are **workflow-builder methods**, not parameters on the step's execute context. You chain them between steps:
 
 ```typescript
-const waitStep = createStep({
-  id: 'wait-for-processing',
+const pipeline = createWorkflow({
+  id: 'order-poll',
   inputSchema: z.object({ orderId: z.string() }),
   outputSchema: z.object({ status: z.string() }),
-  execute: async ({ inputData, sleep, sleepUntil }) => {
-    await sleep(60 * 5)                                                // <1>
-    // or: await sleepUntil(new Date('2026-06-01T09:00:00Z'))          // <2>
-    const status = await checkOrderStatus(inputData.orderId)
-    return { status }
-  },
 })
+  .then(submitOrder)
+  .sleep(60 * 5)                                                       // <1>
+  // or: .sleepUntil(new Date('2026-06-01T09:00:00Z'))                 // <2>
+  .then(checkStatus)
+  .commit()
 ```
-1. **`sleep(seconds)`** pauses the workflow for a duration. The workflow is suspended and resumed automatically after the time elapses.
-2. **`sleepUntil(date)`** pauses until a specific timestamp. Useful for scheduled operations — "process this order when the business day starts."
+1. **`.sleep(seconds)`** pauses the workflow for a duration. The workflow is suspended and resumed automatically after the time elapses.
+2. **`.sleepUntil(date)`** pauses until a specific timestamp. Useful for scheduled operations — "process this order when the business day starts." Both methods can also take a function that derives the duration from the previous step's output (e.g. `(prev) => prev.retryAfterSeconds`).
 
 ::: {.callout-tip title="Why suspension matters for autonomous loops"}
 Chapter 10 introduces the Ralph loop — an autonomous coding loop that runs until a spec is satisfied. But even autonomous loops need escape hatches: a test fails in a way that suggests a design mistake (not a code mistake), a deployment requires manual approval, a cost budget is exhausted. Mastra's suspension primitive is the mechanism for these escape hatches. The loop runs autonomously until it can't, suspends with context, and a human picks up where the machine left off. This is the "human-in-the-loop" pattern from Chapter 4, implemented as a workflow primitive.
@@ -640,8 +643,9 @@ flowchart LR
 
 ```typescript
 import { MDocument } from '@mastra/rag'
-import { embed } from '@mastra/core'
 import { PgVector } from '@mastra/pg'
+import { embedMany, embed } from 'ai'                                  // <0>
+import { openai } from '@ai-sdk/openai'
 
 // 1. Load a document
 const doc = MDocument.fromText(rawText)                                // <1>
@@ -654,24 +658,35 @@ const chunks = await doc.chunk({                                       // <2>
 })
 
 // 3. Embed the chunks
-const embeddings = await embed(chunks, {                               // <3>
-  model: 'openai/text-embedding-3-small',
+const { embeddings } = await embedMany({                               // <3>
+  model: openai.embedding('text-embedding-3-small'),
+  values: chunks.map((c) => c.text),
 })
 
 // 4. Store in a vector database
 const vectorStore = new PgVector({ connectionString: process.env.PG_URL })
-await vectorStore.upsert('knowledge-base', embeddings)                 // <4>
+await vectorStore.upsert({                                             // <4>
+  indexName: 'knowledge-base',
+  vectors: embeddings,
+  metadata: chunks.map((c) => ({ text: c.text })),
+})
 
 // 5. Retrieve at query time
-const results = await vectorStore.query('knowledge-base', {            // <5>
-  queryVector: await embed('What is context engineering?'),
+const { embedding: queryVector } = await embed({
+  model: openai.embedding('text-embedding-3-small'),
+  value: 'What is context engineering?',
+})
+const results = await vectorStore.query({                              // <5>
+  indexName: 'knowledge-base',
+  queryVector,
   topK: 5,
 })
 ```
+0. **Embeddings come from the `ai` SDK,** not `@mastra/core`. Pair it with an `@ai-sdk/*` provider (`@ai-sdk/openai`, `@ai-sdk/cohere`, etc.). `embedMany` batches; `embed` does a single value.
 1. **`MDocument.fromText()`** — also available: `fromPDF()`, `fromHTML()`, `fromMarkdown()`. The document abstraction normalizes different source formats.
 2. **Chunking strategies** — `'recursive'` splits on paragraph/sentence boundaries. `'sliding-window'` creates overlapping windows. `size` and `overlap` control the tradeoff between context granularity and retrieval recall.
-3. **`embed()`** turns text into vectors using the specified model. Mastra supports OpenAI, Cohere, and other embedding providers.
-4. **Vector storage** — Mastra ships adapters for pgvector, Pinecone, Qdrant, MongoDB Atlas, and others. The interface is consistent across backends.
+3. **Batch embedding.** `embedMany` is more efficient than calling `embed` per chunk. The `values` array must be raw strings, so we pull `.text` out of each chunk.
+4. **Vector storage takes a single options object.** `upsert` and `query` both use `{ indexName, ... }` — not positional `(name, payload)` args. Mastra ships adapters for pgvector, Pinecone, Qdrant, MongoDB Atlas, and others, all behind the same options shape.
 5. **Query** — cosine similarity retrieval. `topK` controls how many chunks come back. These chunks become the context the agent uses to answer.
 
 ::: {.callout-note}
@@ -859,21 +874,32 @@ All three signals are OpenTelemetry-compatible. You can export traces to Langfus
 
 ```typescript
 import { Mastra } from '@mastra/core'
+import {
+  Observability,
+  SensitiveDataFilter,
+} from '@mastra/core/observability'
+import { OTLPHttpExporter } from '@mastra/otel-exporter-otlp-http'
 
 const mastra = new Mastra({
   agents: { researchAgent },
-  telemetry: {
-    serviceName: 'my-agent-app',
-    exporter: {                                                        // <1>
-      type: 'otlp',
-      endpoint: 'https://otel.example.com/v1/traces',
+  observability: new Observability({                                   // <1>
+    configs: {
+      default: {
+        serviceName: 'my-agent-app',
+        exporters: [                                                   // <2>
+          new OTLPHttpExporter({
+            endpoint: 'https://otel.example.com/v1/traces',
+          }),
+        ],
+        spanOutputProcessors: [new SensitiveDataFilter()],             // <3>
+      },
     },
-    sensitiveDataFilter: true,                                         // <2>
-  },
+  }),
 })
 ```
-1. **OTLP exporter** sends traces to any OpenTelemetry-compatible backend.
-2. **Sensitive data filtering** strips PII and secrets from traces before export. You define what's sensitive; Mastra redacts it.
+1. **The field is `observability`, not `telemetry`,** and it takes an `Observability` instance — not a plain config object. Multiple named configs (e.g. `default`, `dev`) can coexist for different environments.
+2. **`exporters` is an array** of exporter instances. OTLP HTTP is the universal choice; provider-specific exporters (Langfuse, Datadog) plug in the same way.
+3. **`spanOutputProcessors`** run before export. `SensitiveDataFilter` strips PII and secrets from span attributes; write your own processor class for custom redaction.
 
 ::: {.callout-tip title="Observability in the Ralph loop"}
 When an autonomous loop runs 200 iterations (@sec-ralph-loop), the observability stack is the difference between "it failed somewhere" and "iteration 47, step 3, the search tool returned stale data and the LLM made a wrong decision based on it." Mastra's hierarchical tracing gives you that granularity. The economics chapter (Chapter 11) covers how to use these metrics for cost tracking.
@@ -908,78 +934,100 @@ The `mastra build` command compiles your agents, tools, and workflows into a sta
 For production workflow execution, Mastra integrates with [Inngest](https://www.inngest.com/) — a durable execution platform that adds memoization, automatic retries, and step-level recovery to your workflows. This is the TypeScript equivalent of mcp-agent's Temporal integration from Chapter 8.
 
 ```typescript
+// src/mastra/index.ts — the entry point `mastra build` looks for
 import { Mastra } from '@mastra/core'
 
-const mastra = new Mastra({
+export const mastra = new Mastra({                                     // <1>
   agents: { researchAgent, writerAgent },
   workflows: { pipeline },
   server: {
-    port: 3001,                                                        // <1>
+    port: 3001,                                                        // <2>
     cors: { origin: 'https://myapp.com' },
   },
 })
-
-mastra.start()                                                         // <2>
 ```
-1. **Server configuration** is part of the Mastra instance. CORS, middleware, and authentication are configured here.
-2. **`start()`** launches the HTTP server. Agents are accessible via REST endpoints; workflows can be triggered via API calls.
+1. **You export the `Mastra` instance,** you don't `start()` it. The class has no runtime `start()` method — instead, `mastra build` compiles this entry point into a deployable Hono server, and `mastra dev` runs it locally. The shape on disk matters: the file must be `src/mastra/index.ts` (or whatever your `mastra.config` points at) and the instance must be exported.
+2. **Server configuration** travels with the instance. CORS, middleware, and authentication live here; the deployer wires them into the generated server.
 
 ::: {.callout-note}
 For web framework integration, Mastra provides route handlers that plug into your existing application. In Next.js, you'd export a route handler from `app/api/agent/route.ts`; in Express, you'd mount Mastra's router on a path. The agent becomes an endpoint in your existing application rather than a separate service.
 :::
 
-## Guardrails and Processors {#sec-mastra-guardrails}
+## Guardrails: Processors {#sec-mastra-guardrails}
 
-Production agents need safety boundaries. Mastra provides two mechanisms for controlling agent behavior at the framework level.
-
-**Guardrails** run before or after agent responses and can reject unsafe outputs:
+Production agents need safety boundaries. In Mastra these are all built from the same primitive: **processors**. Three arrays on the agent — `inputProcessors`, `outputProcessors`, `errorProcessors` — run at different points in the request lifecycle, and each array contains processor instances (not raw functions or rule objects). Mastra ships processor classes for the common needs; you can write your own by implementing the processor interface.
 
 ```typescript
+import { Agent } from '@mastra/core/agent'
+import {
+  PromptInjectionDetector,
+  PIIDetector,
+  ModerationProcessor,
+  TokenLimiter,
+  PrefillErrorHandler,
+} from '@mastra/core/processors'
+
 const agent = new Agent({
-  id: 'safe-agent',
+  name: 'safe-agent',
+  instructions: 'You are a helpful assistant',
   model: 'anthropic/claude-sonnet-4-6',
-  guardrails: {
-    input: [                                                           // <1>
-      {
-        id: 'no-pii',
-        execute: async ({ input }) => {
-          if (containsPII(input)) {
-            return { blocked: true, reason: 'Input contains PII' }
-          }
-          return { blocked: false }
-        },
-      },
-    ],
-    output: [                                                          // <2>
-      {
-        id: 'no-harmful-content',
-        execute: async ({ output }) => {
-          const safe = await moderationCheck(output)
-          return { blocked: !safe, reason: 'Output flagged by moderation' }
-        },
-      },
-    ],
-  },
+  inputProcessors: [                                                   // <1>
+    new TokenLimiter(4000),
+    new PromptInjectionDetector({
+      model: 'openrouter/openai/gpt-oss-safeguard-20b',
+      detectionTypes: ['injection', 'jailbreak', 'system-override'],
+      threshold: 0.8,
+      strategy: 'rewrite',                                             // <2>
+    }),
+    new PIIDetector({
+      model: 'openrouter/openai/gpt-oss-safeguard-20b',
+      detectionTypes: ['email', 'phone', 'credit-card', 'ssn'],
+      strategy: 'redact',                                              // <3>
+    }),
+  ],
+  outputProcessors: [                                                  // <4>
+    new ModerationProcessor({
+      model: 'openai/gpt-4o-mini',
+      categories: ['hate', 'harassment', 'violence'],
+      strategy: 'block',
+    }),
+  ],
+  errorProcessors: [new PrefillErrorHandler()],                        // <5>
 })
 ```
-1. **Input guardrails** run before the LLM sees the message. Use them for PII detection, prompt injection defense, or input validation.
-2. **Output guardrails** run after the LLM responds but before the response reaches the user. Use them for content moderation, compliance checks, or output validation.
+1. **`inputProcessors` run before the LLM sees the message.** They execute in declaration order. `TokenLimiter` truncates oversized inputs; the detectors classify the message.
+2. **Strategy decides what happens on a hit.** `'rewrite'` lets the processor neutralize the unsafe portion and continue; `'block'` aborts with a `'tripwire'` result; `'redact'` masks matched spans (used here for PII). Each processor documents which strategies it supports.
+3. **PII strategies are class-specific** — `PIIDetector` also accepts a `redactionMethod` (`'mask'`, `'hash'`) and a `preserveFormat` flag so downstream tools still parse the message.
+4. **`outputProcessors` run on the LLM response.** Same shape — `ModerationProcessor` here blocks harmful content before it reaches the caller. Output processors can also stream-edit token-by-token by implementing the `processOutputStream` hook.
+5. **`errorProcessors` activate when the LLM call throws.** `PrefillErrorHandler` retries with a salvaged partial response; you can write custom handlers for provider-specific error shapes.
 
-When a guardrail blocks, the workflow result status is `'tripwire'` — a distinct state from `'failed'` that signals "the agent could have responded, but a safety check prevented it."
+When a blocking processor fires, the agent result's `status` is `'tripwire'` — distinct from `'failed'`, signalling "the agent could have responded, but a safety check prevented it." `'rewrite'` and `'redact'` strategies do *not* tripwire; they modify the message and proceed.
 
-**Processors** transform messages before they reach the agent. Unlike guardrails (which block), processors modify:
+### Writing a custom processor
+
+The processor interface is small: a name, plus one or more of `processInput`, `processOutputResult`, `processOutputStream`, `processError`:
 
 ```typescript
-const agent = new Agent({
-  id: 'processed-agent',
-  processors: {
-    pre: [({ message }) => sanitize(message)],                         // <1>
-    post: [({ response }) => addDisclaimer(response)],                 // <2>
-  },
-})
+import { Processor, RequestContext } from '@mastra/core/processors'
+
+class AddDisclaimer implements Processor {
+  readonly name = 'add-disclaimer'
+
+  async processOutputResult({ messages }: { messages: any[] }) {
+    const last = messages[messages.length - 1]
+    if (last?.role === 'assistant' && typeof last.content === 'string') {
+      last.content += '\n\n_Not financial advice._'
+    }
+    return { messages }
+  }
+}
 ```
-1. **Pre-processors** clean up input — normalize formatting, strip HTML, redact sensitive fields.
-2. **Post-processors** modify output — add disclaimers, format for a specific channel, translate.
+
+This is also how you handle transformations the shipped processors don't cover — input normalization, channel-specific formatting, translation, watermarking. Pass an instance into `inputProcessors` or `outputProcessors` like any built-in.
+
+::: {.callout-tip title="One mechanism, three behaviors"}
+The thing the older Mastra docs used to call "guardrails" and the thing they used to call "processors" are now the same primitive. You pick the *behavior* through the processor's `strategy` (`'block'` = guardrail, `'rewrite'`/`'redact'` = transform) and through *which array* you put it in (`inputProcessors` vs `outputProcessors`). If you find a code sample online with `guardrails: { input: [...] }` or `processors: { pre, post }`, it's stale — both shapes have collapsed into the unified processor model shown here.
+:::
 
 ## Comparison with Python Frameworks {#sec-mastra-comparison}
 
