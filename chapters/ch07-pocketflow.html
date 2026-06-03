@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="AI-Powered SE Tutorial">
-<meta name="dcterms.date" content="2026-06-02">
+<meta name="dcterms.date" content="2026-06-03">
 
 <title>7&nbsp; Building Agents from Scratch — Then Shipping Them – AI-Powered Software Engineering</title>
 <style>
@@ -314,7 +314,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 2, 2026</p>
+      <p class="date">June 3, 2026</p>
     </div>
   </div>
   
@@ -1125,49 +1125,56 @@ Note
 <section id="the-core-api" class="level3" data-number="7.9.1">
 <h3 data-number="7.9.1" class="anchored" data-anchor-id="the-core-api"><span class="header-section-number">7.9.1</span> The core API</h3>
 <p>The smallest possible Burr application:</p>
+<p>Throughout this section, <code>llm</code> is whatever LLM client you use — anything with a <code>.complete(prompt) -&gt; str</code> method. The Burr-specific piece is how dependencies like <code>llm</code> get injected into actions: declare the parameter, then pass it via <code>.bind()</code> at the builder. Unbound parameters become required runtime inputs to <code>app.run(inputs={...})</code> instead.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-17"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-17-1"><a href="#annotated-cell-17-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core <span class="im">import</span> ApplicationBuilder, State</span>
 <span id="annotated-cell-17-2"><a href="#annotated-cell-17-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core.action <span class="im">import</span> action</span>
 <span id="annotated-cell-17-3"><a href="#annotated-cell-17-3" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-17-4" class="code-annotation-target"><a href="#annotated-cell-17-4" aria-hidden="true" tabindex="-1"></a><span class="at">@action</span>(reads<span class="op">=</span>[<span class="st">"query"</span>], writes<span class="op">=</span>[<span class="st">"answer"</span>])</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-17-5" class="code-annotation-target"><a href="#annotated-cell-17-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> answer_question(state: State, llm) <span class="op">-&gt;</span> State:</span>
-<span id="annotated-cell-17-6"><a href="#annotated-cell-17-6" aria-hidden="true" tabindex="-1"></a>    answer <span class="op">=</span> llm.complete(<span class="ss">f"Answer: </span><span class="sc">{</span>state[<span class="st">'query'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-17-7" class="code-annotation-target"><a href="#annotated-cell-17-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state.update(answer<span class="op">=</span>answer)</span>
-<span id="annotated-cell-17-8"><a href="#annotated-cell-17-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-17-9"><a href="#annotated-cell-17-9" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (</span>
-<span id="annotated-cell-17-10"><a href="#annotated-cell-17-10" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-17-11" class="code-annotation-target"><a href="#annotated-cell-17-11" aria-hidden="true" tabindex="-1"></a>    .with_actions(answer_question)</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-17-12" class="code-annotation-target"><a href="#annotated-cell-17-12" aria-hidden="true" tabindex="-1"></a>    .with_transitions()</span>
-<span id="annotated-cell-17-13"><a href="#annotated-cell-17-13" aria-hidden="true" tabindex="-1"></a>    .with_state(query<span class="op">=</span><span class="st">"What is context engineering?"</span>, answer<span class="op">=</span><span class="st">""</span>)</span>
-<span id="annotated-cell-17-14"><a href="#annotated-cell-17-14" aria-hidden="true" tabindex="-1"></a>    .with_entrypoint(<span class="st">"answer_question"</span>)</span>
-<span id="annotated-cell-17-15"><a href="#annotated-cell-17-15" aria-hidden="true" tabindex="-1"></a>    .build()</span>
-<span id="annotated-cell-17-16"><a href="#annotated-cell-17-16" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="annotated-cell-17-17"><a href="#annotated-cell-17-17" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-17-18" class="code-annotation-target"><a href="#annotated-cell-17-18" aria-hidden="true" tabindex="-1"></a>action_run, result, state <span class="op">=</span> app.run(halt_after<span class="op">=</span>[<span class="st">"answer_question"</span>])</span>
-<span id="annotated-cell-17-19"><a href="#annotated-cell-17-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(state[<span class="st">"answer"</span>])</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="0" onclick="event.preventDefault();">0</a><span id="annotated-cell-17-4" class="code-annotation-target"><a href="#annotated-cell-17-4" aria-hidden="true" tabindex="-1"></a>llm <span class="op">=</span> MyLLMClient(...)</span>
+<span id="annotated-cell-17-5"><a href="#annotated-cell-17-5" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-17-6" class="code-annotation-target"><a href="#annotated-cell-17-6" aria-hidden="true" tabindex="-1"></a><span class="at">@action</span>(reads<span class="op">=</span>[<span class="st">"query"</span>], writes<span class="op">=</span>[<span class="st">"answer"</span>])</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-17-7" class="code-annotation-target"><a href="#annotated-cell-17-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> answer_question(state: State, llm) <span class="op">-&gt;</span> State:</span>
+<span id="annotated-cell-17-8"><a href="#annotated-cell-17-8" aria-hidden="true" tabindex="-1"></a>    answer <span class="op">=</span> llm.complete(<span class="ss">f"Answer: </span><span class="sc">{</span>state[<span class="st">'query'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-17-9" class="code-annotation-target"><a href="#annotated-cell-17-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state.update(answer<span class="op">=</span>answer)</span>
+<span id="annotated-cell-17-10"><a href="#annotated-cell-17-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-17-11"><a href="#annotated-cell-17-11" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (</span>
+<span id="annotated-cell-17-12"><a href="#annotated-cell-17-12" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-17-13" class="code-annotation-target"><a href="#annotated-cell-17-13" aria-hidden="true" tabindex="-1"></a>    .with_actions(answer_question<span class="op">=</span>answer_question.bind(llm<span class="op">=</span>llm))</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-17-14" class="code-annotation-target"><a href="#annotated-cell-17-14" aria-hidden="true" tabindex="-1"></a>    .with_transitions()</span>
+<span id="annotated-cell-17-15"><a href="#annotated-cell-17-15" aria-hidden="true" tabindex="-1"></a>    .with_state(query<span class="op">=</span><span class="st">"What is context engineering?"</span>, answer<span class="op">=</span><span class="st">""</span>)</span>
+<span id="annotated-cell-17-16"><a href="#annotated-cell-17-16" aria-hidden="true" tabindex="-1"></a>    .with_entrypoint(<span class="st">"answer_question"</span>)</span>
+<span id="annotated-cell-17-17"><a href="#annotated-cell-17-17" aria-hidden="true" tabindex="-1"></a>    .build()</span>
+<span id="annotated-cell-17-18"><a href="#annotated-cell-17-18" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="annotated-cell-17-19"><a href="#annotated-cell-17-19" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-17-20" class="code-annotation-target"><a href="#annotated-cell-17-20" aria-hidden="true" tabindex="-1"></a>action_run, result, state <span class="op">=</span> app.run(halt_after<span class="op">=</span>[<span class="st">"answer_question"</span>])</span>
+<span id="annotated-cell-17-21"><a href="#annotated-cell-17-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(state[<span class="st">"answer"</span>])</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-17" data-target-annotation="0">0</dt>
+<dd>
+<span data-code-cell="annotated-cell-17" data-code-lines="4" data-code-annotation="0"><strong><code>llm</code> is your LLM client</strong> — Anthropic, OpenAI, whatever has a <code>.complete()</code> method. Shown as a placeholder here.</span>
+</dd>
 <dt data-target-cell="annotated-cell-17" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-17" data-code-lines="4" data-code-annotation="1"><strong><code>@action(reads=..., writes=...)</code></strong> is the declaration that replaces PocketFlow’s shared-dict free-for-all. The framework reads this at build time to detect missing keys, enforce write boundaries, and figure out which actions can run in parallel.</span>
+<span data-code-cell="annotated-cell-17" data-code-lines="6" data-code-annotation="1"><strong><code>@action(reads=..., writes=...)</code></strong> is the declaration that replaces PocketFlow’s shared-dict free-for-all. The framework reads this at build time to detect missing keys, enforce write boundaries, and figure out which actions can run in parallel.</span>
 </dd>
 <dt data-target-cell="annotated-cell-17" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-17" data-code-lines="5" data-code-annotation="2"><strong>The action receives a <code>State</code> and any bound dependencies</strong> (here <code>llm</code>). The shared-store-vs-exec separation from PocketFlow collapses into one function with explicit declarations.</span>
+<span data-code-cell="annotated-cell-17" data-code-lines="7" data-code-annotation="2"><strong>The action receives a <code>State</code> and any bound dependencies</strong> (here <code>llm</code>). The shared-store-vs-exec separation from PocketFlow collapses into one function with explicit declarations.</span>
 </dd>
 <dt data-target-cell="annotated-cell-17" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-17" data-code-lines="7" data-code-annotation="3"><strong><code>state.update(...)</code> returns a new <code>State</code></strong> — it does not mutate. Every transition produces a new snapshot, which is what makes replay possible (<a href="#sec-prod-burr-replay" class="quarto-xref"><span>Section 7.9.4</span></a>).</span>
+<span data-code-cell="annotated-cell-17" data-code-lines="9" data-code-annotation="3"><strong><code>state.update(...)</code> returns a new <code>State</code></strong> — it does not mutate. Every transition produces a new snapshot, which is what makes replay possible (<a href="#sec-prod-burr-replay" class="quarto-xref"><span>Section 7.9.4</span></a>).</span>
 </dd>
 <dt data-target-cell="annotated-cell-17" data-target-annotation="4">4</dt>
 <dd>
-<span data-code-cell="annotated-cell-17" data-code-lines="11" data-code-annotation="4"><strong><code>with_actions(...)</code></strong> registers actions. Multiple actions get wired by name.</span>
+<span data-code-cell="annotated-cell-17" data-code-lines="13" data-code-annotation="4"><strong><code>with_actions(name=action.bind(...))</code></strong> registers actions and pre-binds their non-state dependencies. <code>.bind()</code> works like <code>functools.partial</code>. The kwarg key (<code>answer_question=</code>) becomes the action’s name in the graph; positional form (<code>with_actions(answer_question)</code>) also works and uses <code>func.__name__</code>.</span>
 </dd>
 <dt data-target-cell="annotated-cell-17" data-target-annotation="5">5</dt>
 <dd>
-<span data-code-cell="annotated-cell-17" data-code-lines="12" data-code-annotation="5"><strong><code>with_transitions(...)</code></strong> declares the edges. For a one-action app there are none — left empty here. The full syntax (label, label, <code>Condition</code>) is covered in <a href="#sec-prod-burr-transitions" class="quarto-xref"><span>Section 7.9.3</span></a>.</span>
+<span data-code-cell="annotated-cell-17" data-code-lines="14" data-code-annotation="5"><strong><code>with_transitions(...)</code></strong> declares the edges. For a one-action app there are none — left empty here. The full syntax (label, label, <code>Condition</code>) is covered in <a href="#sec-prod-burr-transitions" class="quarto-xref"><span>Section 7.9.3</span></a>.</span>
 </dd>
 <dt data-target-cell="annotated-cell-17" data-target-annotation="6">6</dt>
 <dd>
-<span data-code-cell="annotated-cell-17" data-code-lines="18" data-code-annotation="6"><strong><code>run(halt_after=[...])</code></strong> drives the loop until a halt condition fires. Burr also has <code>step</code>, <code>iterate</code>, and <code>stream_result</code> variants — see the next subsection.</span>
+<span data-code-cell="annotated-cell-17" data-code-lines="20" data-code-annotation="6"><strong><code>run(halt_after=[...])</code></strong> returns the <code>(action_obj, result_dict, final_state)</code> triple and stops after the named action completes. Burr also has <code>step</code>, <code>iterate</code>, and <code>stream_result</code> variants — see the next subsection.</span>
 </dd>
 </dl>
 <div class="callout callout-style-default callout-tip callout-titled" title="Why declared reads/writes matter">
@@ -1186,7 +1193,8 @@ Note
 </section>
 <section id="sec-prod-burr-pydantic" class="level3" data-number="7.9.2">
 <h3 data-number="7.9.2" class="anchored" data-anchor-id="sec-prod-burr-pydantic"><span class="header-section-number">7.9.2</span> Typed state with Pydantic</h3>
-<p>The stringly-typed <code>reads=["query"]</code> declaration is still string-typed — a typo in the key gives you a runtime error, not a compile-time one. The Pydantic integration upgrades that to a real type:</p>
+<p>The stringly-typed <code>reads=["query"]</code> declaration is still string-typed — a typo in the key gives you a runtime error, not a compile-time one. The Pydantic integration upgrades that to a real type.</p>
+<p>We’re going to use one canonical <code>QAState</code> for the rest of the chapter. The full schema has five fields — three of them (<code>query</code>, <code>context</code>, <code>answer</code>) carry the question-and-answer data, two more (<code>next_action</code>, <code>search_term</code>) will be used by the routing logic in <a href="#sec-prod-burr-transitions" class="quarto-xref"><span>Section 7.9.3</span></a>. We introduce all five now so there’s only ever one <code>QAState</code> to track:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-18"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-18-1"><a href="#annotated-cell-18-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pydantic <span class="im">import</span> BaseModel, Field</span>
 <span id="annotated-cell-18-2"><a href="#annotated-cell-18-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core <span class="im">import</span> ApplicationBuilder</span>
 <span id="annotated-cell-18-3"><a href="#annotated-cell-18-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core.action <span class="im">import</span> action</span>
@@ -1194,27 +1202,29 @@ Note
 <span id="annotated-cell-18-5"><a href="#annotated-cell-18-5" aria-hidden="true" tabindex="-1"></a></span>
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-18-6" class="code-annotation-target"><a href="#annotated-cell-18-6" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> QAState(BaseModel):</span>
 <span id="annotated-cell-18-7"><a href="#annotated-cell-18-7" aria-hidden="true" tabindex="-1"></a>    query: <span class="bu">str</span></span>
-<span id="annotated-cell-18-8"><a href="#annotated-cell-18-8" aria-hidden="true" tabindex="-1"></a>    context: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> Field(default_factory<span class="op">=</span><span class="bu">list</span>)</span>
-<span id="annotated-cell-18-9"><a href="#annotated-cell-18-9" aria-hidden="true" tabindex="-1"></a>    answer: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span>
-<span id="annotated-cell-18-10"><a href="#annotated-cell-18-10" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-18-11" class="code-annotation-target"><a href="#annotated-cell-18-11" aria-hidden="true" tabindex="-1"></a><span class="at">@action.pydantic</span>(reads<span class="op">=</span>[<span class="st">"query"</span>, <span class="st">"context"</span>], writes<span class="op">=</span>[<span class="st">"answer"</span>])</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-18-12" class="code-annotation-target"><a href="#annotated-cell-18-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> synthesize(state: QAState, llm) <span class="op">-&gt;</span> QAState:</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-18-13" class="code-annotation-target"><a href="#annotated-cell-18-13" aria-hidden="true" tabindex="-1"></a>    state.answer <span class="op">=</span> llm.complete(</span>
-<span id="annotated-cell-18-14"><a href="#annotated-cell-18-14" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Question: </span><span class="sc">{</span>state<span class="sc">.</span>query<span class="sc">}</span><span class="ch">\n</span><span class="ss">Context: </span><span class="sc">{</span>state<span class="sc">.</span>context<span class="sc">}</span><span class="ch">\n</span><span class="ss">Answer:"</span></span>
-<span id="annotated-cell-18-15"><a href="#annotated-cell-18-15" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="annotated-cell-18-16"><a href="#annotated-cell-18-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span>
-<span id="annotated-cell-18-17"><a href="#annotated-cell-18-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-18-18"><a href="#annotated-cell-18-18" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (</span>
-<span id="annotated-cell-18-19"><a href="#annotated-cell-18-19" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
-<span id="annotated-cell-18-20"><a href="#annotated-cell-18-20" aria-hidden="true" tabindex="-1"></a>    .with_actions(synthesize)</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-18-21" class="code-annotation-target"><a href="#annotated-cell-18-21" aria-hidden="true" tabindex="-1"></a>    .with_typing(PydanticTypingSystem(QAState))</span>
-<span id="annotated-cell-18-22"><a href="#annotated-cell-18-22" aria-hidden="true" tabindex="-1"></a>    .with_state(QAState(query<span class="op">=</span><span class="st">"What is context engineering?"</span>))</span>
-<span id="annotated-cell-18-23"><a href="#annotated-cell-18-23" aria-hidden="true" tabindex="-1"></a>    .with_entrypoint(<span class="st">"synthesize"</span>)</span>
-<span id="annotated-cell-18-24"><a href="#annotated-cell-18-24" aria-hidden="true" tabindex="-1"></a>    .build()</span>
-<span id="annotated-cell-18-25"><a href="#annotated-cell-18-25" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="annotated-cell-18-26"><a href="#annotated-cell-18-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-18-27"><a href="#annotated-cell-18-27" aria-hidden="true" tabindex="-1"></a>_, _, state <span class="op">=</span> app.run(halt_after<span class="op">=</span>[<span class="st">"synthesize"</span>])</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-18-28" class="code-annotation-target"><a href="#annotated-cell-18-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(state.data.answer)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-18-8" class="code-annotation-target"><a href="#annotated-cell-18-8" aria-hidden="true" tabindex="-1"></a>    context: <span class="bu">list</span>[<span class="bu">dict</span>] <span class="op">=</span> Field(default_factory<span class="op">=</span><span class="bu">list</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-18-9" class="code-annotation-target"><a href="#annotated-cell-18-9" aria-hidden="true" tabindex="-1"></a>    next_action: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="annotated-cell-18-10"><a href="#annotated-cell-18-10" aria-hidden="true" tabindex="-1"></a>    search_term: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="annotated-cell-18-11"><a href="#annotated-cell-18-11" aria-hidden="true" tabindex="-1"></a>    answer: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="annotated-cell-18-12"><a href="#annotated-cell-18-12" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-18-13" class="code-annotation-target"><a href="#annotated-cell-18-13" aria-hidden="true" tabindex="-1"></a><span class="at">@action.pydantic</span>(reads<span class="op">=</span>[<span class="st">"query"</span>, <span class="st">"context"</span>], writes<span class="op">=</span>[<span class="st">"answer"</span>])</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-18-14" class="code-annotation-target"><a href="#annotated-cell-18-14" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> synthesize(state: QAState, llm) <span class="op">-&gt;</span> QAState:</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-18-15" class="code-annotation-target"><a href="#annotated-cell-18-15" aria-hidden="true" tabindex="-1"></a>    state.answer <span class="op">=</span> llm.complete(</span>
+<span id="annotated-cell-18-16"><a href="#annotated-cell-18-16" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Question: </span><span class="sc">{</span>state<span class="sc">.</span>query<span class="sc">}</span><span class="ch">\n</span><span class="ss">Context: </span><span class="sc">{</span>state<span class="sc">.</span>context<span class="sc">}</span><span class="ch">\n</span><span class="ss">Answer:"</span></span>
+<span id="annotated-cell-18-17"><a href="#annotated-cell-18-17" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-18-18"><a href="#annotated-cell-18-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span>
+<span id="annotated-cell-18-19"><a href="#annotated-cell-18-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-18-20"><a href="#annotated-cell-18-20" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (</span>
+<span id="annotated-cell-18-21"><a href="#annotated-cell-18-21" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
+<span id="annotated-cell-18-22"><a href="#annotated-cell-18-22" aria-hidden="true" tabindex="-1"></a>    .with_actions(synthesize<span class="op">=</span>synthesize.bind(llm<span class="op">=</span>llm))               <span class="co"># bind llm dep (see §7.9.1)</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="7" onclick="event.preventDefault();">7</a><span id="annotated-cell-18-23" class="code-annotation-target"><a href="#annotated-cell-18-23" aria-hidden="true" tabindex="-1"></a>    .with_typing(PydanticTypingSystem(QAState))</span>
+<span id="annotated-cell-18-24"><a href="#annotated-cell-18-24" aria-hidden="true" tabindex="-1"></a>    .with_state(QAState(query<span class="op">=</span><span class="st">"What is context engineering?"</span>))</span>
+<span id="annotated-cell-18-25"><a href="#annotated-cell-18-25" aria-hidden="true" tabindex="-1"></a>    .with_entrypoint(<span class="st">"synthesize"</span>)</span>
+<span id="annotated-cell-18-26"><a href="#annotated-cell-18-26" aria-hidden="true" tabindex="-1"></a>    .build()</span>
+<span id="annotated-cell-18-27"><a href="#annotated-cell-18-27" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="annotated-cell-18-28"><a href="#annotated-cell-18-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-18-29"><a href="#annotated-cell-18-29" aria-hidden="true" tabindex="-1"></a>_, _, state <span class="op">=</span> app.run(halt_after<span class="op">=</span>[<span class="st">"synthesize"</span>])</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-18" data-target-annotation="8" onclick="event.preventDefault();">8</a><span id="annotated-cell-18-30" class="code-annotation-target"><a href="#annotated-cell-18-30" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(state.data.answer)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-18" data-target-annotation="1">1</dt>
 <dd>
@@ -1222,23 +1232,31 @@ Note
 </dd>
 <dt data-target-cell="annotated-cell-18" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-18" data-code-lines="11" data-code-annotation="2"><strong><code>@action.pydantic</code></strong> is the typed sibling of <code>@action</code>. It still declares <code>reads</code>/<code>writes</code>, but the action body sees a typed object.</span>
+<span data-code-cell="annotated-cell-18" data-code-lines="8" data-code-annotation="2"><strong><code>context: list[dict]</code></strong> holds search results — each entry is <code>{"term": ..., "result": ...}</code>. The <code>synthesize</code> action below treats the whole list as opaque context for the LLM; the search action in the worked example is what appends to it.</span>
 </dd>
 <dt data-target-cell="annotated-cell-18" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-18" data-code-lines="12" data-code-annotation="3"><strong><code>state: QAState</code></strong> — the IDE autocompletes <code>state.query</code>, <code>state.context</code>, <code>state.answer</code>. A typo (<code>state.querry</code>) is a static-analysis error before you run.</span>
+<span data-code-cell="annotated-cell-18" data-code-lines="9,10" data-code-annotation="3"><strong><code>next_action</code> and <code>search_term</code> are unused by this minimal example</strong> but declared up front so the schema is stable across sections. The <code>decide</code> action in the worked example writes them; the FSM transitions read <code>next_action</code> to choose the next edge.</span>
 </dd>
 <dt data-target-cell="annotated-cell-18" data-target-annotation="4">4</dt>
 <dd>
-<span data-code-cell="annotated-cell-18" data-code-lines="13" data-code-annotation="4"><strong>Field mutation looks normal.</strong> Burr’s runtime captures the change and produces a new immutable snapshot under the hood; you write idiomatic Python.</span>
+<span data-code-cell="annotated-cell-18" data-code-lines="13" data-code-annotation="4"><strong><code>@action.pydantic</code></strong> is the typed sibling of <code>@action</code>. It still declares <code>reads</code>/<code>writes</code>, but the action body sees a typed object.</span>
 </dd>
 <dt data-target-cell="annotated-cell-18" data-target-annotation="5">5</dt>
 <dd>
-<span data-code-cell="annotated-cell-18" data-code-lines="21" data-code-annotation="5"><strong><code>with_typing(PydanticTypingSystem(QAState))</code></strong> attaches the type system to the application. Burr now validates state transitions against the schema.</span>
+<span data-code-cell="annotated-cell-18" data-code-lines="14" data-code-annotation="5"><strong><code>state: QAState</code></strong> — the IDE autocompletes <code>state.query</code>, <code>state.context</code>, <code>state.answer</code>. A typo (<code>state.querry</code>) is a static-analysis error before you run.</span>
 </dd>
 <dt data-target-cell="annotated-cell-18" data-target-annotation="6">6</dt>
 <dd>
-<span data-code-cell="annotated-cell-18" data-code-lines="28" data-code-annotation="6"><strong><code>state.data</code> returns the typed object</strong> after <code>run()</code>. <code>state.data.answer</code> is what you get; <code>state["answer"]</code> still works but you’ve left the typed path.</span>
+<span data-code-cell="annotated-cell-18" data-code-lines="15" data-code-annotation="6"><strong>Field mutation looks normal.</strong> Burr’s runtime captures the change and produces a new immutable snapshot under the hood; you write idiomatic Python.</span>
+</dd>
+<dt data-target-cell="annotated-cell-18" data-target-annotation="7">7</dt>
+<dd>
+<span data-code-cell="annotated-cell-18" data-code-lines="23" data-code-annotation="7"><strong><code>with_typing(PydanticTypingSystem(QAState))</code></strong> attaches the type system to the application. Burr now validates state transitions against the schema.</span>
+</dd>
+<dt data-target-cell="annotated-cell-18" data-target-annotation="8">8</dt>
+<dd>
+<span data-code-cell="annotated-cell-18" data-code-lines="30" data-code-annotation="8"><strong><code>state.data</code> returns the typed object</strong> after <code>run()</code>. <code>state.data.answer</code> is what you get; <code>state["answer"]</code> still works but you’ve left the typed path.</span>
 </dd>
 </dl>
 <p>For streaming actions, the typed decorator is <code>@streaming_action.pydantic</code> with explicit <code>state_input_type</code>, <code>state_output_type</code>, and <code>stream_type</code> parameters. The streaming story matters when you want token-by-token output to a UI while still preserving the typed-state contract.</p>
@@ -1300,19 +1318,23 @@ Note
 <span id="annotated-cell-20-7"><a href="#annotated-cell-20-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="annotated-cell-20-8"><a href="#annotated-cell-20-8" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (</span>
 <span id="annotated-cell-20-9"><a href="#annotated-cell-20-9" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
-<span id="annotated-cell-20-10"><a href="#annotated-cell-20-10" aria-hidden="true" tabindex="-1"></a>    .with_actions(decide<span class="op">=</span>decide, search<span class="op">=</span>search, synthesize<span class="op">=</span>synthesize)</span>
-<span id="annotated-cell-20-11"><a href="#annotated-cell-20-11" aria-hidden="true" tabindex="-1"></a>    .with_transitions(</span>
-<span id="annotated-cell-20-12"><a href="#annotated-cell-20-12" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>,   <span class="st">"search"</span>,     expr(<span class="st">"next_action == 'search'"</span>)),</span>
-<span id="annotated-cell-20-13"><a href="#annotated-cell-20-13" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>,   <span class="st">"synthesize"</span>, expr(<span class="st">"next_action == 'answer'"</span>)),</span>
-<span id="annotated-cell-20-14"><a href="#annotated-cell-20-14" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"search"</span>,   <span class="st">"decide"</span>,     default),</span>
-<span id="annotated-cell-20-15"><a href="#annotated-cell-20-15" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="annotated-cell-20-16"><a href="#annotated-cell-20-16" aria-hidden="true" tabindex="-1"></a>    .with_typing(PydanticTypingSystem(QAState))</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-20" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-20-17" class="code-annotation-target"><a href="#annotated-cell-20-17" aria-hidden="true" tabindex="-1"></a>    .with_identifiers(app_id<span class="op">=</span><span class="st">"qa-2026-05-29-001"</span>,</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-20" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-20-18" class="code-annotation-target"><a href="#annotated-cell-20-18" aria-hidden="true" tabindex="-1"></a>                      partition_key<span class="op">=</span><span class="st">"user-42"</span>)</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-20" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-20-19" class="code-annotation-target"><a href="#annotated-cell-20-19" aria-hidden="true" tabindex="-1"></a>    .with_state_persister(persister)</span>
-<span id="annotated-cell-20-20"><a href="#annotated-cell-20-20" aria-hidden="true" tabindex="-1"></a>    .with_entrypoint(<span class="st">"decide"</span>)</span>
-<span id="annotated-cell-20-21"><a href="#annotated-cell-20-21" aria-hidden="true" tabindex="-1"></a>    .build()</span>
-<span id="annotated-cell-20-22"><a href="#annotated-cell-20-22" aria-hidden="true" tabindex="-1"></a>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="annotated-cell-20-10"><a href="#annotated-cell-20-10" aria-hidden="true" tabindex="-1"></a>    .with_actions(                                                  <span class="co"># &lt;2a&gt;</span></span>
+<span id="annotated-cell-20-11"><a href="#annotated-cell-20-11" aria-hidden="true" tabindex="-1"></a>        decide<span class="op">=</span>decide.bind(llm<span class="op">=</span>llm),</span>
+<span id="annotated-cell-20-12"><a href="#annotated-cell-20-12" aria-hidden="true" tabindex="-1"></a>        search<span class="op">=</span>search.bind(web<span class="op">=</span>web),</span>
+<span id="annotated-cell-20-13"><a href="#annotated-cell-20-13" aria-hidden="true" tabindex="-1"></a>        synthesize<span class="op">=</span>synthesize.bind(llm<span class="op">=</span>llm),</span>
+<span id="annotated-cell-20-14"><a href="#annotated-cell-20-14" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-20-15"><a href="#annotated-cell-20-15" aria-hidden="true" tabindex="-1"></a>    .with_transitions(</span>
+<span id="annotated-cell-20-16"><a href="#annotated-cell-20-16" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>,   <span class="st">"search"</span>,     expr(<span class="st">"next_action == 'search'"</span>)),</span>
+<span id="annotated-cell-20-17"><a href="#annotated-cell-20-17" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>,   <span class="st">"synthesize"</span>, expr(<span class="st">"next_action == 'answer'"</span>)),</span>
+<span id="annotated-cell-20-18"><a href="#annotated-cell-20-18" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"search"</span>,   <span class="st">"decide"</span>,     default),</span>
+<span id="annotated-cell-20-19"><a href="#annotated-cell-20-19" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-20-20"><a href="#annotated-cell-20-20" aria-hidden="true" tabindex="-1"></a>    .with_typing(PydanticTypingSystem(QAState))</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-20" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-20-21" class="code-annotation-target"><a href="#annotated-cell-20-21" aria-hidden="true" tabindex="-1"></a>    .with_identifiers(app_id<span class="op">=</span><span class="st">"qa-2026-05-29-001"</span>,</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-20" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-20-22" class="code-annotation-target"><a href="#annotated-cell-20-22" aria-hidden="true" tabindex="-1"></a>                      partition_key<span class="op">=</span><span class="st">"user-42"</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-20" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-20-23" class="code-annotation-target"><a href="#annotated-cell-20-23" aria-hidden="true" tabindex="-1"></a>    .with_state_persister(persister)</span>
+<span id="annotated-cell-20-24"><a href="#annotated-cell-20-24" aria-hidden="true" tabindex="-1"></a>    .with_entrypoint(<span class="st">"decide"</span>)</span>
+<span id="annotated-cell-20-25"><a href="#annotated-cell-20-25" aria-hidden="true" tabindex="-1"></a>    .build()</span>
+<span id="annotated-cell-20-26"><a href="#annotated-cell-20-26" aria-hidden="true" tabindex="-1"></a>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-20" data-target-annotation="1">1</dt>
 <dd>
@@ -1324,57 +1346,61 @@ Note
 </dd>
 <dt data-target-cell="annotated-cell-20" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-20" data-code-lines="17" data-code-annotation="3"><strong><code>app_id</code></strong> uniquely identifies this run. Auto-generated if omitted. This is what you fork <em>from</em>.</span>
+<span data-code-cell="annotated-cell-20" data-code-lines="21" data-code-annotation="3"><strong><code>app_id</code></strong> uniquely identifies this run. Auto-generated if omitted. This is what you fork <em>from</em>.</span>
 </dd>
 <dt data-target-cell="annotated-cell-20" data-target-annotation="4">4</dt>
 <dd>
-<span data-code-cell="annotated-cell-20" data-code-lines="18" data-code-annotation="4"><strong><code>partition_key</code></strong> groups runs (per-user, per-session, per-tenant). Snapshots within a partition are queryable together.</span>
+<span data-code-cell="annotated-cell-20" data-code-lines="22" data-code-annotation="4"><strong><code>partition_key</code></strong> groups runs (per-user, per-session, per-tenant). Snapshots within a partition are queryable together.</span>
 </dd>
 <dt data-target-cell="annotated-cell-20" data-target-annotation="5">5</dt>
 <dd>
-<span data-code-cell="annotated-cell-20" data-code-lines="19" data-code-annotation="5"><strong><code>with_state_persister(persister)</code></strong> wires up automatic snapshot-after-action. Every <code>state.update(...)</code> lands a row.</span>
+<span data-code-cell="annotated-cell-20" data-code-lines="23" data-code-annotation="5"><strong><code>with_state_persister(persister)</code></strong> wires up automatic snapshot-after-action. Every <code>state.update(...)</code> lands a row.</span>
 </dd>
 </dl>
 <p>Once persistence is on, replay is another builder call. The forked builder needs the same actions, transitions, and typing as the original — it’s still a Burr application, just one whose initial state comes from a snapshot instead of <code>with_state(...)</code>:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-21"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-21-1"><a href="#annotated-cell-21-1" aria-hidden="true" tabindex="-1"></a>forked <span class="op">=</span> (</span>
 <span id="annotated-cell-21-2"><a href="#annotated-cell-21-2" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
-<span id="annotated-cell-21-3"><a href="#annotated-cell-21-3" aria-hidden="true" tabindex="-1"></a>    .with_actions(decide<span class="op">=</span>decide, search<span class="op">=</span>search, synthesize<span class="op">=</span>synthesize)</span>
-<span id="annotated-cell-21-4"><a href="#annotated-cell-21-4" aria-hidden="true" tabindex="-1"></a>    .with_transitions(</span>
-<span id="annotated-cell-21-5"><a href="#annotated-cell-21-5" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>,   <span class="st">"search"</span>,     expr(<span class="st">"next_action == 'search'"</span>)),</span>
-<span id="annotated-cell-21-6"><a href="#annotated-cell-21-6" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>,   <span class="st">"synthesize"</span>, expr(<span class="st">"next_action == 'answer'"</span>)),</span>
-<span id="annotated-cell-21-7"><a href="#annotated-cell-21-7" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"search"</span>,   <span class="st">"decide"</span>,     default),</span>
-<span id="annotated-cell-21-8"><a href="#annotated-cell-21-8" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="annotated-cell-21-9"><a href="#annotated-cell-21-9" aria-hidden="true" tabindex="-1"></a>    .with_typing(PydanticTypingSystem(QAState))</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-21-10" class="code-annotation-target"><a href="#annotated-cell-21-10" aria-hidden="true" tabindex="-1"></a>    .with_identifiers(app_id<span class="op">=</span><span class="st">"qa-2026-05-29-001-fork-a"</span>,</span>
-<span id="annotated-cell-21-11"><a href="#annotated-cell-21-11" aria-hidden="true" tabindex="-1"></a>                      partition_key<span class="op">=</span><span class="st">"user-42"</span>)</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-21-12" class="code-annotation-target"><a href="#annotated-cell-21-12" aria-hidden="true" tabindex="-1"></a>    .initialize_from(</span>
-<span id="annotated-cell-21-13"><a href="#annotated-cell-21-13" aria-hidden="true" tabindex="-1"></a>        persister,</span>
-<span id="annotated-cell-21-14"><a href="#annotated-cell-21-14" aria-hidden="true" tabindex="-1"></a>        resume_at_next_action<span class="op">=</span><span class="va">True</span>,</span>
-<span id="annotated-cell-21-15"><a href="#annotated-cell-21-15" aria-hidden="true" tabindex="-1"></a>        default_state<span class="op">=</span><span class="va">None</span>,</span>
-<span id="annotated-cell-21-16"><a href="#annotated-cell-21-16" aria-hidden="true" tabindex="-1"></a>        default_entrypoint<span class="op">=</span><span class="st">"decide"</span>,</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-21-17" class="code-annotation-target"><a href="#annotated-cell-21-17" aria-hidden="true" tabindex="-1"></a>        fork_from_app_id<span class="op">=</span><span class="st">"qa-2026-05-29-001"</span>,</span>
-<span id="annotated-cell-21-18"><a href="#annotated-cell-21-18" aria-hidden="true" tabindex="-1"></a>        fork_from_partition_key<span class="op">=</span><span class="st">"user-42"</span>,</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-21-19" class="code-annotation-target"><a href="#annotated-cell-21-19" aria-hidden="true" tabindex="-1"></a>        fork_from_sequence_id<span class="op">=</span><span class="dv">7</span>,</span>
-<span id="annotated-cell-21-20"><a href="#annotated-cell-21-20" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="annotated-cell-21-21"><a href="#annotated-cell-21-21" aria-hidden="true" tabindex="-1"></a>    .with_state_persister(persister)</span>
-<span id="annotated-cell-21-22"><a href="#annotated-cell-21-22" aria-hidden="true" tabindex="-1"></a>    .build()</span>
-<span id="annotated-cell-21-23"><a href="#annotated-cell-21-23" aria-hidden="true" tabindex="-1"></a>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="annotated-cell-21-3"><a href="#annotated-cell-21-3" aria-hidden="true" tabindex="-1"></a>    .with_actions(</span>
+<span id="annotated-cell-21-4"><a href="#annotated-cell-21-4" aria-hidden="true" tabindex="-1"></a>        decide<span class="op">=</span>decide.bind(llm<span class="op">=</span>llm),</span>
+<span id="annotated-cell-21-5"><a href="#annotated-cell-21-5" aria-hidden="true" tabindex="-1"></a>        search<span class="op">=</span>search.bind(web<span class="op">=</span>web),</span>
+<span id="annotated-cell-21-6"><a href="#annotated-cell-21-6" aria-hidden="true" tabindex="-1"></a>        synthesize<span class="op">=</span>synthesize.bind(llm<span class="op">=</span>llm),</span>
+<span id="annotated-cell-21-7"><a href="#annotated-cell-21-7" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-21-8"><a href="#annotated-cell-21-8" aria-hidden="true" tabindex="-1"></a>    .with_transitions(</span>
+<span id="annotated-cell-21-9"><a href="#annotated-cell-21-9" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>,   <span class="st">"search"</span>,     expr(<span class="st">"next_action == 'search'"</span>)),</span>
+<span id="annotated-cell-21-10"><a href="#annotated-cell-21-10" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>,   <span class="st">"synthesize"</span>, expr(<span class="st">"next_action == 'answer'"</span>)),</span>
+<span id="annotated-cell-21-11"><a href="#annotated-cell-21-11" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"search"</span>,   <span class="st">"decide"</span>,     default),</span>
+<span id="annotated-cell-21-12"><a href="#annotated-cell-21-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-21-13"><a href="#annotated-cell-21-13" aria-hidden="true" tabindex="-1"></a>    .with_typing(PydanticTypingSystem(QAState))</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-21-14" class="code-annotation-target"><a href="#annotated-cell-21-14" aria-hidden="true" tabindex="-1"></a>    .with_identifiers(app_id<span class="op">=</span><span class="st">"qa-2026-05-29-001-fork-a"</span>,</span>
+<span id="annotated-cell-21-15"><a href="#annotated-cell-21-15" aria-hidden="true" tabindex="-1"></a>                      partition_key<span class="op">=</span><span class="st">"user-42"</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-21-16" class="code-annotation-target"><a href="#annotated-cell-21-16" aria-hidden="true" tabindex="-1"></a>    .initialize_from(</span>
+<span id="annotated-cell-21-17"><a href="#annotated-cell-21-17" aria-hidden="true" tabindex="-1"></a>        persister,</span>
+<span id="annotated-cell-21-18"><a href="#annotated-cell-21-18" aria-hidden="true" tabindex="-1"></a>        resume_at_next_action<span class="op">=</span><span class="va">True</span>,</span>
+<span id="annotated-cell-21-19"><a href="#annotated-cell-21-19" aria-hidden="true" tabindex="-1"></a>        default_state<span class="op">=</span><span class="va">None</span>,</span>
+<span id="annotated-cell-21-20"><a href="#annotated-cell-21-20" aria-hidden="true" tabindex="-1"></a>        default_entrypoint<span class="op">=</span><span class="st">"decide"</span>,</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-21-21" class="code-annotation-target"><a href="#annotated-cell-21-21" aria-hidden="true" tabindex="-1"></a>        fork_from_app_id<span class="op">=</span><span class="st">"qa-2026-05-29-001"</span>,</span>
+<span id="annotated-cell-21-22"><a href="#annotated-cell-21-22" aria-hidden="true" tabindex="-1"></a>        fork_from_partition_key<span class="op">=</span><span class="st">"user-42"</span>,</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-21-23" class="code-annotation-target"><a href="#annotated-cell-21-23" aria-hidden="true" tabindex="-1"></a>        fork_from_sequence_id<span class="op">=</span><span class="dv">7</span>,</span>
+<span id="annotated-cell-21-24"><a href="#annotated-cell-21-24" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-21-25"><a href="#annotated-cell-21-25" aria-hidden="true" tabindex="-1"></a>    .with_state_persister(persister)</span>
+<span id="annotated-cell-21-26"><a href="#annotated-cell-21-26" aria-hidden="true" tabindex="-1"></a>    .build()</span>
+<span id="annotated-cell-21-27"><a href="#annotated-cell-21-27" aria-hidden="true" tabindex="-1"></a>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-21" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-21" data-code-lines="10" data-code-annotation="1"><strong>New <code>app_id</code> for the fork.</strong> The forked run gets its own identity so the original’s history isn’t overwritten — you can compare branches side by side in the UI.</span>
+<span data-code-cell="annotated-cell-21" data-code-lines="14" data-code-annotation="1"><strong>New <code>app_id</code> for the fork.</strong> The forked run gets its own identity so the original’s history isn’t overwritten — you can compare branches side by side in the UI.</span>
 </dd>
 <dt data-target-cell="annotated-cell-21" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-21" data-code-lines="12" data-code-annotation="2"><strong><code>initialize_from(...)</code> replaces <code>with_state(...)</code>.</strong> It tells the builder: load initial state from this persister rather than constructing it inline.</span>
+<span data-code-cell="annotated-cell-21" data-code-lines="16" data-code-annotation="2"><strong><code>initialize_from(...)</code> replaces <code>with_state(...)</code>.</strong> It tells the builder: load initial state from this persister rather than constructing it inline.</span>
 </dd>
 <dt data-target-cell="annotated-cell-21" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-21" data-code-lines="17" data-code-annotation="3"><strong><code>fork_from_app_id</code> + <code>fork_from_partition_key</code></strong> locate the source run within the persister.</span>
+<span data-code-cell="annotated-cell-21" data-code-lines="21" data-code-annotation="3"><strong><code>fork_from_app_id</code> + <code>fork_from_partition_key</code></strong> locate the source run within the persister.</span>
 </dd>
 <dt data-target-cell="annotated-cell-21" data-target-annotation="4">4</dt>
 <dd>
-<span data-code-cell="annotated-cell-21" data-code-lines="19" data-code-annotation="4"><strong><code>fork_from_sequence_id=7</code></strong> picks the snapshot written after the 7th action of the source run. Execution resumes from that state; <code>resume_at_next_action=True</code> means the next action runs against it (set false to re-run the action that produced it). Change one thing — a prompt, a model, a tool binding — and observe whether the new branch goes right.</span>
+<span data-code-cell="annotated-cell-21" data-code-lines="23" data-code-annotation="4"><strong><code>fork_from_sequence_id=7</code></strong> picks the snapshot written after the 7th action of the source run. Execution resumes from that state; <code>resume_at_next_action=True</code> means the next action runs against it (set false to re-run the action that produced it). Change one thing — a prompt, a model, a tool binding — and observe whether the new branch goes right.</span>
 </dd>
 </dl>
 <div class="callout callout-style-default callout-tip callout-titled" title="Why fork-from-state is the production differentiator">
@@ -1427,19 +1453,21 @@ Note
 <p>Earlier in this chapter we built a Q&amp;A agent in PocketFlow: a <code>DecideAction</code> node returning <code>"search"</code> or <code>"answer"</code>, a <code>SearchWeb</code> node, and an <code>Answer</code> node. Now let’s port it to Burr + Pydantic and see what the production version of the same logic looks like.</p>
 <section id="the-state-schema" class="level3" data-number="7.10.1">
 <h3 data-number="7.10.1" class="anchored" data-anchor-id="the-state-schema"><span class="header-section-number">7.10.1</span> The state schema</h3>
-<p>The state schema names every field the actions touch:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-22"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-22-1"><a href="#annotated-cell-22-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pydantic <span class="im">import</span> BaseModel, Field</span>
-<span id="annotated-cell-22-2"><a href="#annotated-cell-22-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-22-3"><a href="#annotated-cell-22-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> QAState(BaseModel):</span>
-<span id="annotated-cell-22-4"><a href="#annotated-cell-22-4" aria-hidden="true" tabindex="-1"></a>    query: <span class="bu">str</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-22" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-22-5" class="code-annotation-target"><a href="#annotated-cell-22-5" aria-hidden="true" tabindex="-1"></a>    context: <span class="bu">list</span>[<span class="bu">dict</span>] <span class="op">=</span> Field(default_factory<span class="op">=</span><span class="bu">list</span>)</span>
-<span id="annotated-cell-22-6"><a href="#annotated-cell-22-6" aria-hidden="true" tabindex="-1"></a>    next_action: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span>
-<span id="annotated-cell-22-7"><a href="#annotated-cell-22-7" aria-hidden="true" tabindex="-1"></a>    search_term: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span>
-<span id="annotated-cell-22-8"><a href="#annotated-cell-22-8" aria-hidden="true" tabindex="-1"></a>    answer: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>We use the same <code>QAState</code> introduced in <a href="#sec-prod-burr-pydantic" class="quarto-xref"><span>Section 7.9.2</span></a> — five fields, one canonical schema for the whole chapter:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-22"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-22-1"><a href="#annotated-cell-22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> QAState(BaseModel):</span>
+<span id="annotated-cell-22-2"><a href="#annotated-cell-22-2" aria-hidden="true" tabindex="-1"></a>    query: <span class="bu">str</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-22" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-22-3" class="code-annotation-target"><a href="#annotated-cell-22-3" aria-hidden="true" tabindex="-1"></a>    context: <span class="bu">list</span>[<span class="bu">dict</span>] <span class="op">=</span> Field(default_factory<span class="op">=</span><span class="bu">list</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-22" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-22-4" class="code-annotation-target"><a href="#annotated-cell-22-4" aria-hidden="true" tabindex="-1"></a>    next_action: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="annotated-cell-22-5"><a href="#annotated-cell-22-5" aria-hidden="true" tabindex="-1"></a>    search_term: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="annotated-cell-22-6"><a href="#annotated-cell-22-6" aria-hidden="true" tabindex="-1"></a>    answer: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-22" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-22" data-code-lines="5" data-code-annotation="1"><strong><code>context</code> accumulates</strong> — each search appends a dict; the decide step reads the whole list.</span>
+<span data-code-cell="annotated-cell-22" data-code-lines="3" data-code-annotation="1"><strong><code>context</code> accumulates</strong> — each search appends a dict <code>{"term": ..., "result": ...}</code>; the decide step reads the whole list.</span>
+</dd>
+<dt data-target-cell="annotated-cell-22" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-22" data-code-lines="4,5" data-code-annotation="2"><strong>Routing fields.</strong> <code>decide</code> writes <code>next_action</code> (<code>"search"</code> or <code>"answer"</code>) and <code>search_term</code>; the transitions in <a href="#sec-prod-burr-transitions" class="quarto-xref"><span>Section 7.9.3</span></a> read <code>next_action</code> to pick the edge.</span>
 </dd>
 </dl>
 </section>
@@ -1482,48 +1510,55 @@ Note
 </section>
 <section id="transitions-and-persistence" class="level3" data-number="7.10.3">
 <h3 data-number="7.10.3" class="anchored" data-anchor-id="transitions-and-persistence"><span class="header-section-number">7.10.3</span> Transitions and persistence</h3>
-<p>Transitions encode the loop using <code>next_action</code> as the routing field:</p>
+<p>Transitions encode the loop using <code>next_action</code> as the routing field. We bind the same <code>llm</code> from earlier and a <code>web</code> placeholder (anything with a <code>.search(term) -&gt; str</code> method — a real search SDK, an MCP tool, or a stub for testing):</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-24"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-24-1"><a href="#annotated-cell-24-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core <span class="im">import</span> ApplicationBuilder, expr</span>
 <span id="annotated-cell-24-2"><a href="#annotated-cell-24-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.integrations.pydantic <span class="im">import</span> PydanticTypingSystem</span>
 <span id="annotated-cell-24-3"><a href="#annotated-cell-24-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core.persistence <span class="im">import</span> SQLLitePersister</span>
 <span id="annotated-cell-24-4"><a href="#annotated-cell-24-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-24-5"><a href="#annotated-cell-24-5" aria-hidden="true" tabindex="-1"></a>persister <span class="op">=</span> SQLLitePersister(<span class="st">"qa.db"</span>, <span class="st">"runs"</span>)</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-24" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-24-6" class="code-annotation-target"><a href="#annotated-cell-24-6" aria-hidden="true" tabindex="-1"></a>persister.initialize()</span>
+<span id="annotated-cell-24-5"><a href="#annotated-cell-24-5" aria-hidden="true" tabindex="-1"></a>llm <span class="op">=</span> MyLLMClient(...)</span>
+<span id="annotated-cell-24-6"><a href="#annotated-cell-24-6" aria-hidden="true" tabindex="-1"></a>web <span class="op">=</span> MyWebSearch(...)</span>
 <span id="annotated-cell-24-7"><a href="#annotated-cell-24-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-24-8"><a href="#annotated-cell-24-8" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (</span>
-<span id="annotated-cell-24-9"><a href="#annotated-cell-24-9" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
-<span id="annotated-cell-24-10"><a href="#annotated-cell-24-10" aria-hidden="true" tabindex="-1"></a>    .with_actions(decide<span class="op">=</span>decide, search<span class="op">=</span>search, answer<span class="op">=</span>answer)</span>
-<span id="annotated-cell-24-11"><a href="#annotated-cell-24-11" aria-hidden="true" tabindex="-1"></a>    .with_transitions(</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-24" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-24-12" class="code-annotation-target"><a href="#annotated-cell-24-12" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>, <span class="st">"search"</span>, expr(<span class="st">"next_action == 'search'"</span>)),</span>
-<span id="annotated-cell-24-13"><a href="#annotated-cell-24-13" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>, <span class="st">"answer"</span>, expr(<span class="st">"next_action == 'answer'"</span>)),</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-24" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-24-14" class="code-annotation-target"><a href="#annotated-cell-24-14" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"search"</span>, <span class="st">"decide"</span>),</span>
-<span id="annotated-cell-24-15"><a href="#annotated-cell-24-15" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="annotated-cell-24-16"><a href="#annotated-cell-24-16" aria-hidden="true" tabindex="-1"></a>    .with_typing(PydanticTypingSystem(QAState))</span>
-<span id="annotated-cell-24-17"><a href="#annotated-cell-24-17" aria-hidden="true" tabindex="-1"></a>    .with_state(QAState(query<span class="op">=</span><span class="st">"Who won the 2024 Physics Nobel?"</span>))</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-24" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-24-18" class="code-annotation-target"><a href="#annotated-cell-24-18" aria-hidden="true" tabindex="-1"></a>    .with_state_persister(persister)</span>
-<span id="annotated-cell-24-19"><a href="#annotated-cell-24-19" aria-hidden="true" tabindex="-1"></a>    .with_identifiers(app_id<span class="op">=</span><span class="st">"qa-001"</span>, partition_key<span class="op">=</span><span class="st">"demo"</span>)</span>
-<span id="annotated-cell-24-20"><a href="#annotated-cell-24-20" aria-hidden="true" tabindex="-1"></a>    .with_entrypoint(<span class="st">"decide"</span>)</span>
-<span id="annotated-cell-24-21"><a href="#annotated-cell-24-21" aria-hidden="true" tabindex="-1"></a>    .build()</span>
-<span id="annotated-cell-24-22"><a href="#annotated-cell-24-22" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="annotated-cell-24-23"><a href="#annotated-cell-24-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-24-24"><a href="#annotated-cell-24-24" aria-hidden="true" tabindex="-1"></a>_, _, final <span class="op">=</span> app.run(halt_after<span class="op">=</span>[<span class="st">"answer"</span>])</span>
-<span id="annotated-cell-24-25"><a href="#annotated-cell-24-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(final.data.answer)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="annotated-cell-24-8"><a href="#annotated-cell-24-8" aria-hidden="true" tabindex="-1"></a>persister <span class="op">=</span> SQLLitePersister(<span class="st">"qa.db"</span>, <span class="st">"runs"</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-24" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-24-9" class="code-annotation-target"><a href="#annotated-cell-24-9" aria-hidden="true" tabindex="-1"></a>persister.initialize()</span>
+<span id="annotated-cell-24-10"><a href="#annotated-cell-24-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-24-11"><a href="#annotated-cell-24-11" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (</span>
+<span id="annotated-cell-24-12"><a href="#annotated-cell-24-12" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
+<span id="annotated-cell-24-13"><a href="#annotated-cell-24-13" aria-hidden="true" tabindex="-1"></a>    .with_actions(</span>
+<span id="annotated-cell-24-14"><a href="#annotated-cell-24-14" aria-hidden="true" tabindex="-1"></a>        decide<span class="op">=</span>decide.bind(llm<span class="op">=</span>llm),</span>
+<span id="annotated-cell-24-15"><a href="#annotated-cell-24-15" aria-hidden="true" tabindex="-1"></a>        search<span class="op">=</span>search.bind(web<span class="op">=</span>web),</span>
+<span id="annotated-cell-24-16"><a href="#annotated-cell-24-16" aria-hidden="true" tabindex="-1"></a>        answer<span class="op">=</span>answer.bind(llm<span class="op">=</span>llm),</span>
+<span id="annotated-cell-24-17"><a href="#annotated-cell-24-17" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-24-18"><a href="#annotated-cell-24-18" aria-hidden="true" tabindex="-1"></a>    .with_transitions(</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-24" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-24-19" class="code-annotation-target"><a href="#annotated-cell-24-19" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>, <span class="st">"search"</span>, expr(<span class="st">"next_action == 'search'"</span>)),</span>
+<span id="annotated-cell-24-20"><a href="#annotated-cell-24-20" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"decide"</span>, <span class="st">"answer"</span>, expr(<span class="st">"next_action == 'answer'"</span>)),</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-24" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-24-21" class="code-annotation-target"><a href="#annotated-cell-24-21" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"search"</span>, <span class="st">"decide"</span>),</span>
+<span id="annotated-cell-24-22"><a href="#annotated-cell-24-22" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-24-23"><a href="#annotated-cell-24-23" aria-hidden="true" tabindex="-1"></a>    .with_typing(PydanticTypingSystem(QAState))</span>
+<span id="annotated-cell-24-24"><a href="#annotated-cell-24-24" aria-hidden="true" tabindex="-1"></a>    .with_state(QAState(query<span class="op">=</span><span class="st">"Who won the 2024 Physics Nobel?"</span>))</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-24" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-24-25" class="code-annotation-target"><a href="#annotated-cell-24-25" aria-hidden="true" tabindex="-1"></a>    .with_state_persister(persister)</span>
+<span id="annotated-cell-24-26"><a href="#annotated-cell-24-26" aria-hidden="true" tabindex="-1"></a>    .with_identifiers(app_id<span class="op">=</span><span class="st">"qa-001"</span>, partition_key<span class="op">=</span><span class="st">"demo"</span>)</span>
+<span id="annotated-cell-24-27"><a href="#annotated-cell-24-27" aria-hidden="true" tabindex="-1"></a>    .with_entrypoint(<span class="st">"decide"</span>)</span>
+<span id="annotated-cell-24-28"><a href="#annotated-cell-24-28" aria-hidden="true" tabindex="-1"></a>    .build()</span>
+<span id="annotated-cell-24-29"><a href="#annotated-cell-24-29" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="annotated-cell-24-30"><a href="#annotated-cell-24-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-24-31"><a href="#annotated-cell-24-31" aria-hidden="true" tabindex="-1"></a>_, _, final <span class="op">=</span> app.run(halt_after<span class="op">=</span>[<span class="st">"answer"</span>])</span>
+<span id="annotated-cell-24-32"><a href="#annotated-cell-24-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(final.data.answer)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-24" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-24" data-code-lines="6" data-code-annotation="1"><strong>Create the table.</strong> <code>persister.initialize()</code> is required on first use; Burr does not run schema setup implicitly.</span>
+<span data-code-cell="annotated-cell-24" data-code-lines="9" data-code-annotation="1"><strong>Create the table.</strong> <code>persister.initialize()</code> is required on first use; Burr does not run schema setup implicitly.</span>
 </dd>
 <dt data-target-cell="annotated-cell-24" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-24" data-code-lines="12,13" data-code-annotation="2"><strong>Conditional transitions.</strong> <code>expr(...)</code> evaluates a Python expression against the typed state. Conditions are checked in order; the first true one wins.</span>
+<span data-code-cell="annotated-cell-24" data-code-lines="19,20" data-code-annotation="2"><strong>Conditional transitions.</strong> <code>expr(...)</code> evaluates a Python expression against the typed state. Conditions are checked in order; the first true one wins.</span>
 </dd>
 <dt data-target-cell="annotated-cell-24" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-24" data-code-lines="14" data-code-annotation="3"><strong>Length-2 tuple = implicit <code>default</code>.</strong> <code>("search", "decide")</code> is the same as <code>("search", "decide", default)</code> — unconditional after <code>search</code>.</span>
+<span data-code-cell="annotated-cell-24" data-code-lines="21" data-code-annotation="3"><strong>Length-2 tuple = implicit <code>default</code>.</strong> <code>("search", "decide")</code> is the same as <code>("search", "decide", default)</code> — unconditional after <code>search</code>.</span>
 </dd>
 <dt data-target-cell="annotated-cell-24" data-target-annotation="4">4</dt>
 <dd>
-<span data-code-cell="annotated-cell-24" data-code-lines="18" data-code-annotation="4"><strong>Persistence on.</strong> Every snapshot lands in <code>qa.db</code>. If a future run goes wrong, fork from the bad <code>sequence_id</code> (see <a href="#sec-prod-burr-replay" class="quarto-xref"><span>Section 7.9.4</span></a>) and try a different prompt.</span>
+<span data-code-cell="annotated-cell-24" data-code-lines="25" data-code-annotation="4"><strong>Persistence on.</strong> Every snapshot lands in <code>qa.db</code>. If a future run goes wrong, fork from the bad <code>sequence_id</code> (see <a href="#sec-prod-burr-replay" class="quarto-xref"><span>Section 7.9.4</span></a>) and try a different prompt.</span>
 </dd>
 </dl>
 </section>
