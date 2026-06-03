@@ -310,7 +310,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#studio-visual-development" id="toc-studio-visual-development" class="nav-link" data-scroll-target="#studio-visual-development"><span class="header-section-number">9.13.1</span> Studio — visual development</a></li>
   <li><a href="#deployment-targets" id="toc-deployment-targets" class="nav-link" data-scroll-target="#deployment-targets"><span class="header-section-number">9.13.2</span> Deployment targets</a></li>
   </ul></li>
-  <li><a href="#sec-mastra-guardrails" id="toc-sec-mastra-guardrails" class="nav-link" data-scroll-target="#sec-mastra-guardrails"><span class="header-section-number">9.14</span> Guardrails and Processors</a></li>
+  <li><a href="#sec-mastra-guardrails" id="toc-sec-mastra-guardrails" class="nav-link" data-scroll-target="#sec-mastra-guardrails"><span class="header-section-number">9.14</span> Guardrails: Processors</a>
+  <ul class="collapse">
+  <li><a href="#writing-a-custom-processor" id="toc-writing-a-custom-processor" class="nav-link" data-scroll-target="#writing-a-custom-processor"><span class="header-section-number">9.14.1</span> Writing a custom processor</a></li>
+  </ul></li>
   <li><a href="#sec-mastra-comparison" id="toc-sec-mastra-comparison" class="nav-link" data-scroll-target="#sec-mastra-comparison"><span class="header-section-number">9.15</span> Comparison with Python Frameworks</a>
   <ul class="collapse">
   <li><a href="#where-mastra-leads" id="toc-where-mastra-leads" class="nav-link" data-scroll-target="#where-mastra-leads"><span class="header-section-number">9.15.1</span> Where Mastra leads</a></li>
@@ -707,41 +710,24 @@ Note
 </section>
 <section id="tool-approval-human-in-the-loop-for-tool-calls" class="level3" data-number="9.5.3">
 <h3 data-number="9.5.3" class="anchored" data-anchor-id="tool-approval-human-in-the-loop-for-tool-calls"><span class="header-section-number">9.5.3</span> Tool approval — human-in-the-loop for tool calls</h3>
-<p>Not every tool call should execute automatically. For sensitive operations (database writes, financial transactions, external API mutations), Mastra supports tool approval:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-8"><pre class="sourceCode typescript code-annotation-code code-with-copy code-annotated"><code class="sourceCode typescript"><span id="annotated-cell-8-1"><a href="#annotated-cell-8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> agent <span class="op">=</span> <span class="kw">new</span> <span class="fu">Agent</span>({</span>
-<span id="annotated-cell-8-2"><a href="#annotated-cell-8-2" aria-hidden="true" tabindex="-1"></a>  id<span class="op">:</span> <span class="st">'cautious-agent'</span><span class="op">,</span></span>
-<span id="annotated-cell-8-3"><a href="#annotated-cell-8-3" aria-hidden="true" tabindex="-1"></a>  tools<span class="op">:</span> { deleteTool<span class="op">,</span> readTool }<span class="op">,</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-8" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-8-4" class="code-annotation-target"><a href="#annotated-cell-8-4" aria-hidden="true" tabindex="-1"></a>  toolApproval<span class="op">:</span> {</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-8" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-8-5" class="code-annotation-target"><a href="#annotated-cell-8-5" aria-hidden="true" tabindex="-1"></a>    deleteTool<span class="op">:</span> <span class="st">'required'</span><span class="op">,</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-8" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-8-6" class="code-annotation-target"><a href="#annotated-cell-8-6" aria-hidden="true" tabindex="-1"></a>    readTool<span class="op">:</span> <span class="st">'auto'</span><span class="op">,</span></span>
-<span id="annotated-cell-8-7"><a href="#annotated-cell-8-7" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
-<span id="annotated-cell-8-8"><a href="#annotated-cell-8-8" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="annotated-cell-8-9"><a href="#annotated-cell-8-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-8-10"><a href="#annotated-cell-8-10" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> result <span class="op">=</span> <span class="cf">await</span> agent<span class="op">.</span><span class="fu">generate</span>(<span class="st">'Delete user 42.'</span><span class="op">,</span> {</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-8" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-8-11" class="code-annotation-target"><a href="#annotated-cell-8-11" aria-hidden="true" tabindex="-1"></a>  onToolApproval<span class="op">:</span> <span class="kw">async</span> (toolCall) <span class="kw">=&gt;</span> {</span>
-<span id="annotated-cell-8-12"><a href="#annotated-cell-8-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(<span class="vs">`Agent wants to call: </span><span class="sc">${</span>toolCall<span class="op">.</span><span class="at">name</span><span class="sc">}</span><span class="vs">(</span><span class="sc">${</span><span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>(toolCall<span class="op">.</span><span class="at">args</span>)<span class="sc">}</span><span class="vs">)`</span>)</span>
-<span id="annotated-cell-8-13"><a href="#annotated-cell-8-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">const</span> approved <span class="op">=</span> <span class="cf">await</span> <span class="fu">askHuman</span>(<span class="st">'Approve this action? (y/n)'</span>)</span>
-<span id="annotated-cell-8-14"><a href="#annotated-cell-8-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> approved <span class="op">===</span> <span class="st">'y'</span></span>
-<span id="annotated-cell-8-15"><a href="#annotated-cell-8-15" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
-<span id="annotated-cell-8-16"><a href="#annotated-cell-8-16" aria-hidden="true" tabindex="-1"></a>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<dl class="code-annotation-container-grid">
-<dt data-target-cell="annotated-cell-8" data-target-annotation="1">1</dt>
-<dd>
-<span data-code-cell="annotated-cell-8" data-code-lines="4" data-code-annotation="1"><strong><code>toolApproval</code></strong> configures per-tool approval requirements.</span>
-</dd>
-<dt data-target-cell="annotated-cell-8" data-target-annotation="2">2</dt>
-<dd>
-<span data-code-cell="annotated-cell-8" data-code-lines="5" data-code-annotation="2"><strong><code>'required'</code></strong> — every invocation of <code>deleteTool</code> must be approved before execution.</span>
-</dd>
-<dt data-target-cell="annotated-cell-8" data-target-annotation="3">3</dt>
-<dd>
-<span data-code-cell="annotated-cell-8" data-code-lines="6" data-code-annotation="3"><strong><code>'auto'</code></strong> — <code>readTool</code> executes immediately without approval.</span>
-</dd>
-<dt data-target-cell="annotated-cell-8" data-target-annotation="4">4</dt>
-<dd>
-<span data-code-cell="annotated-cell-8" data-code-lines="11" data-code-annotation="4"><strong><code>onToolApproval</code></strong> is the callback that fires when approval is required. You implement the approval UX — a CLI prompt, a Slack message, a web form, whatever fits your deployment.</span>
-</dd>
-</dl>
+<p>Not every tool call should execute automatically. For sensitive operations (database writes, financial transactions, external API mutations), Mastra’s first-class HITL story is the <strong>workflow suspend/resume pattern</strong> — wrap the sensitive tool call as a workflow step, suspend before executing it, and resume only after a human approves. The full mechanism is covered in <a href="#sec-mastra-suspension" class="quarto-xref"><span>Section 9.7</span></a>; the shape:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode typescript code-with-copy"><code class="sourceCode typescript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> sensitiveOp <span class="op">=</span> <span class="fu">createStep</span>({</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  id<span class="op">:</span> <span class="st">'delete-user'</span><span class="op">,</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  inputSchema<span class="op">:</span> z<span class="op">.</span><span class="fu">object</span>({ userId<span class="op">:</span> z<span class="op">.</span><span class="fu">number</span>() })<span class="op">,</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  resumeSchema<span class="op">:</span> z<span class="op">.</span><span class="fu">object</span>({ approved<span class="op">:</span> z<span class="op">.</span><span class="fu">boolean</span>() })<span class="op">,</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  outputSchema<span class="op">:</span> z<span class="op">.</span><span class="fu">object</span>({ deleted<span class="op">:</span> z<span class="op">.</span><span class="fu">boolean</span>() })<span class="op">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  execute<span class="op">:</span> <span class="kw">async</span> ({ inputData<span class="op">,</span> resumeData<span class="op">,</span> suspend }) <span class="kw">=&gt;</span> {</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="op">!</span>resumeData) {</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>      <span class="co">// First pass: pause and wait for human.</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>      <span class="cf">await</span> <span class="fu">suspend</span>({ pendingAction<span class="op">:</span> <span class="vs">`delete user </span><span class="sc">${</span>inputData<span class="op">.</span><span class="at">userId</span><span class="sc">}</span><span class="vs">`</span> })</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> { deleted<span class="op">:</span> <span class="kw">false</span> }</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="op">!</span>resumeData<span class="op">.</span><span class="at">approved</span>) <span class="cf">return</span> { deleted<span class="op">:</span> <span class="kw">false</span> }</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">await</span> db<span class="op">.</span><span class="at">users</span><span class="op">.</span><span class="fu">delete</span>(inputData<span class="op">.</span><span class="at">userId</span>)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> { deleted<span class="op">:</span> <span class="kw">true</span> }</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>})</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The advantage over a per-tool approval flag is composability: the same suspend/resume primitive handles approvals, multi-step human input, and long-running external callbacks, and survives process restarts because the workflow state is checkpointed. For agent-driven flows where each tool is a candidate for review, expose the workflow as a tool and let the agent invoke it; the approval is enforced at the workflow boundary, not the agent boundary.</p>
 </section>
 <section id="mcpserver-exposing-mastra-as-an-mcp-server" class="level3" data-number="9.5.4">
 <h3 data-number="9.5.4" class="anchored" data-anchor-id="mcpserver-exposing-mastra-as-an-mcp-server"><span class="header-section-number">9.5.4</span> MCPServer — exposing Mastra as an MCP server</h3>
@@ -751,28 +737,35 @@ Note
 <span id="annotated-cell-9-3"><a href="#annotated-cell-9-3" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> server <span class="op">=</span> <span class="kw">new</span> <span class="fu">MCPServer</span>({</span>
 <span id="annotated-cell-9-4"><a href="#annotated-cell-9-4" aria-hidden="true" tabindex="-1"></a>  id<span class="op">:</span> <span class="st">'my-server'</span><span class="op">,</span></span>
 <span id="annotated-cell-9-5"><a href="#annotated-cell-9-5" aria-hidden="true" tabindex="-1"></a>  name<span class="op">:</span> <span class="st">'My Mastra Server'</span><span class="op">,</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-9-6" class="code-annotation-target"><a href="#annotated-cell-9-6" aria-hidden="true" tabindex="-1"></a>  agents<span class="op">:</span> { researchAgent }<span class="op">,</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-9-7" class="code-annotation-target"><a href="#annotated-cell-9-7" aria-hidden="true" tabindex="-1"></a>  tools<span class="op">:</span> { weatherTool }<span class="op">,</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-9-8" class="code-annotation-target"><a href="#annotated-cell-9-8" aria-hidden="true" tabindex="-1"></a>  workflows<span class="op">:</span> { approvalWorkflow }<span class="op">,</span></span>
-<span id="annotated-cell-9-9"><a href="#annotated-cell-9-9" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="annotated-cell-9-10"><a href="#annotated-cell-9-10" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-9-11" class="code-annotation-target"><a href="#annotated-cell-9-11" aria-hidden="true" tabindex="-1"></a>server<span class="op">.</span><span class="fu">start</span>()</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-9-6" class="code-annotation-target"><a href="#annotated-cell-9-6" aria-hidden="true" tabindex="-1"></a>  version<span class="op">:</span> <span class="st">'1.0.0'</span><span class="op">,</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-9-7" class="code-annotation-target"><a href="#annotated-cell-9-7" aria-hidden="true" tabindex="-1"></a>  agents<span class="op">:</span> { researchAgent }<span class="op">,</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-9-8" class="code-annotation-target"><a href="#annotated-cell-9-8" aria-hidden="true" tabindex="-1"></a>  tools<span class="op">:</span> { weatherTool }<span class="op">,</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-9-9" class="code-annotation-target"><a href="#annotated-cell-9-9" aria-hidden="true" tabindex="-1"></a>  workflows<span class="op">:</span> { approvalWorkflow }<span class="op">,</span></span>
+<span id="annotated-cell-9-10"><a href="#annotated-cell-9-10" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="annotated-cell-9-11"><a href="#annotated-cell-9-11" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-9-12" class="code-annotation-target"><a href="#annotated-cell-9-12" aria-hidden="true" tabindex="-1"></a><span class="cf">await</span> server<span class="op">.</span><span class="fu">startStdio</span>()</span>
+<span id="annotated-cell-9-13"><a href="#annotated-cell-9-13" aria-hidden="true" tabindex="-1"></a><span class="co">// Or, to serve over HTTP/SSE:</span></span>
+<span id="annotated-cell-9-14"><a href="#annotated-cell-9-14" aria-hidden="true" tabindex="-1"></a><span class="co">// await server.startHonoSSE({ port: 4111 })</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-9" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-9" data-code-lines="6" data-code-annotation="1"><strong>Agents become MCP tools.</strong> Each agent is exposed as a tool that other MCP clients can invoke. The agent’s instructions and capabilities are described in the tool’s MCP metadata.</span>
+<span data-code-cell="annotated-cell-9" data-code-lines="6" data-code-annotation="1"><strong><code>version</code></strong> is required by the MCP protocol — pick semver for your server.</span>
 </dd>
 <dt data-target-cell="annotated-cell-9" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-9" data-code-lines="7" data-code-annotation="2"><strong>Native tools pass through.</strong> <code>createTool()</code> tools are exposed with their Zod schemas translated to JSON Schema for MCP compatibility.</span>
+<span data-code-cell="annotated-cell-9" data-code-lines="7" data-code-annotation="2"><strong>Agents become MCP tools.</strong> Each agent is exposed as a tool that other MCP clients can invoke. The agent’s instructions and capabilities are described in the tool’s MCP metadata.</span>
 </dd>
 <dt data-target-cell="annotated-cell-9" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-9" data-code-lines="8" data-code-annotation="3"><strong>Workflows become tools.</strong> Each workflow’s input schema becomes the tool’s input; the workflow’s output becomes the tool’s response.</span>
+<span data-code-cell="annotated-cell-9" data-code-lines="8" data-code-annotation="3"><strong>Native tools pass through.</strong> <code>createTool()</code> tools are exposed with their Zod schemas translated to JSON Schema for MCP compatibility.</span>
 </dd>
 <dt data-target-cell="annotated-cell-9" data-target-annotation="4">4</dt>
 <dd>
-<span data-code-cell="annotated-cell-9" data-code-lines="11" data-code-annotation="4"><strong><code>start()</code></strong> begins listening for MCP connections. The transport (stdio or HTTP) is determined by configuration.</span>
+<span data-code-cell="annotated-cell-9" data-code-lines="9" data-code-annotation="4"><strong>Workflows become tools.</strong> Each workflow’s input schema becomes the tool’s input; the workflow’s output becomes the tool’s response.</span>
+</dd>
+<dt data-target-cell="annotated-cell-9" data-target-annotation="5">5</dt>
+<dd>
+<span data-code-cell="annotated-cell-9" data-code-lines="12" data-code-annotation="5"><strong>Transport-specific start methods.</strong> There is no generic <code>server.start()</code> — pick <code>startStdio()</code> for local clients (Claude Desktop), <code>startHonoSSE()</code> or <code>startHTTP()</code> for network clients. Choose by where your consumers live.</span>
 </dd>
 </dl>
 <div class="callout callout-style-default callout-tip callout-titled" title="MCP registries — discovering tools at scale">
@@ -924,14 +917,16 @@ Note
 <span id="annotated-cell-12-12"><a href="#annotated-cell-12-12" aria-hidden="true" tabindex="-1"></a>  id<span class="op">:</span> <span class="st">'search'</span><span class="op">,</span></span>
 <span id="annotated-cell-12-13"><a href="#annotated-cell-12-13" aria-hidden="true" tabindex="-1"></a>  inputSchema<span class="op">:</span> z<span class="op">.</span><span class="fu">object</span>({ query<span class="op">:</span> z<span class="op">.</span><span class="fu">string</span>() })<span class="op">,</span></span>
 <span id="annotated-cell-12-14"><a href="#annotated-cell-12-14" aria-hidden="true" tabindex="-1"></a>  outputSchema<span class="op">:</span> z<span class="op">.</span><span class="fu">object</span>({ results<span class="op">:</span> z<span class="op">.</span><span class="fu">array</span>(z<span class="op">.</span><span class="fu">string</span>()) })<span class="op">,</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-12-15" class="code-annotation-target"><a href="#annotated-cell-12-15" aria-hidden="true" tabindex="-1"></a>  execute<span class="op">:</span> <span class="kw">async</span> ({ inputData<span class="op">,</span> setState<span class="op">,</span> getState }) <span class="kw">=&gt;</span> {</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-12-15" class="code-annotation-target"><a href="#annotated-cell-12-15" aria-hidden="true" tabindex="-1"></a>  execute<span class="op">:</span> <span class="kw">async</span> ({ inputData<span class="op">,</span> state<span class="op">,</span> setState }) <span class="kw">=&gt;</span> {</span>
 <span id="annotated-cell-12-16"><a href="#annotated-cell-12-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">const</span> results <span class="op">=</span> <span class="cf">await</span> <span class="fu">search</span>(inputData<span class="op">.</span><span class="at">query</span>)</span>
-<span id="annotated-cell-12-17"><a href="#annotated-cell-12-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">const</span> prev <span class="op">=</span> <span class="fu">getState</span>()<span class="op">.</span><span class="at">searchResults</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-12-18" class="code-annotation-target"><a href="#annotated-cell-12-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">setState</span>({ searchResults<span class="op">:</span> [<span class="op">...</span>prev<span class="op">,</span> <span class="op">...</span>results]<span class="op">,</span></span>
-<span id="annotated-cell-12-19"><a href="#annotated-cell-12-19" aria-hidden="true" tabindex="-1"></a>               attempts<span class="op">:</span> <span class="fu">getState</span>()<span class="op">.</span><span class="at">attempts</span> <span class="op">+</span> <span class="dv">1</span> })</span>
-<span id="annotated-cell-12-20"><a href="#annotated-cell-12-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> { results }</span>
-<span id="annotated-cell-12-21"><a href="#annotated-cell-12-21" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
-<span id="annotated-cell-12-22"><a href="#annotated-cell-12-22" aria-hidden="true" tabindex="-1"></a>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-12-17" class="code-annotation-target"><a href="#annotated-cell-12-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">setState</span>({</span>
+<span id="annotated-cell-12-18"><a href="#annotated-cell-12-18" aria-hidden="true" tabindex="-1"></a>      <span class="op">...</span>state<span class="op">,</span></span>
+<span id="annotated-cell-12-19"><a href="#annotated-cell-12-19" aria-hidden="true" tabindex="-1"></a>      searchResults<span class="op">:</span> [<span class="op">...</span>state<span class="op">.</span><span class="at">searchResults</span><span class="op">,</span> <span class="op">...</span>results]<span class="op">,</span></span>
+<span id="annotated-cell-12-20"><a href="#annotated-cell-12-20" aria-hidden="true" tabindex="-1"></a>      attempts<span class="op">:</span> state<span class="op">.</span><span class="at">attempts</span> <span class="op">+</span> <span class="dv">1</span><span class="op">,</span></span>
+<span id="annotated-cell-12-21"><a href="#annotated-cell-12-21" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="annotated-cell-12-22"><a href="#annotated-cell-12-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> { results }</span>
+<span id="annotated-cell-12-23"><a href="#annotated-cell-12-23" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
+<span id="annotated-cell-12-24"><a href="#annotated-cell-12-24" aria-hidden="true" tabindex="-1"></a>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-12" data-target-annotation="1">1</dt>
 <dd>
@@ -939,11 +934,11 @@ Note
 </dd>
 <dt data-target-cell="annotated-cell-12" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-12" data-code-lines="15" data-code-annotation="2"><strong><code>setState</code> and <code>getState</code></strong> are available in every step’s <code>execute</code> function when the workflow declares a <code>stateSchema</code>.</span>
+<span data-code-cell="annotated-cell-12" data-code-lines="15" data-code-annotation="2"><strong><code>state</code> is a direct parameter, <code>setState</code> is the writer.</strong> Both arrive on the execute context. (Despite what an LLM might guess, there is no <code>getState()</code> function.)</span>
 </dd>
 <dt data-target-cell="annotated-cell-12" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-12" data-code-lines="18" data-code-annotation="3"><strong>State updates are validated.</strong> If you try to set <code>attempts</code> to <code>"three"</code>, Zod catches it at runtime.</span>
+<span data-code-cell="annotated-cell-12" data-code-lines="17" data-code-annotation="3"><strong>State updates are validated and replace the whole object.</strong> Spread the current <code>state</code> and override the fields you’re changing. If you try to set <code>attempts</code> to <code>"three"</code>, Zod catches it at runtime.</span>
 </dd>
 </dl>
 <div class="callout callout-style-default callout-tip callout-titled" title="Mastra workflows vs. PocketFlow's shared store">
@@ -1067,26 +1062,25 @@ Note
 </section>
 <section id="time-based-suspension" class="level3" data-number="9.7.3">
 <h3 data-number="9.7.3" class="anchored" data-anchor-id="time-based-suspension"><span class="header-section-number">9.7.3</span> Time-based suspension</h3>
-<p>Sometimes you don’t need human input — you need to wait for time to pass:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-16"><pre class="sourceCode typescript code-annotation-code code-with-copy code-annotated"><code class="sourceCode typescript"><span id="annotated-cell-16-1"><a href="#annotated-cell-16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> waitStep <span class="op">=</span> <span class="fu">createStep</span>({</span>
-<span id="annotated-cell-16-2"><a href="#annotated-cell-16-2" aria-hidden="true" tabindex="-1"></a>  id<span class="op">:</span> <span class="st">'wait-for-processing'</span><span class="op">,</span></span>
+<p>Sometimes you don’t need human input — you need to wait for time to pass. <code>sleep</code> and <code>sleepUntil</code> are <strong>workflow-builder methods</strong>, not parameters on the step’s execute context. You chain them between steps:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-16"><pre class="sourceCode typescript code-annotation-code code-with-copy code-annotated"><code class="sourceCode typescript"><span id="annotated-cell-16-1"><a href="#annotated-cell-16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> pipeline <span class="op">=</span> <span class="fu">createWorkflow</span>({</span>
+<span id="annotated-cell-16-2"><a href="#annotated-cell-16-2" aria-hidden="true" tabindex="-1"></a>  id<span class="op">:</span> <span class="st">'order-poll'</span><span class="op">,</span></span>
 <span id="annotated-cell-16-3"><a href="#annotated-cell-16-3" aria-hidden="true" tabindex="-1"></a>  inputSchema<span class="op">:</span> z<span class="op">.</span><span class="fu">object</span>({ orderId<span class="op">:</span> z<span class="op">.</span><span class="fu">string</span>() })<span class="op">,</span></span>
 <span id="annotated-cell-16-4"><a href="#annotated-cell-16-4" aria-hidden="true" tabindex="-1"></a>  outputSchema<span class="op">:</span> z<span class="op">.</span><span class="fu">object</span>({ status<span class="op">:</span> z<span class="op">.</span><span class="fu">string</span>() })<span class="op">,</span></span>
-<span id="annotated-cell-16-5"><a href="#annotated-cell-16-5" aria-hidden="true" tabindex="-1"></a>  execute<span class="op">:</span> <span class="kw">async</span> ({ inputData<span class="op">,</span> sleep<span class="op">,</span> sleepUntil }) <span class="kw">=&gt;</span> {</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-16" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-16-6" class="code-annotation-target"><a href="#annotated-cell-16-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">await</span> <span class="fu">sleep</span>(<span class="dv">60</span> <span class="op">*</span> <span class="dv">5</span>)</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-16" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-16-7" class="code-annotation-target"><a href="#annotated-cell-16-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// or: await sleepUntil(new Date('2026-06-01T09:00:00Z'))</span></span>
-<span id="annotated-cell-16-8"><a href="#annotated-cell-16-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">const</span> status <span class="op">=</span> <span class="cf">await</span> <span class="fu">checkOrderStatus</span>(inputData<span class="op">.</span><span class="at">orderId</span>)</span>
-<span id="annotated-cell-16-9"><a href="#annotated-cell-16-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> { status }</span>
-<span id="annotated-cell-16-10"><a href="#annotated-cell-16-10" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
-<span id="annotated-cell-16-11"><a href="#annotated-cell-16-11" aria-hidden="true" tabindex="-1"></a>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="annotated-cell-16-5"><a href="#annotated-cell-16-5" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="annotated-cell-16-6"><a href="#annotated-cell-16-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span><span class="fu">then</span>(submitOrder)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-16" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-16-7" class="code-annotation-target"><a href="#annotated-cell-16-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span><span class="fu">sleep</span>(<span class="dv">60</span> <span class="op">*</span> <span class="dv">5</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-16" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-16-8" class="code-annotation-target"><a href="#annotated-cell-16-8" aria-hidden="true" tabindex="-1"></a>  <span class="co">// or: .sleepUntil(new Date('2026-06-01T09:00:00Z'))</span></span>
+<span id="annotated-cell-16-9"><a href="#annotated-cell-16-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span><span class="fu">then</span>(checkStatus)</span>
+<span id="annotated-cell-16-10"><a href="#annotated-cell-16-10" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span><span class="fu">commit</span>()</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-16" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-16" data-code-lines="6" data-code-annotation="1"><strong><code>sleep(seconds)</code></strong> pauses the workflow for a duration. The workflow is suspended and resumed automatically after the time elapses.</span>
+<span data-code-cell="annotated-cell-16" data-code-lines="7" data-code-annotation="1"><strong><code>.sleep(seconds)</code></strong> pauses the workflow for a duration. The workflow is suspended and resumed automatically after the time elapses.</span>
 </dd>
 <dt data-target-cell="annotated-cell-16" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-16" data-code-lines="7" data-code-annotation="2"><strong><code>sleepUntil(date)</code></strong> pauses until a specific timestamp. Useful for scheduled operations — “process this order when the business day starts.”</span>
+<span data-code-cell="annotated-cell-16" data-code-lines="8" data-code-annotation="2"><strong><code>.sleepUntil(date)</code></strong> pauses until a specific timestamp. Useful for scheduled operations — “process this order when the business day starts.” Both methods can also take a function that derives the duration from the previous step’s output (e.g.&nbsp;<code>(prev) =&gt; prev.retryAfterSeconds</code>).</span>
 </dd>
 </dl>
 <div class="callout callout-style-default callout-tip callout-titled" title="Why suspension matters for autonomous loops">
@@ -1240,53 +1234,68 @@ Note
 </div>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-19"><pre class="sourceCode typescript code-annotation-code code-with-copy code-annotated"><code class="sourceCode typescript"><span id="annotated-cell-19-1"><a href="#annotated-cell-19-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { MDocument } <span class="im">from</span> <span class="st">'@mastra/rag'</span></span>
-<span id="annotated-cell-19-2"><a href="#annotated-cell-19-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { embed } <span class="im">from</span> <span class="st">'@mastra/core'</span></span>
-<span id="annotated-cell-19-3"><a href="#annotated-cell-19-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { PgVector } <span class="im">from</span> <span class="st">'@mastra/pg'</span></span>
-<span id="annotated-cell-19-4"><a href="#annotated-cell-19-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-19-5"><a href="#annotated-cell-19-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Load a document</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-19-6" class="code-annotation-target"><a href="#annotated-cell-19-6" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> doc <span class="op">=</span> MDocument<span class="op">.</span><span class="fu">fromText</span>(rawText)</span>
-<span id="annotated-cell-19-7"><a href="#annotated-cell-19-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-19-8"><a href="#annotated-cell-19-8" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Chunk it</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-19-9" class="code-annotation-target"><a href="#annotated-cell-19-9" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> chunks <span class="op">=</span> <span class="cf">await</span> doc<span class="op">.</span><span class="fu">chunk</span>({</span>
-<span id="annotated-cell-19-10"><a href="#annotated-cell-19-10" aria-hidden="true" tabindex="-1"></a>  strategy<span class="op">:</span> <span class="st">'recursive'</span><span class="op">,</span></span>
-<span id="annotated-cell-19-11"><a href="#annotated-cell-19-11" aria-hidden="true" tabindex="-1"></a>  size<span class="op">:</span> <span class="dv">512</span><span class="op">,</span></span>
-<span id="annotated-cell-19-12"><a href="#annotated-cell-19-12" aria-hidden="true" tabindex="-1"></a>  overlap<span class="op">:</span> <span class="dv">50</span><span class="op">,</span></span>
-<span id="annotated-cell-19-13"><a href="#annotated-cell-19-13" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="annotated-cell-19-14"><a href="#annotated-cell-19-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-19-15"><a href="#annotated-cell-19-15" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Embed the chunks</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-19-16" class="code-annotation-target"><a href="#annotated-cell-19-16" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> embeddings <span class="op">=</span> <span class="cf">await</span> <span class="fu">embed</span>(chunks<span class="op">,</span> {</span>
-<span id="annotated-cell-19-17"><a href="#annotated-cell-19-17" aria-hidden="true" tabindex="-1"></a>  model<span class="op">:</span> <span class="st">'openai/text-embedding-3-small'</span><span class="op">,</span></span>
-<span id="annotated-cell-19-18"><a href="#annotated-cell-19-18" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="annotated-cell-19-19"><a href="#annotated-cell-19-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-19-20"><a href="#annotated-cell-19-20" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Store in a vector database</span></span>
-<span id="annotated-cell-19-21"><a href="#annotated-cell-19-21" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> vectorStore <span class="op">=</span> <span class="kw">new</span> <span class="fu">PgVector</span>({ connectionString<span class="op">:</span> <span class="bu">process</span><span class="op">.</span><span class="at">env</span><span class="op">.</span><span class="at">PG_URL</span> })</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-19-22" class="code-annotation-target"><a href="#annotated-cell-19-22" aria-hidden="true" tabindex="-1"></a><span class="cf">await</span> vectorStore<span class="op">.</span><span class="fu">upsert</span>(<span class="st">'knowledge-base'</span><span class="op">,</span> embeddings)</span>
-<span id="annotated-cell-19-23"><a href="#annotated-cell-19-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-19-24"><a href="#annotated-cell-19-24" aria-hidden="true" tabindex="-1"></a><span class="co">// 5. Retrieve at query time</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-19-25" class="code-annotation-target"><a href="#annotated-cell-19-25" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> results <span class="op">=</span> <span class="cf">await</span> vectorStore<span class="op">.</span><span class="fu">query</span>(<span class="st">'knowledge-base'</span><span class="op">,</span> {</span>
-<span id="annotated-cell-19-26"><a href="#annotated-cell-19-26" aria-hidden="true" tabindex="-1"></a>  queryVector<span class="op">:</span> <span class="cf">await</span> <span class="fu">embed</span>(<span class="st">'What is context engineering?'</span>)<span class="op">,</span></span>
-<span id="annotated-cell-19-27"><a href="#annotated-cell-19-27" aria-hidden="true" tabindex="-1"></a>  topK<span class="op">:</span> <span class="dv">5</span><span class="op">,</span></span>
-<span id="annotated-cell-19-28"><a href="#annotated-cell-19-28" aria-hidden="true" tabindex="-1"></a>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="annotated-cell-19-2"><a href="#annotated-cell-19-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { PgVector } <span class="im">from</span> <span class="st">'@mastra/pg'</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="0" onclick="event.preventDefault();">0</a><span id="annotated-cell-19-3" class="code-annotation-target"><a href="#annotated-cell-19-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { embedMany<span class="op">,</span> embed } <span class="im">from</span> <span class="st">'ai'</span></span>
+<span id="annotated-cell-19-4"><a href="#annotated-cell-19-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { openai } <span class="im">from</span> <span class="st">'@ai-sdk/openai'</span></span>
+<span id="annotated-cell-19-5"><a href="#annotated-cell-19-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-19-6"><a href="#annotated-cell-19-6" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Load a document</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-19-7" class="code-annotation-target"><a href="#annotated-cell-19-7" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> doc <span class="op">=</span> MDocument<span class="op">.</span><span class="fu">fromText</span>(rawText)</span>
+<span id="annotated-cell-19-8"><a href="#annotated-cell-19-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-19-9"><a href="#annotated-cell-19-9" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Chunk it</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-19-10" class="code-annotation-target"><a href="#annotated-cell-19-10" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> chunks <span class="op">=</span> <span class="cf">await</span> doc<span class="op">.</span><span class="fu">chunk</span>({</span>
+<span id="annotated-cell-19-11"><a href="#annotated-cell-19-11" aria-hidden="true" tabindex="-1"></a>  strategy<span class="op">:</span> <span class="st">'recursive'</span><span class="op">,</span></span>
+<span id="annotated-cell-19-12"><a href="#annotated-cell-19-12" aria-hidden="true" tabindex="-1"></a>  size<span class="op">:</span> <span class="dv">512</span><span class="op">,</span></span>
+<span id="annotated-cell-19-13"><a href="#annotated-cell-19-13" aria-hidden="true" tabindex="-1"></a>  overlap<span class="op">:</span> <span class="dv">50</span><span class="op">,</span></span>
+<span id="annotated-cell-19-14"><a href="#annotated-cell-19-14" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="annotated-cell-19-15"><a href="#annotated-cell-19-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-19-16"><a href="#annotated-cell-19-16" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Embed the chunks</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-19-17" class="code-annotation-target"><a href="#annotated-cell-19-17" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> { embeddings } <span class="op">=</span> <span class="cf">await</span> <span class="fu">embedMany</span>({</span>
+<span id="annotated-cell-19-18"><a href="#annotated-cell-19-18" aria-hidden="true" tabindex="-1"></a>  model<span class="op">:</span> openai<span class="op">.</span><span class="fu">embedding</span>(<span class="st">'text-embedding-3-small'</span>)<span class="op">,</span></span>
+<span id="annotated-cell-19-19"><a href="#annotated-cell-19-19" aria-hidden="true" tabindex="-1"></a>  values<span class="op">:</span> chunks<span class="op">.</span><span class="fu">map</span>((c) <span class="kw">=&gt;</span> c<span class="op">.</span><span class="at">text</span>)<span class="op">,</span></span>
+<span id="annotated-cell-19-20"><a href="#annotated-cell-19-20" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="annotated-cell-19-21"><a href="#annotated-cell-19-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-19-22"><a href="#annotated-cell-19-22" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Store in a vector database</span></span>
+<span id="annotated-cell-19-23"><a href="#annotated-cell-19-23" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> vectorStore <span class="op">=</span> <span class="kw">new</span> <span class="fu">PgVector</span>({ connectionString<span class="op">:</span> <span class="bu">process</span><span class="op">.</span><span class="at">env</span><span class="op">.</span><span class="at">PG_URL</span> })</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-19-24" class="code-annotation-target"><a href="#annotated-cell-19-24" aria-hidden="true" tabindex="-1"></a><span class="cf">await</span> vectorStore<span class="op">.</span><span class="fu">upsert</span>({</span>
+<span id="annotated-cell-19-25"><a href="#annotated-cell-19-25" aria-hidden="true" tabindex="-1"></a>  indexName<span class="op">:</span> <span class="st">'knowledge-base'</span><span class="op">,</span></span>
+<span id="annotated-cell-19-26"><a href="#annotated-cell-19-26" aria-hidden="true" tabindex="-1"></a>  vectors<span class="op">:</span> embeddings<span class="op">,</span></span>
+<span id="annotated-cell-19-27"><a href="#annotated-cell-19-27" aria-hidden="true" tabindex="-1"></a>  metadata<span class="op">:</span> chunks<span class="op">.</span><span class="fu">map</span>((c) <span class="kw">=&gt;</span> ({ text<span class="op">:</span> c<span class="op">.</span><span class="at">text</span> }))<span class="op">,</span></span>
+<span id="annotated-cell-19-28"><a href="#annotated-cell-19-28" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="annotated-cell-19-29"><a href="#annotated-cell-19-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-19-30"><a href="#annotated-cell-19-30" aria-hidden="true" tabindex="-1"></a><span class="co">// 5. Retrieve at query time</span></span>
+<span id="annotated-cell-19-31"><a href="#annotated-cell-19-31" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> { embedding<span class="op">:</span> queryVector } <span class="op">=</span> <span class="cf">await</span> <span class="fu">embed</span>({</span>
+<span id="annotated-cell-19-32"><a href="#annotated-cell-19-32" aria-hidden="true" tabindex="-1"></a>  model<span class="op">:</span> openai<span class="op">.</span><span class="fu">embedding</span>(<span class="st">'text-embedding-3-small'</span>)<span class="op">,</span></span>
+<span id="annotated-cell-19-33"><a href="#annotated-cell-19-33" aria-hidden="true" tabindex="-1"></a>  value<span class="op">:</span> <span class="st">'What is context engineering?'</span><span class="op">,</span></span>
+<span id="annotated-cell-19-34"><a href="#annotated-cell-19-34" aria-hidden="true" tabindex="-1"></a>})</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-19-35" class="code-annotation-target"><a href="#annotated-cell-19-35" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> results <span class="op">=</span> <span class="cf">await</span> vectorStore<span class="op">.</span><span class="fu">query</span>({</span>
+<span id="annotated-cell-19-36"><a href="#annotated-cell-19-36" aria-hidden="true" tabindex="-1"></a>  indexName<span class="op">:</span> <span class="st">'knowledge-base'</span><span class="op">,</span></span>
+<span id="annotated-cell-19-37"><a href="#annotated-cell-19-37" aria-hidden="true" tabindex="-1"></a>  queryVector<span class="op">,</span></span>
+<span id="annotated-cell-19-38"><a href="#annotated-cell-19-38" aria-hidden="true" tabindex="-1"></a>  topK<span class="op">:</span> <span class="dv">5</span><span class="op">,</span></span>
+<span id="annotated-cell-19-39"><a href="#annotated-cell-19-39" aria-hidden="true" tabindex="-1"></a>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-19" data-target-annotation="0">0</dt>
+<dd>
+<span data-code-cell="annotated-cell-19" data-code-lines="3" data-code-annotation="0"><strong>Embeddings come from the <code>ai</code> SDK,</strong> not <code>@mastra/core</code>. Pair it with an <code>@ai-sdk/*</code> provider (<code>@ai-sdk/openai</code>, <code>@ai-sdk/cohere</code>, etc.). <code>embedMany</code> batches; <code>embed</code> does a single value.</span>
+</dd>
 <dt data-target-cell="annotated-cell-19" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-19" data-code-lines="6" data-code-annotation="1"><strong><code>MDocument.fromText()</code></strong> — also available: <code>fromPDF()</code>, <code>fromHTML()</code>, <code>fromMarkdown()</code>. The document abstraction normalizes different source formats.</span>
+<span data-code-cell="annotated-cell-19" data-code-lines="7" data-code-annotation="1"><strong><code>MDocument.fromText()</code></strong> — also available: <code>fromPDF()</code>, <code>fromHTML()</code>, <code>fromMarkdown()</code>. The document abstraction normalizes different source formats.</span>
 </dd>
 <dt data-target-cell="annotated-cell-19" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-19" data-code-lines="9" data-code-annotation="2"><strong>Chunking strategies</strong> — <code>'recursive'</code> splits on paragraph/sentence boundaries. <code>'sliding-window'</code> creates overlapping windows. <code>size</code> and <code>overlap</code> control the tradeoff between context granularity and retrieval recall.</span>
+<span data-code-cell="annotated-cell-19" data-code-lines="10" data-code-annotation="2"><strong>Chunking strategies</strong> — <code>'recursive'</code> splits on paragraph/sentence boundaries. <code>'sliding-window'</code> creates overlapping windows. <code>size</code> and <code>overlap</code> control the tradeoff between context granularity and retrieval recall.</span>
 </dd>
 <dt data-target-cell="annotated-cell-19" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-19" data-code-lines="16" data-code-annotation="3"><strong><code>embed()</code></strong> turns text into vectors using the specified model. Mastra supports OpenAI, Cohere, and other embedding providers.</span>
+<span data-code-cell="annotated-cell-19" data-code-lines="17" data-code-annotation="3"><strong>Batch embedding.</strong> <code>embedMany</code> is more efficient than calling <code>embed</code> per chunk. The <code>values</code> array must be raw strings, so we pull <code>.text</code> out of each chunk.</span>
 </dd>
 <dt data-target-cell="annotated-cell-19" data-target-annotation="4">4</dt>
 <dd>
-<span data-code-cell="annotated-cell-19" data-code-lines="22" data-code-annotation="4"><strong>Vector storage</strong> — Mastra ships adapters for pgvector, Pinecone, Qdrant, MongoDB Atlas, and others. The interface is consistent across backends.</span>
+<span data-code-cell="annotated-cell-19" data-code-lines="24" data-code-annotation="4"><strong>Vector storage takes a single options object.</strong> <code>upsert</code> and <code>query</code> both use <code>{ indexName, ... }</code> — not positional <code>(name, payload)</code> args. Mastra ships adapters for pgvector, Pinecone, Qdrant, MongoDB Atlas, and others, all behind the same options shape.</span>
 </dd>
 <dt data-target-cell="annotated-cell-19" data-target-annotation="5">5</dt>
 <dd>
-<span data-code-cell="annotated-cell-19" data-code-lines="25" data-code-annotation="5"><strong>Query</strong> — cosine similarity retrieval. <code>topK</code> controls how many chunks come back. These chunks become the context the agent uses to answer.</span>
+<span data-code-cell="annotated-cell-19" data-code-lines="35" data-code-annotation="5"><strong>Query</strong> — cosine similarity retrieval. <code>topK</code> controls how many chunks come back. These chunks become the context the agent uses to answer.</span>
 </dd>
 </dl>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -1523,26 +1532,40 @@ Note
 <h3 data-number="9.12.4" class="anchored" data-anchor-id="opentelemetry-compatibility"><span class="header-section-number">9.12.4</span> OpenTelemetry compatibility</h3>
 <p>All three signals are OpenTelemetry-compatible. You can export traces to Langfuse, Datadog, Jaeger, or any OTel collector. Mastra also supports composite storage — DuckDB for metrics (fast local aggregation) and LibSQL for trace data (durable storage).</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-25"><pre class="sourceCode typescript code-annotation-code code-with-copy code-annotated"><code class="sourceCode typescript"><span id="annotated-cell-25-1"><a href="#annotated-cell-25-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { Mastra } <span class="im">from</span> <span class="st">'@mastra/core'</span></span>
-<span id="annotated-cell-25-2"><a href="#annotated-cell-25-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-25-3"><a href="#annotated-cell-25-3" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> mastra <span class="op">=</span> <span class="kw">new</span> <span class="fu">Mastra</span>({</span>
-<span id="annotated-cell-25-4"><a href="#annotated-cell-25-4" aria-hidden="true" tabindex="-1"></a>  agents<span class="op">:</span> { researchAgent }<span class="op">,</span></span>
-<span id="annotated-cell-25-5"><a href="#annotated-cell-25-5" aria-hidden="true" tabindex="-1"></a>  telemetry<span class="op">:</span> {</span>
-<span id="annotated-cell-25-6"><a href="#annotated-cell-25-6" aria-hidden="true" tabindex="-1"></a>    serviceName<span class="op">:</span> <span class="st">'my-agent-app'</span><span class="op">,</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-25" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-25-7" class="code-annotation-target"><a href="#annotated-cell-25-7" aria-hidden="true" tabindex="-1"></a>    exporter<span class="op">:</span> {</span>
-<span id="annotated-cell-25-8"><a href="#annotated-cell-25-8" aria-hidden="true" tabindex="-1"></a>      type<span class="op">:</span> <span class="st">'otlp'</span><span class="op">,</span></span>
-<span id="annotated-cell-25-9"><a href="#annotated-cell-25-9" aria-hidden="true" tabindex="-1"></a>      endpoint<span class="op">:</span> <span class="st">'https://otel.example.com/v1/traces'</span><span class="op">,</span></span>
-<span id="annotated-cell-25-10"><a href="#annotated-cell-25-10" aria-hidden="true" tabindex="-1"></a>    }<span class="op">,</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-25" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-25-11" class="code-annotation-target"><a href="#annotated-cell-25-11" aria-hidden="true" tabindex="-1"></a>    sensitiveDataFilter<span class="op">:</span> <span class="kw">true</span><span class="op">,</span></span>
-<span id="annotated-cell-25-12"><a href="#annotated-cell-25-12" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
-<span id="annotated-cell-25-13"><a href="#annotated-cell-25-13" aria-hidden="true" tabindex="-1"></a>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="annotated-cell-25-2"><a href="#annotated-cell-25-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> {</span>
+<span id="annotated-cell-25-3"><a href="#annotated-cell-25-3" aria-hidden="true" tabindex="-1"></a>  Observability<span class="op">,</span></span>
+<span id="annotated-cell-25-4"><a href="#annotated-cell-25-4" aria-hidden="true" tabindex="-1"></a>  SensitiveDataFilter<span class="op">,</span></span>
+<span id="annotated-cell-25-5"><a href="#annotated-cell-25-5" aria-hidden="true" tabindex="-1"></a>} <span class="im">from</span> <span class="st">'@mastra/core/observability'</span></span>
+<span id="annotated-cell-25-6"><a href="#annotated-cell-25-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { OTLPHttpExporter } <span class="im">from</span> <span class="st">'@mastra/otel-exporter-otlp-http'</span></span>
+<span id="annotated-cell-25-7"><a href="#annotated-cell-25-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-25-8"><a href="#annotated-cell-25-8" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> mastra <span class="op">=</span> <span class="kw">new</span> <span class="fu">Mastra</span>({</span>
+<span id="annotated-cell-25-9"><a href="#annotated-cell-25-9" aria-hidden="true" tabindex="-1"></a>  agents<span class="op">:</span> { researchAgent }<span class="op">,</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-25" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-25-10" class="code-annotation-target"><a href="#annotated-cell-25-10" aria-hidden="true" tabindex="-1"></a>  observability<span class="op">:</span> <span class="kw">new</span> <span class="fu">Observability</span>({</span>
+<span id="annotated-cell-25-11"><a href="#annotated-cell-25-11" aria-hidden="true" tabindex="-1"></a>    configs<span class="op">:</span> {</span>
+<span id="annotated-cell-25-12"><a href="#annotated-cell-25-12" aria-hidden="true" tabindex="-1"></a>      <span class="cf">default</span><span class="op">:</span> {</span>
+<span id="annotated-cell-25-13"><a href="#annotated-cell-25-13" aria-hidden="true" tabindex="-1"></a>        serviceName<span class="op">:</span> <span class="st">'my-agent-app'</span><span class="op">,</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-25" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-25-14" class="code-annotation-target"><a href="#annotated-cell-25-14" aria-hidden="true" tabindex="-1"></a>        exporters<span class="op">:</span> [</span>
+<span id="annotated-cell-25-15"><a href="#annotated-cell-25-15" aria-hidden="true" tabindex="-1"></a>          <span class="kw">new</span> <span class="fu">OTLPHttpExporter</span>({</span>
+<span id="annotated-cell-25-16"><a href="#annotated-cell-25-16" aria-hidden="true" tabindex="-1"></a>            endpoint<span class="op">:</span> <span class="st">'https://otel.example.com/v1/traces'</span><span class="op">,</span></span>
+<span id="annotated-cell-25-17"><a href="#annotated-cell-25-17" aria-hidden="true" tabindex="-1"></a>          })<span class="op">,</span></span>
+<span id="annotated-cell-25-18"><a href="#annotated-cell-25-18" aria-hidden="true" tabindex="-1"></a>        ]<span class="op">,</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-25" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-25-19" class="code-annotation-target"><a href="#annotated-cell-25-19" aria-hidden="true" tabindex="-1"></a>        spanOutputProcessors<span class="op">:</span> [<span class="kw">new</span> <span class="fu">SensitiveDataFilter</span>()]<span class="op">,</span></span>
+<span id="annotated-cell-25-20"><a href="#annotated-cell-25-20" aria-hidden="true" tabindex="-1"></a>      }<span class="op">,</span></span>
+<span id="annotated-cell-25-21"><a href="#annotated-cell-25-21" aria-hidden="true" tabindex="-1"></a>    }<span class="op">,</span></span>
+<span id="annotated-cell-25-22"><a href="#annotated-cell-25-22" aria-hidden="true" tabindex="-1"></a>  })<span class="op">,</span></span>
+<span id="annotated-cell-25-23"><a href="#annotated-cell-25-23" aria-hidden="true" tabindex="-1"></a>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-25" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-25" data-code-lines="7" data-code-annotation="1"><strong>OTLP exporter</strong> sends traces to any OpenTelemetry-compatible backend.</span>
+<span data-code-cell="annotated-cell-25" data-code-lines="10" data-code-annotation="1"><strong>The field is <code>observability</code>, not <code>telemetry</code>,</strong> and it takes an <code>Observability</code> instance — not a plain config object. Multiple named configs (e.g.&nbsp;<code>default</code>, <code>dev</code>) can coexist for different environments.</span>
 </dd>
 <dt data-target-cell="annotated-cell-25" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-25" data-code-lines="11" data-code-annotation="2"><strong>Sensitive data filtering</strong> strips PII and secrets from traces before export. You define what’s sensitive; Mastra redacts it.</span>
+<span data-code-cell="annotated-cell-25" data-code-lines="14" data-code-annotation="2"><strong><code>exporters</code> is an array</strong> of exporter instances. OTLP HTTP is the universal choice; provider-specific exporters (Langfuse, Datadog) plug in the same way.</span>
+</dd>
+<dt data-target-cell="annotated-cell-25" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-25" data-code-lines="19" data-code-annotation="3"><strong><code>spanOutputProcessors</code></strong> run before export. <code>SensitiveDataFilter</code> strips PII and secrets from span attributes; write your own processor class for custom redaction.</span>
 </dd>
 </dl>
 <div class="callout callout-style-default callout-tip callout-titled" title="Observability in the Ralph loop">
@@ -1623,26 +1646,25 @@ Note
 </table>
 <p>The <code>mastra build</code> command compiles your agents, tools, and workflows into a standalone HTTP server powered by <a href="https://hono.dev/">Hono</a>. The resulting artifact is a Node.js application you can deploy anywhere — Docker containers, Fly.io, Railway, or bare metal.</p>
 <p>For production workflow execution, Mastra integrates with <a href="https://www.inngest.com/">Inngest</a> — a durable execution platform that adds memoization, automatic retries, and step-level recovery to your workflows. This is the TypeScript equivalent of mcp-agent’s Temporal integration from Chapter 8.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-26"><pre class="sourceCode typescript code-annotation-code code-with-copy code-annotated"><code class="sourceCode typescript"><span id="annotated-cell-26-1"><a href="#annotated-cell-26-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { Mastra } <span class="im">from</span> <span class="st">'@mastra/core'</span></span>
-<span id="annotated-cell-26-2"><a href="#annotated-cell-26-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-26-3"><a href="#annotated-cell-26-3" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> mastra <span class="op">=</span> <span class="kw">new</span> <span class="fu">Mastra</span>({</span>
-<span id="annotated-cell-26-4"><a href="#annotated-cell-26-4" aria-hidden="true" tabindex="-1"></a>  agents<span class="op">:</span> { researchAgent<span class="op">,</span> writerAgent }<span class="op">,</span></span>
-<span id="annotated-cell-26-5"><a href="#annotated-cell-26-5" aria-hidden="true" tabindex="-1"></a>  workflows<span class="op">:</span> { pipeline }<span class="op">,</span></span>
-<span id="annotated-cell-26-6"><a href="#annotated-cell-26-6" aria-hidden="true" tabindex="-1"></a>  server<span class="op">:</span> {</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-26" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-26-7" class="code-annotation-target"><a href="#annotated-cell-26-7" aria-hidden="true" tabindex="-1"></a>    port<span class="op">:</span> <span class="dv">3001</span><span class="op">,</span></span>
-<span id="annotated-cell-26-8"><a href="#annotated-cell-26-8" aria-hidden="true" tabindex="-1"></a>    cors<span class="op">:</span> { origin<span class="op">:</span> <span class="st">'https://myapp.com'</span> }<span class="op">,</span></span>
-<span id="annotated-cell-26-9"><a href="#annotated-cell-26-9" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
-<span id="annotated-cell-26-10"><a href="#annotated-cell-26-10" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="annotated-cell-26-11"><a href="#annotated-cell-26-11" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-26" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-26-12" class="code-annotation-target"><a href="#annotated-cell-26-12" aria-hidden="true" tabindex="-1"></a>mastra<span class="op">.</span><span class="fu">start</span>()</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-26"><pre class="sourceCode typescript code-annotation-code code-with-copy code-annotated"><code class="sourceCode typescript"><span id="annotated-cell-26-1"><a href="#annotated-cell-26-1" aria-hidden="true" tabindex="-1"></a><span class="co">// src/mastra/index.ts — the entry point `mastra build` looks for</span></span>
+<span id="annotated-cell-26-2"><a href="#annotated-cell-26-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { Mastra } <span class="im">from</span> <span class="st">'@mastra/core'</span></span>
+<span id="annotated-cell-26-3"><a href="#annotated-cell-26-3" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-26" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-26-4" class="code-annotation-target"><a href="#annotated-cell-26-4" aria-hidden="true" tabindex="-1"></a><span class="im">export</span> <span class="kw">const</span> mastra <span class="op">=</span> <span class="kw">new</span> <span class="fu">Mastra</span>({</span>
+<span id="annotated-cell-26-5"><a href="#annotated-cell-26-5" aria-hidden="true" tabindex="-1"></a>  agents<span class="op">:</span> { researchAgent<span class="op">,</span> writerAgent }<span class="op">,</span></span>
+<span id="annotated-cell-26-6"><a href="#annotated-cell-26-6" aria-hidden="true" tabindex="-1"></a>  workflows<span class="op">:</span> { pipeline }<span class="op">,</span></span>
+<span id="annotated-cell-26-7"><a href="#annotated-cell-26-7" aria-hidden="true" tabindex="-1"></a>  server<span class="op">:</span> {</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-26" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-26-8" class="code-annotation-target"><a href="#annotated-cell-26-8" aria-hidden="true" tabindex="-1"></a>    port<span class="op">:</span> <span class="dv">3001</span><span class="op">,</span></span>
+<span id="annotated-cell-26-9"><a href="#annotated-cell-26-9" aria-hidden="true" tabindex="-1"></a>    cors<span class="op">:</span> { origin<span class="op">:</span> <span class="st">'https://myapp.com'</span> }<span class="op">,</span></span>
+<span id="annotated-cell-26-10"><a href="#annotated-cell-26-10" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
+<span id="annotated-cell-26-11"><a href="#annotated-cell-26-11" aria-hidden="true" tabindex="-1"></a>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-26" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-26" data-code-lines="7" data-code-annotation="1"><strong>Server configuration</strong> is part of the Mastra instance. CORS, middleware, and authentication are configured here.</span>
+<span data-code-cell="annotated-cell-26" data-code-lines="4" data-code-annotation="1"><strong>You export the <code>Mastra</code> instance,</strong> you don’t <code>start()</code> it. The class has no runtime <code>start()</code> method — instead, <code>mastra build</code> compiles this entry point into a deployable Hono server, and <code>mastra dev</code> runs it locally. The shape on disk matters: the file must be <code>src/mastra/index.ts</code> (or whatever your <code>mastra.config</code> points at) and the instance must be exported.</span>
 </dd>
 <dt data-target-cell="annotated-cell-26" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-26" data-code-lines="12" data-code-annotation="2"><strong><code>start()</code></strong> launches the HTTP server. Agents are accessible via REST endpoints; workflows can be triggered via API calls.</span>
+<span data-code-cell="annotated-cell-26" data-code-lines="8" data-code-annotation="2"><strong>Server configuration</strong> travels with the instance. CORS, middleware, and authentication live here; the deployer wires them into the generated server.</span>
 </dd>
 </dl>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -1661,64 +1683,98 @@ Note
 </section>
 </section>
 <section id="sec-mastra-guardrails" class="level2" data-number="9.14">
-<h2 data-number="9.14" class="anchored" data-anchor-id="sec-mastra-guardrails"><span class="header-section-number">9.14</span> Guardrails and Processors</h2>
-<p>Production agents need safety boundaries. Mastra provides two mechanisms for controlling agent behavior at the framework level.</p>
-<p><strong>Guardrails</strong> run before or after agent responses and can reject unsafe outputs:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-27"><pre class="sourceCode typescript code-annotation-code code-with-copy code-annotated"><code class="sourceCode typescript"><span id="annotated-cell-27-1"><a href="#annotated-cell-27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> agent <span class="op">=</span> <span class="kw">new</span> <span class="fu">Agent</span>({</span>
-<span id="annotated-cell-27-2"><a href="#annotated-cell-27-2" aria-hidden="true" tabindex="-1"></a>  id<span class="op">:</span> <span class="st">'safe-agent'</span><span class="op">,</span></span>
-<span id="annotated-cell-27-3"><a href="#annotated-cell-27-3" aria-hidden="true" tabindex="-1"></a>  model<span class="op">:</span> <span class="st">'anthropic/claude-sonnet-4-6'</span><span class="op">,</span></span>
-<span id="annotated-cell-27-4"><a href="#annotated-cell-27-4" aria-hidden="true" tabindex="-1"></a>  guardrails<span class="op">:</span> {</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-27" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-27-5" class="code-annotation-target"><a href="#annotated-cell-27-5" aria-hidden="true" tabindex="-1"></a>    input<span class="op">:</span> [</span>
-<span id="annotated-cell-27-6"><a href="#annotated-cell-27-6" aria-hidden="true" tabindex="-1"></a>      {</span>
-<span id="annotated-cell-27-7"><a href="#annotated-cell-27-7" aria-hidden="true" tabindex="-1"></a>        id<span class="op">:</span> <span class="st">'no-pii'</span><span class="op">,</span></span>
-<span id="annotated-cell-27-8"><a href="#annotated-cell-27-8" aria-hidden="true" tabindex="-1"></a>        execute<span class="op">:</span> <span class="kw">async</span> ({ input }) <span class="kw">=&gt;</span> {</span>
-<span id="annotated-cell-27-9"><a href="#annotated-cell-27-9" aria-hidden="true" tabindex="-1"></a>          <span class="cf">if</span> (<span class="fu">containsPII</span>(input)) {</span>
-<span id="annotated-cell-27-10"><a href="#annotated-cell-27-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> { blocked<span class="op">:</span> <span class="kw">true</span><span class="op">,</span> reason<span class="op">:</span> <span class="st">'Input contains PII'</span> }</span>
-<span id="annotated-cell-27-11"><a href="#annotated-cell-27-11" aria-hidden="true" tabindex="-1"></a>          }</span>
-<span id="annotated-cell-27-12"><a href="#annotated-cell-27-12" aria-hidden="true" tabindex="-1"></a>          <span class="cf">return</span> { blocked<span class="op">:</span> <span class="kw">false</span> }</span>
-<span id="annotated-cell-27-13"><a href="#annotated-cell-27-13" aria-hidden="true" tabindex="-1"></a>        }<span class="op">,</span></span>
-<span id="annotated-cell-27-14"><a href="#annotated-cell-27-14" aria-hidden="true" tabindex="-1"></a>      }<span class="op">,</span></span>
-<span id="annotated-cell-27-15"><a href="#annotated-cell-27-15" aria-hidden="true" tabindex="-1"></a>    ]<span class="op">,</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-27" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-27-16" class="code-annotation-target"><a href="#annotated-cell-27-16" aria-hidden="true" tabindex="-1"></a>    output<span class="op">:</span> [</span>
-<span id="annotated-cell-27-17"><a href="#annotated-cell-27-17" aria-hidden="true" tabindex="-1"></a>      {</span>
-<span id="annotated-cell-27-18"><a href="#annotated-cell-27-18" aria-hidden="true" tabindex="-1"></a>        id<span class="op">:</span> <span class="st">'no-harmful-content'</span><span class="op">,</span></span>
-<span id="annotated-cell-27-19"><a href="#annotated-cell-27-19" aria-hidden="true" tabindex="-1"></a>        execute<span class="op">:</span> <span class="kw">async</span> ({ output }) <span class="kw">=&gt;</span> {</span>
-<span id="annotated-cell-27-20"><a href="#annotated-cell-27-20" aria-hidden="true" tabindex="-1"></a>          <span class="kw">const</span> safe <span class="op">=</span> <span class="cf">await</span> <span class="fu">moderationCheck</span>(output)</span>
-<span id="annotated-cell-27-21"><a href="#annotated-cell-27-21" aria-hidden="true" tabindex="-1"></a>          <span class="cf">return</span> { blocked<span class="op">:</span> <span class="op">!</span>safe<span class="op">,</span> reason<span class="op">:</span> <span class="st">'Output flagged by moderation'</span> }</span>
-<span id="annotated-cell-27-22"><a href="#annotated-cell-27-22" aria-hidden="true" tabindex="-1"></a>        }<span class="op">,</span></span>
-<span id="annotated-cell-27-23"><a href="#annotated-cell-27-23" aria-hidden="true" tabindex="-1"></a>      }<span class="op">,</span></span>
-<span id="annotated-cell-27-24"><a href="#annotated-cell-27-24" aria-hidden="true" tabindex="-1"></a>    ]<span class="op">,</span></span>
-<span id="annotated-cell-27-25"><a href="#annotated-cell-27-25" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
-<span id="annotated-cell-27-26"><a href="#annotated-cell-27-26" aria-hidden="true" tabindex="-1"></a>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<h2 data-number="9.14" class="anchored" data-anchor-id="sec-mastra-guardrails"><span class="header-section-number">9.14</span> Guardrails: Processors</h2>
+<p>Production agents need safety boundaries. In Mastra these are all built from the same primitive: <strong>processors</strong>. Three arrays on the agent — <code>inputProcessors</code>, <code>outputProcessors</code>, <code>errorProcessors</code> — run at different points in the request lifecycle, and each array contains processor instances (not raw functions or rule objects). Mastra ships processor classes for the common needs; you can write your own by implementing the processor interface.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-27"><pre class="sourceCode typescript code-annotation-code code-with-copy code-annotated"><code class="sourceCode typescript"><span id="annotated-cell-27-1"><a href="#annotated-cell-27-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { Agent } <span class="im">from</span> <span class="st">'@mastra/core/agent'</span></span>
+<span id="annotated-cell-27-2"><a href="#annotated-cell-27-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> {</span>
+<span id="annotated-cell-27-3"><a href="#annotated-cell-27-3" aria-hidden="true" tabindex="-1"></a>  PromptInjectionDetector<span class="op">,</span></span>
+<span id="annotated-cell-27-4"><a href="#annotated-cell-27-4" aria-hidden="true" tabindex="-1"></a>  PIIDetector<span class="op">,</span></span>
+<span id="annotated-cell-27-5"><a href="#annotated-cell-27-5" aria-hidden="true" tabindex="-1"></a>  ModerationProcessor<span class="op">,</span></span>
+<span id="annotated-cell-27-6"><a href="#annotated-cell-27-6" aria-hidden="true" tabindex="-1"></a>  TokenLimiter<span class="op">,</span></span>
+<span id="annotated-cell-27-7"><a href="#annotated-cell-27-7" aria-hidden="true" tabindex="-1"></a>  PrefillErrorHandler<span class="op">,</span></span>
+<span id="annotated-cell-27-8"><a href="#annotated-cell-27-8" aria-hidden="true" tabindex="-1"></a>} <span class="im">from</span> <span class="st">'@mastra/core/processors'</span></span>
+<span id="annotated-cell-27-9"><a href="#annotated-cell-27-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-27-10"><a href="#annotated-cell-27-10" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> agent <span class="op">=</span> <span class="kw">new</span> <span class="fu">Agent</span>({</span>
+<span id="annotated-cell-27-11"><a href="#annotated-cell-27-11" aria-hidden="true" tabindex="-1"></a>  name<span class="op">:</span> <span class="st">'safe-agent'</span><span class="op">,</span></span>
+<span id="annotated-cell-27-12"><a href="#annotated-cell-27-12" aria-hidden="true" tabindex="-1"></a>  instructions<span class="op">:</span> <span class="st">'You are a helpful assistant'</span><span class="op">,</span></span>
+<span id="annotated-cell-27-13"><a href="#annotated-cell-27-13" aria-hidden="true" tabindex="-1"></a>  model<span class="op">:</span> <span class="st">'anthropic/claude-sonnet-4-6'</span><span class="op">,</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-27" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-27-14" class="code-annotation-target"><a href="#annotated-cell-27-14" aria-hidden="true" tabindex="-1"></a>  inputProcessors<span class="op">:</span> [</span>
+<span id="annotated-cell-27-15"><a href="#annotated-cell-27-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">TokenLimiter</span>(<span class="dv">4000</span>)<span class="op">,</span></span>
+<span id="annotated-cell-27-16"><a href="#annotated-cell-27-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">PromptInjectionDetector</span>({</span>
+<span id="annotated-cell-27-17"><a href="#annotated-cell-27-17" aria-hidden="true" tabindex="-1"></a>      model<span class="op">:</span> <span class="st">'openrouter/openai/gpt-oss-safeguard-20b'</span><span class="op">,</span></span>
+<span id="annotated-cell-27-18"><a href="#annotated-cell-27-18" aria-hidden="true" tabindex="-1"></a>      detectionTypes<span class="op">:</span> [<span class="st">'injection'</span><span class="op">,</span> <span class="st">'jailbreak'</span><span class="op">,</span> <span class="st">'system-override'</span>]<span class="op">,</span></span>
+<span id="annotated-cell-27-19"><a href="#annotated-cell-27-19" aria-hidden="true" tabindex="-1"></a>      threshold<span class="op">:</span> <span class="fl">0.8</span><span class="op">,</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-27" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-27-20" class="code-annotation-target"><a href="#annotated-cell-27-20" aria-hidden="true" tabindex="-1"></a>      strategy<span class="op">:</span> <span class="st">'rewrite'</span><span class="op">,</span></span>
+<span id="annotated-cell-27-21"><a href="#annotated-cell-27-21" aria-hidden="true" tabindex="-1"></a>    })<span class="op">,</span></span>
+<span id="annotated-cell-27-22"><a href="#annotated-cell-27-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">PIIDetector</span>({</span>
+<span id="annotated-cell-27-23"><a href="#annotated-cell-27-23" aria-hidden="true" tabindex="-1"></a>      model<span class="op">:</span> <span class="st">'openrouter/openai/gpt-oss-safeguard-20b'</span><span class="op">,</span></span>
+<span id="annotated-cell-27-24"><a href="#annotated-cell-27-24" aria-hidden="true" tabindex="-1"></a>      detectionTypes<span class="op">:</span> [<span class="st">'email'</span><span class="op">,</span> <span class="st">'phone'</span><span class="op">,</span> <span class="st">'credit-card'</span><span class="op">,</span> <span class="st">'ssn'</span>]<span class="op">,</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-27" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-27-25" class="code-annotation-target"><a href="#annotated-cell-27-25" aria-hidden="true" tabindex="-1"></a>      strategy<span class="op">:</span> <span class="st">'redact'</span><span class="op">,</span></span>
+<span id="annotated-cell-27-26"><a href="#annotated-cell-27-26" aria-hidden="true" tabindex="-1"></a>    })<span class="op">,</span></span>
+<span id="annotated-cell-27-27"><a href="#annotated-cell-27-27" aria-hidden="true" tabindex="-1"></a>  ]<span class="op">,</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-27" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-27-28" class="code-annotation-target"><a href="#annotated-cell-27-28" aria-hidden="true" tabindex="-1"></a>  outputProcessors<span class="op">:</span> [</span>
+<span id="annotated-cell-27-29"><a href="#annotated-cell-27-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">ModerationProcessor</span>({</span>
+<span id="annotated-cell-27-30"><a href="#annotated-cell-27-30" aria-hidden="true" tabindex="-1"></a>      model<span class="op">:</span> <span class="st">'openai/gpt-4o-mini'</span><span class="op">,</span></span>
+<span id="annotated-cell-27-31"><a href="#annotated-cell-27-31" aria-hidden="true" tabindex="-1"></a>      categories<span class="op">:</span> [<span class="st">'hate'</span><span class="op">,</span> <span class="st">'harassment'</span><span class="op">,</span> <span class="st">'violence'</span>]<span class="op">,</span></span>
+<span id="annotated-cell-27-32"><a href="#annotated-cell-27-32" aria-hidden="true" tabindex="-1"></a>      strategy<span class="op">:</span> <span class="st">'block'</span><span class="op">,</span></span>
+<span id="annotated-cell-27-33"><a href="#annotated-cell-27-33" aria-hidden="true" tabindex="-1"></a>    })<span class="op">,</span></span>
+<span id="annotated-cell-27-34"><a href="#annotated-cell-27-34" aria-hidden="true" tabindex="-1"></a>  ]<span class="op">,</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-27" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-27-35" class="code-annotation-target"><a href="#annotated-cell-27-35" aria-hidden="true" tabindex="-1"></a>  errorProcessors<span class="op">:</span> [<span class="kw">new</span> <span class="fu">PrefillErrorHandler</span>()]<span class="op">,</span></span>
+<span id="annotated-cell-27-36"><a href="#annotated-cell-27-36" aria-hidden="true" tabindex="-1"></a>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-27" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-27" data-code-lines="5" data-code-annotation="1"><strong>Input guardrails</strong> run before the LLM sees the message. Use them for PII detection, prompt injection defense, or input validation.</span>
+<span data-code-cell="annotated-cell-27" data-code-lines="14" data-code-annotation="1"><strong><code>inputProcessors</code> run before the LLM sees the message.</strong> They execute in declaration order. <code>TokenLimiter</code> truncates oversized inputs; the detectors classify the message.</span>
 </dd>
 <dt data-target-cell="annotated-cell-27" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-27" data-code-lines="16" data-code-annotation="2"><strong>Output guardrails</strong> run after the LLM responds but before the response reaches the user. Use them for content moderation, compliance checks, or output validation.</span>
+<span data-code-cell="annotated-cell-27" data-code-lines="20" data-code-annotation="2"><strong>Strategy decides what happens on a hit.</strong> <code>'rewrite'</code> lets the processor neutralize the unsafe portion and continue; <code>'block'</code> aborts with a <code>'tripwire'</code> result; <code>'redact'</code> masks matched spans (used here for PII). Each processor documents which strategies it supports.</span>
+</dd>
+<dt data-target-cell="annotated-cell-27" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-27" data-code-lines="25" data-code-annotation="3"><strong>PII strategies are class-specific</strong> — <code>PIIDetector</code> also accepts a <code>redactionMethod</code> (<code>'mask'</code>, <code>'hash'</code>) and a <code>preserveFormat</code> flag so downstream tools still parse the message.</span>
+</dd>
+<dt data-target-cell="annotated-cell-27" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-27" data-code-lines="28" data-code-annotation="4"><strong><code>outputProcessors</code> run on the LLM response.</strong> Same shape — <code>ModerationProcessor</code> here blocks harmful content before it reaches the caller. Output processors can also stream-edit token-by-token by implementing the <code>processOutputStream</code> hook.</span>
+</dd>
+<dt data-target-cell="annotated-cell-27" data-target-annotation="5">5</dt>
+<dd>
+<span data-code-cell="annotated-cell-27" data-code-lines="35" data-code-annotation="5"><strong><code>errorProcessors</code> activate when the LLM call throws.</strong> <code>PrefillErrorHandler</code> retries with a salvaged partial response; you can write custom handlers for provider-specific error shapes.</span>
 </dd>
 </dl>
-<p>When a guardrail blocks, the workflow result status is <code>'tripwire'</code> — a distinct state from <code>'failed'</code> that signals “the agent could have responded, but a safety check prevented it.”</p>
-<p><strong>Processors</strong> transform messages before they reach the agent. Unlike guardrails (which block), processors modify:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-28"><pre class="sourceCode typescript code-annotation-code code-with-copy code-annotated"><code class="sourceCode typescript"><span id="annotated-cell-28-1"><a href="#annotated-cell-28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> agent <span class="op">=</span> <span class="kw">new</span> <span class="fu">Agent</span>({</span>
-<span id="annotated-cell-28-2"><a href="#annotated-cell-28-2" aria-hidden="true" tabindex="-1"></a>  id<span class="op">:</span> <span class="st">'processed-agent'</span><span class="op">,</span></span>
-<span id="annotated-cell-28-3"><a href="#annotated-cell-28-3" aria-hidden="true" tabindex="-1"></a>  processors<span class="op">:</span> {</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-28" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-28-4" class="code-annotation-target"><a href="#annotated-cell-28-4" aria-hidden="true" tabindex="-1"></a>    pre<span class="op">:</span> [({ message }) <span class="kw">=&gt;</span> <span class="fu">sanitize</span>(message)]<span class="op">,</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-28" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-28-5" class="code-annotation-target"><a href="#annotated-cell-28-5" aria-hidden="true" tabindex="-1"></a>    post<span class="op">:</span> [({ response }) <span class="kw">=&gt;</span> <span class="fu">addDisclaimer</span>(response)]<span class="op">,</span></span>
-<span id="annotated-cell-28-6"><a href="#annotated-cell-28-6" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
-<span id="annotated-cell-28-7"><a href="#annotated-cell-28-7" aria-hidden="true" tabindex="-1"></a>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<dl class="code-annotation-container-grid">
-<dt data-target-cell="annotated-cell-28" data-target-annotation="1">1</dt>
-<dd>
-<span data-code-cell="annotated-cell-28" data-code-lines="4" data-code-annotation="1"><strong>Pre-processors</strong> clean up input — normalize formatting, strip HTML, redact sensitive fields.</span>
-</dd>
-<dt data-target-cell="annotated-cell-28" data-target-annotation="2">2</dt>
-<dd>
-<span data-code-cell="annotated-cell-28" data-code-lines="5" data-code-annotation="2"><strong>Post-processors</strong> modify output — add disclaimers, format for a specific channel, translate.</span>
-</dd>
-</dl>
+<p>When a blocking processor fires, the agent result’s <code>status</code> is <code>'tripwire'</code> — distinct from <code>'failed'</code>, signalling “the agent could have responded, but a safety check prevented it.” <code>'rewrite'</code> and <code>'redact'</code> strategies do <em>not</em> tripwire; they modify the message and proceed.</p>
+<section id="writing-a-custom-processor" class="level3" data-number="9.14.1">
+<h3 data-number="9.14.1" class="anchored" data-anchor-id="writing-a-custom-processor"><span class="header-section-number">9.14.1</span> Writing a custom processor</h3>
+<p>The processor interface is small: a name, plus one or more of <code>processInput</code>, <code>processOutputResult</code>, <code>processOutputStream</code>, <code>processError</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode typescript code-with-copy"><code class="sourceCode typescript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { Processor<span class="op">,</span> RequestContext } <span class="im">from</span> <span class="st">'@mastra/core/processors'</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> AddDisclaimer <span class="kw">implements</span> Processor {</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">readonly</span> name <span class="op">=</span> <span class="st">'add-disclaimer'</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">async</span> <span class="fu">processOutputResult</span>({ messages }<span class="op">:</span> { messages<span class="op">:</span> <span class="dt">any</span>[] }) {</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">const</span> last <span class="op">=</span> messages[messages<span class="op">.</span><span class="at">length</span> <span class="op">-</span> <span class="dv">1</span>]</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (last<span class="op">?.</span><span class="at">role</span> <span class="op">===</span> <span class="st">'assistant'</span> <span class="op">&amp;&amp;</span> <span class="kw">typeof</span> last<span class="op">.</span><span class="at">content</span> <span class="op">===</span> <span class="st">'string'</span>) {</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>      last<span class="op">.</span><span class="at">content</span> <span class="op">+=</span> <span class="st">'</span><span class="sc">\n\n</span><span class="st">_Not financial advice._'</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> { messages }</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This is also how you handle transformations the shipped processors don’t cover — input normalization, channel-specific formatting, translation, watermarking. Pass an instance into <code>inputProcessors</code> or <code>outputProcessors</code> like any built-in.</p>
+<div class="callout callout-style-default callout-tip callout-titled" title="One mechanism, three behaviors">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>One mechanism, three behaviors
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The thing the older Mastra docs used to call “guardrails” and the thing they used to call “processors” are now the same primitive. You pick the <em>behavior</em> through the processor’s <code>strategy</code> (<code>'block'</code> = guardrail, <code>'rewrite'</code>/<code>'redact'</code> = transform) and through <em>which array</em> you put it in (<code>inputProcessors</code> vs <code>outputProcessors</code>). If you find a code sample online with <code>guardrails: { input: [...] }</code> or <code>processors: { pre, post }</code>, it’s stale — both shapes have collapsed into the unified processor model shown here.</p>
+</div>
+</div>
+</section>
 </section>
 <section id="sec-mastra-comparison" class="level2" data-number="9.15">
 <h2 data-number="9.15" class="anchored" data-anchor-id="sec-mastra-comparison"><span class="header-section-number">9.15</span> Comparison with Python Frameworks</h2>
