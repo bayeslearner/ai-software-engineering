@@ -817,42 +817,54 @@ Note
 <h3 data-number="7.5.1" class="anchored" data-anchor-id="offline-flow-chunking-and-indexing"><span class="header-section-number">7.5.1</span> Offline flow: chunking and indexing</h3>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-12"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-12-1"><a href="#annotated-cell-12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pocketflow <span class="im">import</span> Node, BatchNode, Flow</span>
 <span id="annotated-cell-12-2"><a href="#annotated-cell-12-2" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-12-3" class="code-annotation-target"><a href="#annotated-cell-12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ChunkDocs(BatchNode):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-12-3" class="code-annotation-target"><a href="#annotated-cell-12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ChunkDocs(Node):</span>
 <span id="annotated-cell-12-4"><a href="#annotated-cell-12-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
-<span id="annotated-cell-12-5"><a href="#annotated-cell-12-5" aria-hidden="true" tabindex="-1"></a>        text <span class="op">=</span> shared[<span class="st">"raw_text"</span>]</span>
-<span id="annotated-cell-12-6"><a href="#annotated-cell-12-6" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"chunks"</span>] <span class="op">=</span> [text[i:i<span class="op">+</span><span class="dv">500</span>] <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, <span class="bu">len</span>(text), <span class="dv">500</span>)]</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-12-7" class="code-annotation-target"><a href="#annotated-cell-12-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"chunks"</span>]</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="annotated-cell-12-5"><a href="#annotated-cell-12-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"raw_text"</span>]</span>
+<span id="annotated-cell-12-6"><a href="#annotated-cell-12-6" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-12-7" class="code-annotation-target"><a href="#annotated-cell-12-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, text):</span>
+<span id="annotated-cell-12-8"><a href="#annotated-cell-12-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> [text[i:i<span class="op">+</span><span class="dv">500</span>] <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, <span class="bu">len</span>(text), <span class="dv">500</span>)]</span>
+<span id="annotated-cell-12-9"><a href="#annotated-cell-12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-12-10"><a href="#annotated-cell-12-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-12-11" class="code-annotation-target"><a href="#annotated-cell-12-11" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"chunks"</span>] <span class="op">=</span> exec_res</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-12" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-12" data-code-lines="3" data-code-annotation="1"><strong><code>BatchNode</code></strong> (not <code>Node</code>) — signals that this node processes a <em>list</em> of items rather than a single value.</span>
+<span data-code-cell="annotated-cell-12" data-code-lines="3" data-code-annotation="1"><strong>Plain <code>Node</code></strong> — chunking is a single operation on a single input (the raw text). The <em>output</em> is a list, but the input isn’t, so this is not the batch case.</span>
 </dd>
 <dt data-target-cell="annotated-cell-12" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-12" data-code-lines="7" data-code-annotation="2"><strong>Returns a list</strong> — when <code>prep()</code> returns a list in a <code>BatchNode</code>, PocketFlow will call <code>exec()</code> once per item. A regular <code>Node</code> would pass the entire list to <code>exec()</code> as one argument.</span>
+<span data-code-cell="annotated-cell-12" data-code-lines="7" data-code-annotation="2"><strong><code>exec()</code> does the work</strong> — keeps I/O (<code>shared</code> access) in <code>prep</code>/<code>post</code>, computation in <code>exec</code>. The retry/error semantics PocketFlow promises only apply to what’s inside <code>exec()</code>.</span>
+</dd>
+<dt data-target-cell="annotated-cell-12" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-12" data-code-lines="11" data-code-annotation="3"><strong>Write to <code>shared</code> in <code>post()</code></strong> — never write to <code>shared</code> from <code>prep</code> or <code>exec</code>. The next node will read <code>shared["chunks"]</code> (see callout below — this implicit cross-node contract is what §7.8 calls out as PocketFlow’s main liability).</span>
 </dd>
 </dl>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-13"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-13-1"><a href="#annotated-cell-13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> EmbedChunks(BatchNode):</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-13"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-13-1" class="code-annotation-target"><a href="#annotated-cell-13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> EmbedChunks(BatchNode):</span>
 <span id="annotated-cell-13-2"><a href="#annotated-cell-13-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-13-3" class="code-annotation-target"><a href="#annotated-cell-13-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"chunks"</span>]</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-13-3" class="code-annotation-target"><a href="#annotated-cell-13-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"chunks"</span>]</span>
 <span id="annotated-cell-13-4"><a href="#annotated-cell-13-4" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-13-5" class="code-annotation-target"><a href="#annotated-cell-13-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, chunk):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-13-5" class="code-annotation-target"><a href="#annotated-cell-13-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, chunk):</span>
 <span id="annotated-cell-13-6"><a href="#annotated-cell-13-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> get_embedding(chunk)</span>
 <span id="annotated-cell-13-7"><a href="#annotated-cell-13-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="annotated-cell-13-8"><a href="#annotated-cell-13-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-13-9" class="code-annotation-target"><a href="#annotated-cell-13-9" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"embeddings"</span>] <span class="op">=</span> exec_res</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-13-9" class="code-annotation-target"><a href="#annotated-cell-13-9" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"embeddings"</span>] <span class="op">=</span> exec_res</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-13" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-13" data-code-lines="3" data-code-annotation="1"><strong>Prep returns the list</strong> of chunks — 50 chunks means 50 calls to <code>exec()</code>.</span>
+<span data-code-cell="annotated-cell-13" data-code-lines="1" data-code-annotation="1"><strong><code>BatchNode</code> (not <code>Node</code>)</strong> — signals that this node iterates <code>exec()</code> over a list. The input is <em>already</em> a list of chunks; we want one embedding call per chunk, not one call with all of them.</span>
 </dd>
 <dt data-target-cell="annotated-cell-13" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-13" data-code-lines="5" data-code-annotation="2"><strong><code>exec()</code> receives ONE chunk at a time</strong> — not the whole list. PocketFlow handles the iteration internally. This is the “map” in map/reduce.</span>
+<span data-code-cell="annotated-cell-13" data-code-lines="3" data-code-annotation="2"><strong><code>prep</code> returns the list</strong> — <code>shared["chunks"]</code> was written by <code>ChunkDocs.post()</code> in the previous step. <strong>This is the implicit contract</strong>: nothing in the type system says <code>EmbedChunks</code> needs <code>chunks</code> to exist. Rename a key upstream and this breaks silently at runtime. The Burr section (<a href="#sec-prod-burr" class="quarto-xref"><span>Section 7.9</span></a>) replaces this string-keyed handoff with declared <code>reads</code>/<code>writes</code>.</span>
 </dd>
 <dt data-target-cell="annotated-cell-13" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-13" data-code-lines="9" data-code-annotation="3"><strong><code>exec_res</code> is a list of ALL results</strong> — after all 50 <code>exec()</code> calls complete, PocketFlow collects them into a list and passes it to <code>post()</code>. This is the “reduce.”</span>
+<span data-code-cell="annotated-cell-13" data-code-lines="5" data-code-annotation="3"><strong><code>exec()</code> receives ONE chunk at a time</strong> — PocketFlow handles the iteration. This is the “map” in map/reduce.</span>
+</dd>
+<dt data-target-cell="annotated-cell-13" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-13" data-code-lines="9" data-code-annotation="4"><strong><code>exec_res</code> is the list of ALL results</strong> — after all <code>exec()</code> calls complete, PocketFlow collects them into a list and passes it to <code>post()</code>. This is the “reduce.”</span>
 </dd>
 </dl>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-14"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><a class="code-annotation-anchor" data-target-cell="annotated-cell-14" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-14-1" class="code-annotation-target"><a href="#annotated-cell-14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> BuildIndex(Node):</span>
@@ -970,7 +982,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The shared dict lives in memory — if the process dies, the index is lost. In production, you’d serialize <code>shared["index"]</code> to disk in <code>BuildIndex.post()</code> and deserialize in <code>RetrieveContext.prep()</code>. PocketFlow also has a <code>ParallelBatchNode</code> that runs <code>exec()</code> calls concurrently — useful when embedding 1000 chunks against a rate-limited API.</p>
+<p>The shared dict lives in memory — if the process dies, the index is lost. In production, you’d serialize <code>shared["index"]</code> to disk in <code>BuildIndex.post()</code> and deserialize in <code>RetrieveContext.prep()</code>. PocketFlow also has an <code>AsyncParallelBatchNode</code> that runs <code>exec_async()</code> calls concurrently — useful when embedding 1000 chunks against a rate-limited API, but it requires an <code>AsyncFlow</code> and <code>async def exec_async()</code> overrides on the node.</p>
 </div>
 </div>
 </section>
