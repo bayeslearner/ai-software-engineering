@@ -114,7 +114,8 @@ Agno's `Knowledge` primitive is the RAG story. You point it at a vector database
 ```python
 from agno.knowledge import Knowledge
 from agno.knowledge.embedder.openai import OpenAIEmbedder
-from agno.vectordb.pgvector import PgVector, SearchType
+from agno.vectordb.pgvector import PgVector
+from agno.vectordb.search import SearchType
 
 knowledge = Knowledge(                                                  # <1>
     vector_db=PgVector(
@@ -125,17 +126,14 @@ knowledge = Knowledge(                                                  # <1>
     ),
 )
 
-knowledge.load(                                                         # <3>
-    sources=[
-        {"path": "./docs/**/*.md"},
-        {"url": "https://example.com/api-reference.pdf"},
-    ],
-    recreate=False,
+knowledge.insert_many(                                                  # <3>
+    paths=["./docs/**/*.md"],
+    urls=["https://example.com/api-reference.pdf"],
 )
 ```
 1. **`Knowledge` wraps a vector DB.** Supported backends: PgVector, LanceDB, Qdrant, Pinecone, Weaviate, ChromaDB, and others.
-2. **`SearchType.hybrid`** combines keyword and semantic search. Also available: `vector` (pure embedding similarity) and `keyword` (BM25).
-3. **`knowledge.load()`** ingests sources — markdown files, PDFs, URLs — into the vector DB. Set `recreate=True` to rebuild on each run during development.
+2. **`SearchType.hybrid`** combines keyword and semantic search. Also available: `vector` (pure embedding similarity) and `keyword` (BM25). Import from `agno.vectordb.search` — that's the canonical location, though some backends re-export it.
+3. **`insert_many()`** ingests sources — markdown files, PDFs, URLs — into the vector DB. The keyword overload takes `paths=` and `urls=` lists separately. For a single item, use `insert(path=...)` or `insert(url=...)`.
 
 Attach it to an agent:
 
@@ -160,17 +158,23 @@ support_agent.print_response("How do I configure SSO?")
 Knowledge also supports **agentic filters** — metadata-based filtering where the model decides which filters to apply:
 
 ```python
-knowledge.insert_many([
-    {"path": "sso-guide.md", "metadata": {"product": "enterprise", "year": 2025}},
-    {"path": "basic-auth.md", "metadata": {"product": "starter", "year": 2024}},
-])
+# Insert with shared metadata across this batch:
+knowledge.insert_many(
+    paths=["sso-guide.md"],
+    metadata={"product": "enterprise", "year": "2025"},                 # <1>
+)
+knowledge.insert_many(
+    paths=["basic-auth.md"],
+    metadata={"product": "starter", "year": "2024"},
+)
 
 agent = Agent(
     knowledge=knowledge,
-    enable_agentic_knowledge_filters=True,                              # <1>
+    enable_agentic_knowledge_filters=True,                              # <2>
 )
 ```
-1. **Agentic filters** let the model add `WHERE` clauses to the vector search based on the user's question. "How do I configure SSO for the enterprise tier?" automatically filters on `product=enterprise`.
+1. **`metadata=` is a keyword arg** applied to all items in that call, not a per-item dict. To attach different metadata to different files, make separate `insert_many` calls (one per metadata group), as shown.
+2. **Agentic filters** let the model add `WHERE` clauses to the vector search based on the user's question. "How do I configure SSO for the enterprise tier?" automatically filters on `product=enterprise`.
 
 #### Workflow: step-based orchestration {#sec-prod-agno-workflow}
 
@@ -403,7 +407,7 @@ team.print_response(
 ```
 1. **`role` describes the agent to the team leader.** The leader uses this to decide which member to delegate to.
 2. **Each member is a full Agent** with its own model, tools, and instructions.
-3. **`TeamMode.coordinate`** is the default. The leader analyzes the request, selects members, crafts tasks for each, and synthesizes their responses. Also available: `route` (pick one member), `collaborate` (all members contribute), and `debate` (members argue toward consensus).
+3. **`TeamMode.coordinate`** is the default. The leader analyzes the request, selects members, crafts tasks for each, and synthesizes their responses. Also available: `route` (pick one member), `broadcast` (send the same task to all members simultaneously), and `tasks` (autonomous breakdown with a shared task list).
 4. **The team leader has its own model.** This is the model that makes the delegation decisions.
 5. **`show_members_responses=True`** includes each member's individual response in the output — useful for debugging and transparency.
 
@@ -528,17 +532,18 @@ The traces follow the [OpenInference](https://github.com/Arize-ai/openinference)
 - **Team coordination spans** — leader decisions, member delegations, synthesis
 - **Knowledge query spans** — search terms, filters, retrieved chunks, relevance scores
 
-For local development, Agno stores traces in the session database:
+Traces flow to whichever OpenTelemetry backend you wire up — the session database (`SqliteDb`, `PostgresDb`) stores sessions, memories, metrics, and eval results, but trace querying is not part of its API. For local development the simplest setup is Arize Phoenix as a local OTel collector:
 
 ```python
-from agno.db.sqlite import SqliteDb
+# pip install arize-phoenix
+import phoenix as px
 
-db = SqliteDb(db_file="traces.db")
-traces, count = db.get_traces(workflow_id=workflow.id, limit=10)        # <1>
-for trace in traces:
-    print(f"  {trace.duration_ms}ms ({trace.status})")
+px.launch_app()   # local UI at http://localhost:6006
+# The OpenInference instrumentation enabled by `tracing=True` above
+# pushes spans to Phoenix automatically; query and visualize from the UI.
 ```
-1. **Query traces from the database.** No external backend required during development.
+
+For production, point the OTel exporter at Jaeger, Grafana Tempo, Datadog, or Arize's hosted backend.
 
 ### When Agno is the right call {#sec-prod-agno-when}
 
@@ -547,7 +552,7 @@ Agno wins when you want **multi-agent + MCP + RAG on day one** and don't want to
 Agno's strengths:
 
 - **Breadth of integration.** MCP tools, 10+ vector DBs, 10+ storage backends, 20+ built-in tool classes, multi-model support — all with consistent APIs.
-- **Multi-agent out of the box.** Team modes (coordinate, route, collaborate, debate) handle the most common multi-agent patterns without you writing routing logic.
+- **Multi-agent out of the box.** Team modes (coordinate, route, broadcast, tasks) handle the most common multi-agent patterns without you writing routing logic.
 - **AgentOS deployment.** From prototype to API in minutes. The FastAPI wrapper, MCP server exposure, and tracing are deployment-ready.
 - **Agentic RAG.** Knowledge-as-a-tool means the model decides when and how to search — no hand-orchestrated retrieval pipelines.
 
@@ -625,8 +630,8 @@ The Router classifies incoming requests and routes to the best-matched agent, fu
 
 ```python
 from mcp_agent.app import MCPApp
-from mcp_agent.agents.agent import Agent
-from mcp_agent.workflows.factory import AgentSpec, create_router_llm
+from mcp_agent.agents.agent import Agent, AgentSpec
+from mcp_agent.workflows.factory import create_router_llm
 
 app = MCPApp(name="support_router")
 
@@ -660,8 +665,9 @@ async def main():
             top_k=2,
         )
         for choice in decisions:
-            print(f"{choice.category}: {choice.result} "
-                  f"(confidence: {choice.confidence})")
+            print(f"-> {choice.result} "
+                  f"(confidence: {choice.confidence}, "
+                  f"reasoning: {choice.reasoning})")
 
         # Or use the router as an autonomous LLM
         answer = await router.generate_str(                             # <7>
@@ -1037,27 +1043,28 @@ The PocketFlow version had explicit `DecideAction` -> `SearchWeb` -> `Answer` no
 
 ### mcp-agent version {#sec-prod-mcp-agent-example}
 
-The mcp-agent version uses the **Router** pattern with an MCP search server:
+The mcp-agent version uses the **Router** pattern with an MCP search server. Note that `MCPApp(settings=...)` accepts a `Settings` *object* or a YAML path — not a raw dict; passing `{...}` here would fail at attribute access time:
 
 ```python
 import asyncio
 from mcp_agent.app import MCPApp
 from mcp_agent.agents.agent import Agent
 from mcp_agent.workflows.factory import create_router_llm
+from mcp_agent.config import Settings, MCPSettings, MCPServerSettings
 
 app = MCPApp(
     name="qa-bot",
-    settings={
-        "mcp": {
-            "servers": {
-                "brave-search": {                                       # <1>
-                    "command": "npx",
-                    "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-                    "env": {"BRAVE_API_KEY": "${BRAVE_API_KEY}"},
-                }
+    settings=Settings(
+        mcp=MCPSettings(
+            servers={
+                "brave-search": MCPServerSettings(                       # <1>
+                    command="npx",
+                    args=["-y", "@modelcontextprotocol/server-brave-search"],
+                    env={"BRAVE_API_KEY": "${BRAVE_API_KEY}"},
+                ),
             }
-        }
-    },
+        )
+    ),
 )
 
 async def main():
