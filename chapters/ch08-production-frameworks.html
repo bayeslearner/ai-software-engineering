@@ -441,36 +441,34 @@ Note
 <p>Agno’s <code>Knowledge</code> primitive is the RAG story. You point it at a vector database and sources; the agent gets a <code>search_knowledge</code> tool automatically:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-4"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-4-1"><a href="#annotated-cell-4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> agno.knowledge <span class="im">import</span> Knowledge</span>
 <span id="annotated-cell-4-2"><a href="#annotated-cell-4-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> agno.knowledge.embedder.openai <span class="im">import</span> OpenAIEmbedder</span>
-<span id="annotated-cell-4-3"><a href="#annotated-cell-4-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> agno.vectordb.pgvector <span class="im">import</span> PgVector, SearchType</span>
-<span id="annotated-cell-4-4"><a href="#annotated-cell-4-4" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-4-5" class="code-annotation-target"><a href="#annotated-cell-4-5" aria-hidden="true" tabindex="-1"></a>knowledge <span class="op">=</span> Knowledge(</span>
-<span id="annotated-cell-4-6"><a href="#annotated-cell-4-6" aria-hidden="true" tabindex="-1"></a>    vector_db<span class="op">=</span>PgVector(</span>
-<span id="annotated-cell-4-7"><a href="#annotated-cell-4-7" aria-hidden="true" tabindex="-1"></a>        db_url<span class="op">=</span><span class="st">"postgresql+psycopg://ai:ai@localhost:5532/ai"</span>,</span>
-<span id="annotated-cell-4-8"><a href="#annotated-cell-4-8" aria-hidden="true" tabindex="-1"></a>        table_name<span class="op">=</span><span class="st">"product_docs"</span>,</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-4-9" class="code-annotation-target"><a href="#annotated-cell-4-9" aria-hidden="true" tabindex="-1"></a>        search_type<span class="op">=</span>SearchType.hybrid,</span>
-<span id="annotated-cell-4-10"><a href="#annotated-cell-4-10" aria-hidden="true" tabindex="-1"></a>        embedder<span class="op">=</span>OpenAIEmbedder(<span class="bu">id</span><span class="op">=</span><span class="st">"text-embedding-3-small"</span>),</span>
-<span id="annotated-cell-4-11"><a href="#annotated-cell-4-11" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="annotated-cell-4-12"><a href="#annotated-cell-4-12" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="annotated-cell-4-13"><a href="#annotated-cell-4-13" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-4-14" class="code-annotation-target"><a href="#annotated-cell-4-14" aria-hidden="true" tabindex="-1"></a>knowledge.load(</span>
-<span id="annotated-cell-4-15"><a href="#annotated-cell-4-15" aria-hidden="true" tabindex="-1"></a>    sources<span class="op">=</span>[</span>
-<span id="annotated-cell-4-16"><a href="#annotated-cell-4-16" aria-hidden="true" tabindex="-1"></a>        {<span class="st">"path"</span>: <span class="st">"./docs/**/*.md"</span>},</span>
-<span id="annotated-cell-4-17"><a href="#annotated-cell-4-17" aria-hidden="true" tabindex="-1"></a>        {<span class="st">"url"</span>: <span class="st">"https://example.com/api-reference.pdf"</span>},</span>
-<span id="annotated-cell-4-18"><a href="#annotated-cell-4-18" aria-hidden="true" tabindex="-1"></a>    ],</span>
-<span id="annotated-cell-4-19"><a href="#annotated-cell-4-19" aria-hidden="true" tabindex="-1"></a>    recreate<span class="op">=</span><span class="va">False</span>,</span>
-<span id="annotated-cell-4-20"><a href="#annotated-cell-4-20" aria-hidden="true" tabindex="-1"></a>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="annotated-cell-4-3"><a href="#annotated-cell-4-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> agno.vectordb.pgvector <span class="im">import</span> PgVector</span>
+<span id="annotated-cell-4-4"><a href="#annotated-cell-4-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> agno.vectordb.search <span class="im">import</span> SearchType</span>
+<span id="annotated-cell-4-5"><a href="#annotated-cell-4-5" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-4-6" class="code-annotation-target"><a href="#annotated-cell-4-6" aria-hidden="true" tabindex="-1"></a>knowledge <span class="op">=</span> Knowledge(</span>
+<span id="annotated-cell-4-7"><a href="#annotated-cell-4-7" aria-hidden="true" tabindex="-1"></a>    vector_db<span class="op">=</span>PgVector(</span>
+<span id="annotated-cell-4-8"><a href="#annotated-cell-4-8" aria-hidden="true" tabindex="-1"></a>        db_url<span class="op">=</span><span class="st">"postgresql+psycopg://ai:ai@localhost:5532/ai"</span>,</span>
+<span id="annotated-cell-4-9"><a href="#annotated-cell-4-9" aria-hidden="true" tabindex="-1"></a>        table_name<span class="op">=</span><span class="st">"product_docs"</span>,</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-4-10" class="code-annotation-target"><a href="#annotated-cell-4-10" aria-hidden="true" tabindex="-1"></a>        search_type<span class="op">=</span>SearchType.hybrid,</span>
+<span id="annotated-cell-4-11"><a href="#annotated-cell-4-11" aria-hidden="true" tabindex="-1"></a>        embedder<span class="op">=</span>OpenAIEmbedder(<span class="bu">id</span><span class="op">=</span><span class="st">"text-embedding-3-small"</span>),</span>
+<span id="annotated-cell-4-12"><a href="#annotated-cell-4-12" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="annotated-cell-4-13"><a href="#annotated-cell-4-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="annotated-cell-4-14"><a href="#annotated-cell-4-14" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-4-15" class="code-annotation-target"><a href="#annotated-cell-4-15" aria-hidden="true" tabindex="-1"></a>knowledge.insert_many(</span>
+<span id="annotated-cell-4-16"><a href="#annotated-cell-4-16" aria-hidden="true" tabindex="-1"></a>    paths<span class="op">=</span>[<span class="st">"./docs/**/*.md"</span>],</span>
+<span id="annotated-cell-4-17"><a href="#annotated-cell-4-17" aria-hidden="true" tabindex="-1"></a>    urls<span class="op">=</span>[<span class="st">"https://example.com/api-reference.pdf"</span>],</span>
+<span id="annotated-cell-4-18"><a href="#annotated-cell-4-18" aria-hidden="true" tabindex="-1"></a>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-4" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-lines="5" data-code-annotation="1"><strong><code>Knowledge</code> wraps a vector DB.</strong> Supported backends: PgVector, LanceDB, Qdrant, Pinecone, Weaviate, ChromaDB, and others.</span>
+<span data-code-cell="annotated-cell-4" data-code-lines="6" data-code-annotation="1"><strong><code>Knowledge</code> wraps a vector DB.</strong> Supported backends: PgVector, LanceDB, Qdrant, Pinecone, Weaviate, ChromaDB, and others.</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-lines="9" data-code-annotation="2"><strong><code>SearchType.hybrid</code></strong> combines keyword and semantic search. Also available: <code>vector</code> (pure embedding similarity) and <code>keyword</code> (BM25).</span>
+<span data-code-cell="annotated-cell-4" data-code-lines="10" data-code-annotation="2"><strong><code>SearchType.hybrid</code></strong> combines keyword and semantic search. Also available: <code>vector</code> (pure embedding similarity) and <code>keyword</code> (BM25). Import from <code>agno.vectordb.search</code> — that’s the canonical location, though some backends re-export it.</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-lines="14" data-code-annotation="3"><strong><code>knowledge.load()</code></strong> ingests sources — markdown files, PDFs, URLs — into the vector DB. Set <code>recreate=True</code> to rebuild on each run during development.</span>
+<span data-code-cell="annotated-cell-4" data-code-lines="15" data-code-annotation="3"><strong><code>insert_many()</code></strong> ingests sources — markdown files, PDFs, URLs — into the vector DB. The keyword overload takes <code>paths=</code> and <code>urls=</code> lists separately. For a single item, use <code>insert(path=...)</code> or <code>insert(url=...)</code>.</span>
 </dd>
 </dl>
 <p>Attach it to an agent:</p>
@@ -498,19 +496,28 @@ Note
 </dd>
 </dl>
 <p>Knowledge also supports <strong>agentic filters</strong> — metadata-based filtering where the model decides which filters to apply:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-6"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-6-1"><a href="#annotated-cell-6-1" aria-hidden="true" tabindex="-1"></a>knowledge.insert_many([</span>
-<span id="annotated-cell-6-2"><a href="#annotated-cell-6-2" aria-hidden="true" tabindex="-1"></a>    {<span class="st">"path"</span>: <span class="st">"sso-guide.md"</span>, <span class="st">"metadata"</span>: {<span class="st">"product"</span>: <span class="st">"enterprise"</span>, <span class="st">"year"</span>: <span class="dv">2025</span>}},</span>
-<span id="annotated-cell-6-3"><a href="#annotated-cell-6-3" aria-hidden="true" tabindex="-1"></a>    {<span class="st">"path"</span>: <span class="st">"basic-auth.md"</span>, <span class="st">"metadata"</span>: {<span class="st">"product"</span>: <span class="st">"starter"</span>, <span class="st">"year"</span>: <span class="dv">2024</span>}},</span>
-<span id="annotated-cell-6-4"><a href="#annotated-cell-6-4" aria-hidden="true" tabindex="-1"></a>])</span>
-<span id="annotated-cell-6-5"><a href="#annotated-cell-6-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-6-6"><a href="#annotated-cell-6-6" aria-hidden="true" tabindex="-1"></a>agent <span class="op">=</span> Agent(</span>
-<span id="annotated-cell-6-7"><a href="#annotated-cell-6-7" aria-hidden="true" tabindex="-1"></a>    knowledge<span class="op">=</span>knowledge,</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-6" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-6-8" class="code-annotation-target"><a href="#annotated-cell-6-8" aria-hidden="true" tabindex="-1"></a>    enable_agentic_knowledge_filters<span class="op">=</span><span class="va">True</span>,</span>
-<span id="annotated-cell-6-9"><a href="#annotated-cell-6-9" aria-hidden="true" tabindex="-1"></a>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-6"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-6-1"><a href="#annotated-cell-6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Insert with shared metadata across this batch:</span></span>
+<span id="annotated-cell-6-2"><a href="#annotated-cell-6-2" aria-hidden="true" tabindex="-1"></a>knowledge.insert_many(</span>
+<span id="annotated-cell-6-3"><a href="#annotated-cell-6-3" aria-hidden="true" tabindex="-1"></a>    paths<span class="op">=</span>[<span class="st">"sso-guide.md"</span>],</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-6" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-6-4" class="code-annotation-target"><a href="#annotated-cell-6-4" aria-hidden="true" tabindex="-1"></a>    metadata<span class="op">=</span>{<span class="st">"product"</span>: <span class="st">"enterprise"</span>, <span class="st">"year"</span>: <span class="st">"2025"</span>},</span>
+<span id="annotated-cell-6-5"><a href="#annotated-cell-6-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="annotated-cell-6-6"><a href="#annotated-cell-6-6" aria-hidden="true" tabindex="-1"></a>knowledge.insert_many(</span>
+<span id="annotated-cell-6-7"><a href="#annotated-cell-6-7" aria-hidden="true" tabindex="-1"></a>    paths<span class="op">=</span>[<span class="st">"basic-auth.md"</span>],</span>
+<span id="annotated-cell-6-8"><a href="#annotated-cell-6-8" aria-hidden="true" tabindex="-1"></a>    metadata<span class="op">=</span>{<span class="st">"product"</span>: <span class="st">"starter"</span>, <span class="st">"year"</span>: <span class="st">"2024"</span>},</span>
+<span id="annotated-cell-6-9"><a href="#annotated-cell-6-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="annotated-cell-6-10"><a href="#annotated-cell-6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-6-11"><a href="#annotated-cell-6-11" aria-hidden="true" tabindex="-1"></a>agent <span class="op">=</span> Agent(</span>
+<span id="annotated-cell-6-12"><a href="#annotated-cell-6-12" aria-hidden="true" tabindex="-1"></a>    knowledge<span class="op">=</span>knowledge,</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-6" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-6-13" class="code-annotation-target"><a href="#annotated-cell-6-13" aria-hidden="true" tabindex="-1"></a>    enable_agentic_knowledge_filters<span class="op">=</span><span class="va">True</span>,</span>
+<span id="annotated-cell-6-14"><a href="#annotated-cell-6-14" aria-hidden="true" tabindex="-1"></a>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-6" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-6" data-code-lines="8" data-code-annotation="1"><strong>Agentic filters</strong> let the model add <code>WHERE</code> clauses to the vector search based on the user’s question. “How do I configure SSO for the enterprise tier?” automatically filters on <code>product=enterprise</code>.</span>
+<span data-code-cell="annotated-cell-6" data-code-lines="4" data-code-annotation="1"><strong><code>metadata=</code> is a keyword arg</strong> applied to all items in that call, not a per-item dict. To attach different metadata to different files, make separate <code>insert_many</code> calls (one per metadata group), as shown.</span>
+</dd>
+<dt data-target-cell="annotated-cell-6" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-6" data-code-lines="13" data-code-annotation="2"><strong>Agentic filters</strong> let the model add <code>WHERE</code> clauses to the vector search based on the user’s question. “How do I configure SSO for the enterprise tier?” automatically filters on <code>product=enterprise</code>.</span>
 </dd>
 </dl>
 </section>
@@ -806,7 +813,7 @@ Note
 </dd>
 <dt data-target-cell="annotated-cell-14" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-14" data-code-lines="30" data-code-annotation="3"><strong><code>TeamMode.coordinate</code></strong> is the default. The leader analyzes the request, selects members, crafts tasks for each, and synthesizes their responses. Also available: <code>route</code> (pick one member), <code>collaborate</code> (all members contribute), and <code>debate</code> (members argue toward consensus).</span>
+<span data-code-cell="annotated-cell-14" data-code-lines="30" data-code-annotation="3"><strong><code>TeamMode.coordinate</code></strong> is the default. The leader analyzes the request, selects members, crafts tasks for each, and synthesizes their responses. Also available: <code>route</code> (pick one member), <code>broadcast</code> (send the same task to all members simultaneously), and <code>tasks</code> (autonomous breakdown with a shared task list).</span>
 </dd>
 <dt data-target-cell="annotated-cell-14" data-target-annotation="4">4</dt>
 <dd>
@@ -957,19 +964,14 @@ Note
 <li><strong>Team coordination spans</strong> — leader decisions, member delegations, synthesis</li>
 <li><strong>Knowledge query spans</strong> — search terms, filters, retrieved chunks, relevance scores</li>
 </ul>
-<p>For local development, Agno stores traces in the session database:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-19"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-19-1"><a href="#annotated-cell-19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> agno.db.sqlite <span class="im">import</span> SqliteDb</span>
-<span id="annotated-cell-19-2"><a href="#annotated-cell-19-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-19-3"><a href="#annotated-cell-19-3" aria-hidden="true" tabindex="-1"></a>db <span class="op">=</span> SqliteDb(db_file<span class="op">=</span><span class="st">"traces.db"</span>)</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-19-4" class="code-annotation-target"><a href="#annotated-cell-19-4" aria-hidden="true" tabindex="-1"></a>traces, count <span class="op">=</span> db.get_traces(workflow_id<span class="op">=</span>workflow.<span class="bu">id</span>, limit<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="annotated-cell-19-5"><a href="#annotated-cell-19-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> trace <span class="kw">in</span> traces:</span>
-<span id="annotated-cell-19-6"><a href="#annotated-cell-19-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>trace<span class="sc">.</span>duration_ms<span class="sc">}</span><span class="ss">ms (</span><span class="sc">{</span>trace<span class="sc">.</span>status<span class="sc">}</span><span class="ss">)"</span>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<dl class="code-annotation-container-grid">
-<dt data-target-cell="annotated-cell-19" data-target-annotation="1">1</dt>
-<dd>
-<span data-code-cell="annotated-cell-19" data-code-lines="4" data-code-annotation="1"><strong>Query traces from the database.</strong> No external backend required during development.</span>
-</dd>
-</dl>
+<p>Traces flow to whichever OpenTelemetry backend you wire up — the session database (<code>SqliteDb</code>, <code>PostgresDb</code>) stores sessions, memories, metrics, and eval results, but trace querying is not part of its API. For local development the simplest setup is Arize Phoenix as a local OTel collector:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># pip install arize-phoenix</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phoenix <span class="im">as</span> px</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>px.launch_app()   <span class="co"># local UI at http://localhost:6006</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># The OpenInference instrumentation enabled by `tracing=True` above</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"># pushes spans to Phoenix automatically; query and visualize from the UI.</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>For production, point the OTel exporter at Jaeger, Grafana Tempo, Datadog, or Arize’s hosted backend.</p>
 </section>
 <section id="sec-prod-agno-when" class="level3" data-number="8.2.7">
 <h3 data-number="8.2.7" class="anchored" data-anchor-id="sec-prod-agno-when"><span class="header-section-number">8.2.7</span> When Agno is the right call</h3>
@@ -977,7 +979,7 @@ Note
 <p>Agno’s strengths:</p>
 <ul>
 <li><strong>Breadth of integration.</strong> MCP tools, 10+ vector DBs, 10+ storage backends, 20+ built-in tool classes, multi-model support — all with consistent APIs.</li>
-<li><strong>Multi-agent out of the box.</strong> Team modes (coordinate, route, collaborate, debate) handle the most common multi-agent patterns without you writing routing logic.</li>
+<li><strong>Multi-agent out of the box.</strong> Team modes (coordinate, route, broadcast, tasks) handle the most common multi-agent patterns without you writing routing logic.</li>
 <li><strong>AgentOS deployment.</strong> From prototype to API in minutes. The FastAPI wrapper, MCP server exposure, and tracing are deployment-ready.</li>
 <li><strong>Agentic RAG.</strong> Knowledge-as-a-tool means the model decides when and how to search — no hand-orchestrated retrieval pipelines.</li>
 </ul>
@@ -1078,8 +1080,8 @@ Note
 <h4 data-number="8.3.2.1" class="anchored" data-anchor-id="router-pattern"><span class="header-section-number">8.3.2.1</span> Router pattern</h4>
 <p>The Router classifies incoming requests and routes to the best-matched agent, function, or MCP server:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-21"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-21-1"><a href="#annotated-cell-21-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mcp_agent.app <span class="im">import</span> MCPApp</span>
-<span id="annotated-cell-21-2"><a href="#annotated-cell-21-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mcp_agent.agents.agent <span class="im">import</span> Agent</span>
-<span id="annotated-cell-21-3"><a href="#annotated-cell-21-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mcp_agent.workflows.factory <span class="im">import</span> AgentSpec, create_router_llm</span>
+<span id="annotated-cell-21-2"><a href="#annotated-cell-21-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mcp_agent.agents.agent <span class="im">import</span> Agent, AgentSpec</span>
+<span id="annotated-cell-21-3"><a href="#annotated-cell-21-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mcp_agent.workflows.factory <span class="im">import</span> create_router_llm</span>
 <span id="annotated-cell-21-4"><a href="#annotated-cell-21-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="annotated-cell-21-5"><a href="#annotated-cell-21-5" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> MCPApp(name<span class="op">=</span><span class="st">"support_router"</span>)</span>
 <span id="annotated-cell-21-6"><a href="#annotated-cell-21-6" aria-hidden="true" tabindex="-1"></a></span>
@@ -1113,14 +1115,15 @@ Note
 <span id="annotated-cell-21-34"><a href="#annotated-cell-21-34" aria-hidden="true" tabindex="-1"></a>            top_k<span class="op">=</span><span class="dv">2</span>,</span>
 <span id="annotated-cell-21-35"><a href="#annotated-cell-21-35" aria-hidden="true" tabindex="-1"></a>        )</span>
 <span id="annotated-cell-21-36"><a href="#annotated-cell-21-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> choice <span class="kw">in</span> decisions:</span>
-<span id="annotated-cell-21-37"><a href="#annotated-cell-21-37" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>choice<span class="sc">.</span>category<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>choice<span class="sc">.</span>result<span class="sc">}</span><span class="ss"> "</span></span>
-<span id="annotated-cell-21-38"><a href="#annotated-cell-21-38" aria-hidden="true" tabindex="-1"></a>                  <span class="ss">f"(confidence: </span><span class="sc">{</span>choice<span class="sc">.</span>confidence<span class="sc">}</span><span class="ss">)"</span>)</span>
-<span id="annotated-cell-21-39"><a href="#annotated-cell-21-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-21-40"><a href="#annotated-cell-21-40" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Or use the router as an autonomous LLM</span></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="7" onclick="event.preventDefault();">7</a><span id="annotated-cell-21-41" class="code-annotation-target"><a href="#annotated-cell-21-41" aria-hidden="true" tabindex="-1"></a>        answer <span class="op">=</span> <span class="cf">await</span> router.generate_str(</span>
-<span id="annotated-cell-21-42"><a href="#annotated-cell-21-42" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Find README.md and summarize it"</span></span>
-<span id="annotated-cell-21-43"><a href="#annotated-cell-21-43" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="annotated-cell-21-44"><a href="#annotated-cell-21-44" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(answer)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="annotated-cell-21-37"><a href="#annotated-cell-21-37" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f"-&gt; </span><span class="sc">{</span>choice<span class="sc">.</span>result<span class="sc">}</span><span class="ss"> "</span></span>
+<span id="annotated-cell-21-38"><a href="#annotated-cell-21-38" aria-hidden="true" tabindex="-1"></a>                  <span class="ss">f"(confidence: </span><span class="sc">{</span>choice<span class="sc">.</span>confidence<span class="sc">}</span><span class="ss">, "</span></span>
+<span id="annotated-cell-21-39"><a href="#annotated-cell-21-39" aria-hidden="true" tabindex="-1"></a>                  <span class="ss">f"reasoning: </span><span class="sc">{</span>choice<span class="sc">.</span>reasoning<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="annotated-cell-21-40"><a href="#annotated-cell-21-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-21-41"><a href="#annotated-cell-21-41" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Or use the router as an autonomous LLM</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="7" onclick="event.preventDefault();">7</a><span id="annotated-cell-21-42" class="code-annotation-target"><a href="#annotated-cell-21-42" aria-hidden="true" tabindex="-1"></a>        answer <span class="op">=</span> <span class="cf">await</span> router.generate_str(</span>
+<span id="annotated-cell-21-43"><a href="#annotated-cell-21-43" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Find README.md and summarize it"</span></span>
+<span id="annotated-cell-21-44"><a href="#annotated-cell-21-44" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="annotated-cell-21-45"><a href="#annotated-cell-21-45" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(answer)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-21" data-target-annotation="1">1</dt>
 <dd>
@@ -1148,7 +1151,7 @@ Note
 </dd>
 <dt data-target-cell="annotated-cell-21" data-target-annotation="7">7</dt>
 <dd>
-<span data-code-cell="annotated-cell-21" data-code-lines="41" data-code-annotation="7"><strong><code>router.generate_str()</code></strong> auto-routes and executes in one call — the router picks the best destination and runs it.</span>
+<span data-code-cell="annotated-cell-21" data-code-lines="42" data-code-annotation="7"><strong><code>router.generate_str()</code></strong> auto-routes and executes in one call — the router picks the best destination and runs it.</span>
 </dd>
 </dl>
 </section>
@@ -1342,20 +1345,20 @@ Note
 <li><strong>Notifications</strong> — server-pushed events make it through the runtime.</li>
 </ul>
 <p>Server configuration is declarative — YAML or Python:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># mcp_agent.config.yaml</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mcp</span><span class="kw">:</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">servers</span><span class="kw">:</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">brave-search</span><span class="kw">:</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">command</span><span class="kw">:</span><span class="at"> </span><span class="st">"npx"</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">args</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">"-y"</span><span class="kw">,</span><span class="at"> </span><span class="st">"@modelcontextprotocol/server-brave-search"</span><span class="kw">]</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">env</span><span class="kw">:</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">BRAVE_API_KEY</span><span class="kw">:</span><span class="at"> </span><span class="st">"${BRAVE_API_KEY}"</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">filesystem</span><span class="kw">:</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">command</span><span class="kw">:</span><span class="at"> </span><span class="st">"npx"</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">args</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">"-y"</span><span class="kw">,</span><span class="at"> </span><span class="st">"@modelcontextprotocol/server-filesystem"</span><span class="kw">,</span><span class="at"> </span><span class="st">"/tmp"</span><span class="kw">]</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="fu">anthropic</span><span class="kw">:</span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">default_model</span><span class="kw">:</span><span class="at"> </span><span class="st">"claude-sonnet-4-6"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># mcp_agent.config.yaml</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mcp</span><span class="kw">:</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">servers</span><span class="kw">:</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">brave-search</span><span class="kw">:</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">command</span><span class="kw">:</span><span class="at"> </span><span class="st">"npx"</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">args</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">"-y"</span><span class="kw">,</span><span class="at"> </span><span class="st">"@modelcontextprotocol/server-brave-search"</span><span class="kw">]</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">env</span><span class="kw">:</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">BRAVE_API_KEY</span><span class="kw">:</span><span class="at"> </span><span class="st">"${BRAVE_API_KEY}"</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">filesystem</span><span class="kw">:</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">command</span><span class="kw">:</span><span class="at"> </span><span class="st">"npx"</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">args</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">"-y"</span><span class="kw">,</span><span class="at"> </span><span class="st">"@modelcontextprotocol/server-filesystem"</span><span class="kw">,</span><span class="at"> </span><span class="st">"/tmp"</span><span class="kw">]</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="fu">anthropic</span><span class="kw">:</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">default_model</span><span class="kw">:</span><span class="at"> </span><span class="st">"claude-sonnet-4-6"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Or equivalently in Python:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-26"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-26-1"><a href="#annotated-cell-26-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mcp_agent.config <span class="im">import</span> Settings, MCPSettings, MCPServerSettings</span>
 <span id="annotated-cell-26-2"><a href="#annotated-cell-26-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -1594,87 +1597,88 @@ Note
 </section>
 <section id="sec-prod-mcp-agent-example" class="level3" data-number="8.4.2">
 <h3 data-number="8.4.2" class="anchored" data-anchor-id="sec-prod-mcp-agent-example"><span class="header-section-number">8.4.2</span> mcp-agent version</h3>
-<p>The mcp-agent version uses the <strong>Router</strong> pattern with an MCP search server:</p>
+<p>The mcp-agent version uses the <strong>Router</strong> pattern with an MCP search server. Note that <code>MCPApp(settings=...)</code> accepts a <code>Settings</code> <em>object</em> or a YAML path — not a raw dict; passing <code>{...}</code> here would fail at attribute access time:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-29"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-29-1"><a href="#annotated-cell-29-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> asyncio</span>
 <span id="annotated-cell-29-2"><a href="#annotated-cell-29-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mcp_agent.app <span class="im">import</span> MCPApp</span>
 <span id="annotated-cell-29-3"><a href="#annotated-cell-29-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mcp_agent.agents.agent <span class="im">import</span> Agent</span>
 <span id="annotated-cell-29-4"><a href="#annotated-cell-29-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mcp_agent.workflows.factory <span class="im">import</span> create_router_llm</span>
-<span id="annotated-cell-29-5"><a href="#annotated-cell-29-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-29-6"><a href="#annotated-cell-29-6" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> MCPApp(</span>
-<span id="annotated-cell-29-7"><a href="#annotated-cell-29-7" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">"qa-bot"</span>,</span>
-<span id="annotated-cell-29-8"><a href="#annotated-cell-29-8" aria-hidden="true" tabindex="-1"></a>    settings<span class="op">=</span>{</span>
-<span id="annotated-cell-29-9"><a href="#annotated-cell-29-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">"mcp"</span>: {</span>
-<span id="annotated-cell-29-10"><a href="#annotated-cell-29-10" aria-hidden="true" tabindex="-1"></a>            <span class="st">"servers"</span>: {</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-29" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-29-11" class="code-annotation-target"><a href="#annotated-cell-29-11" aria-hidden="true" tabindex="-1"></a>                <span class="st">"brave-search"</span>: {</span>
-<span id="annotated-cell-29-12"><a href="#annotated-cell-29-12" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"command"</span>: <span class="st">"npx"</span>,</span>
-<span id="annotated-cell-29-13"><a href="#annotated-cell-29-13" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"args"</span>: [<span class="st">"-y"</span>, <span class="st">"@modelcontextprotocol/server-brave-search"</span>],</span>
-<span id="annotated-cell-29-14"><a href="#annotated-cell-29-14" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"env"</span>: {<span class="st">"BRAVE_API_KEY"</span>: <span class="st">"$</span><span class="sc">{BRAVE_API_KEY}</span><span class="st">"</span>},</span>
-<span id="annotated-cell-29-15"><a href="#annotated-cell-29-15" aria-hidden="true" tabindex="-1"></a>                }</span>
-<span id="annotated-cell-29-16"><a href="#annotated-cell-29-16" aria-hidden="true" tabindex="-1"></a>            }</span>
-<span id="annotated-cell-29-17"><a href="#annotated-cell-29-17" aria-hidden="true" tabindex="-1"></a>        }</span>
-<span id="annotated-cell-29-18"><a href="#annotated-cell-29-18" aria-hidden="true" tabindex="-1"></a>    },</span>
-<span id="annotated-cell-29-19"><a href="#annotated-cell-29-19" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="annotated-cell-29-20"><a href="#annotated-cell-29-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-29-21"><a href="#annotated-cell-29-21" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> main():</span>
-<span id="annotated-cell-29-22"><a href="#annotated-cell-29-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">async</span> <span class="cf">with</span> app.run() <span class="im">as</span> running_app:</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-29" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-29-23" class="code-annotation-target"><a href="#annotated-cell-29-23" aria-hidden="true" tabindex="-1"></a>        researcher <span class="op">=</span> Agent(</span>
-<span id="annotated-cell-29-24"><a href="#annotated-cell-29-24" aria-hidden="true" tabindex="-1"></a>            name<span class="op">=</span><span class="st">"researcher"</span>,</span>
-<span id="annotated-cell-29-25"><a href="#annotated-cell-29-25" aria-hidden="true" tabindex="-1"></a>            instruction<span class="op">=</span><span class="st">"Use search to gather evidence. "</span></span>
-<span id="annotated-cell-29-26"><a href="#annotated-cell-29-26" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"Return a structured brief with sources."</span>,</span>
-<span id="annotated-cell-29-27"><a href="#annotated-cell-29-27" aria-hidden="true" tabindex="-1"></a>            server_names<span class="op">=</span>[<span class="st">"brave-search"</span>],</span>
-<span id="annotated-cell-29-28"><a href="#annotated-cell-29-28" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="annotated-cell-29-29"><a href="#annotated-cell-29-29" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-29" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-29-30" class="code-annotation-target"><a href="#annotated-cell-29-30" aria-hidden="true" tabindex="-1"></a>        synthesizer <span class="op">=</span> Agent(</span>
-<span id="annotated-cell-29-31"><a href="#annotated-cell-29-31" aria-hidden="true" tabindex="-1"></a>            name<span class="op">=</span><span class="st">"synthesizer"</span>,</span>
-<span id="annotated-cell-29-32"><a href="#annotated-cell-29-32" aria-hidden="true" tabindex="-1"></a>            instruction<span class="op">=</span><span class="st">"Answer the user's question grounded "</span></span>
-<span id="annotated-cell-29-33"><a href="#annotated-cell-29-33" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"in the provided research."</span>,</span>
-<span id="annotated-cell-29-34"><a href="#annotated-cell-29-34" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="annotated-cell-29-35"><a href="#annotated-cell-29-35" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-29" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-29-36" class="code-annotation-target"><a href="#annotated-cell-29-36" aria-hidden="true" tabindex="-1"></a>        direct_answerer <span class="op">=</span> Agent(</span>
-<span id="annotated-cell-29-37"><a href="#annotated-cell-29-37" aria-hidden="true" tabindex="-1"></a>            name<span class="op">=</span><span class="st">"direct_answerer"</span>,</span>
-<span id="annotated-cell-29-38"><a href="#annotated-cell-29-38" aria-hidden="true" tabindex="-1"></a>            instruction<span class="op">=</span><span class="st">"Answer simple conversational questions "</span></span>
-<span id="annotated-cell-29-39"><a href="#annotated-cell-29-39" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"that don't require research."</span>,</span>
-<span id="annotated-cell-29-40"><a href="#annotated-cell-29-40" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="annotated-cell-29-41"><a href="#annotated-cell-29-41" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-29" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-29-42" class="code-annotation-target"><a href="#annotated-cell-29-42" aria-hidden="true" tabindex="-1"></a>        router <span class="op">=</span> <span class="cf">await</span> create_router_llm(</span>
-<span id="annotated-cell-29-43"><a href="#annotated-cell-29-43" aria-hidden="true" tabindex="-1"></a>            agents<span class="op">=</span>[researcher, synthesizer, direct_answerer],</span>
-<span id="annotated-cell-29-44"><a href="#annotated-cell-29-44" aria-hidden="true" tabindex="-1"></a>            routing_instruction<span class="op">=</span><span class="st">"Route factual questions to researcher, "</span></span>
-<span id="annotated-cell-29-45"><a href="#annotated-cell-29-45" aria-hidden="true" tabindex="-1"></a>                               <span class="st">"then synthesizer. Route conversational "</span></span>
-<span id="annotated-cell-29-46"><a href="#annotated-cell-29-46" aria-hidden="true" tabindex="-1"></a>                               <span class="st">"questions to direct_answerer."</span>,</span>
-<span id="annotated-cell-29-47"><a href="#annotated-cell-29-47" aria-hidden="true" tabindex="-1"></a>            provider<span class="op">=</span><span class="st">"anthropic"</span>,</span>
-<span id="annotated-cell-29-48"><a href="#annotated-cell-29-48" aria-hidden="true" tabindex="-1"></a>            context<span class="op">=</span>running_app.context,</span>
-<span id="annotated-cell-29-49"><a href="#annotated-cell-29-49" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="annotated-cell-29-50"><a href="#annotated-cell-29-50" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-29" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-29-51" class="code-annotation-target"><a href="#annotated-cell-29-51" aria-hidden="true" tabindex="-1"></a>        answer <span class="op">=</span> <span class="cf">await</span> router.generate_str(</span>
-<span id="annotated-cell-29-52"><a href="#annotated-cell-29-52" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Who won the 2024 Physics Nobel and what was it for?"</span></span>
-<span id="annotated-cell-29-53"><a href="#annotated-cell-29-53" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="annotated-cell-29-54"><a href="#annotated-cell-29-54" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(answer)</span>
-<span id="annotated-cell-29-55"><a href="#annotated-cell-29-55" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-29-56"><a href="#annotated-cell-29-56" aria-hidden="true" tabindex="-1"></a>asyncio.run(main())</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="annotated-cell-29-5"><a href="#annotated-cell-29-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mcp_agent.config <span class="im">import</span> Settings, MCPSettings, MCPServerSettings</span>
+<span id="annotated-cell-29-6"><a href="#annotated-cell-29-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-29-7"><a href="#annotated-cell-29-7" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> MCPApp(</span>
+<span id="annotated-cell-29-8"><a href="#annotated-cell-29-8" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">"qa-bot"</span>,</span>
+<span id="annotated-cell-29-9"><a href="#annotated-cell-29-9" aria-hidden="true" tabindex="-1"></a>    settings<span class="op">=</span>Settings(</span>
+<span id="annotated-cell-29-10"><a href="#annotated-cell-29-10" aria-hidden="true" tabindex="-1"></a>        mcp<span class="op">=</span>MCPSettings(</span>
+<span id="annotated-cell-29-11"><a href="#annotated-cell-29-11" aria-hidden="true" tabindex="-1"></a>            servers<span class="op">=</span>{</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-29" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-29-12" class="code-annotation-target"><a href="#annotated-cell-29-12" aria-hidden="true" tabindex="-1"></a>                <span class="st">"brave-search"</span>: MCPServerSettings(</span>
+<span id="annotated-cell-29-13"><a href="#annotated-cell-29-13" aria-hidden="true" tabindex="-1"></a>                    command<span class="op">=</span><span class="st">"npx"</span>,</span>
+<span id="annotated-cell-29-14"><a href="#annotated-cell-29-14" aria-hidden="true" tabindex="-1"></a>                    args<span class="op">=</span>[<span class="st">"-y"</span>, <span class="st">"@modelcontextprotocol/server-brave-search"</span>],</span>
+<span id="annotated-cell-29-15"><a href="#annotated-cell-29-15" aria-hidden="true" tabindex="-1"></a>                    env<span class="op">=</span>{<span class="st">"BRAVE_API_KEY"</span>: <span class="st">"$</span><span class="sc">{BRAVE_API_KEY}</span><span class="st">"</span>},</span>
+<span id="annotated-cell-29-16"><a href="#annotated-cell-29-16" aria-hidden="true" tabindex="-1"></a>                ),</span>
+<span id="annotated-cell-29-17"><a href="#annotated-cell-29-17" aria-hidden="true" tabindex="-1"></a>            }</span>
+<span id="annotated-cell-29-18"><a href="#annotated-cell-29-18" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="annotated-cell-29-19"><a href="#annotated-cell-29-19" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="annotated-cell-29-20"><a href="#annotated-cell-29-20" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="annotated-cell-29-21"><a href="#annotated-cell-29-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-29-22"><a href="#annotated-cell-29-22" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> main():</span>
+<span id="annotated-cell-29-23"><a href="#annotated-cell-29-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">async</span> <span class="cf">with</span> app.run() <span class="im">as</span> running_app:</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-29" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-29-24" class="code-annotation-target"><a href="#annotated-cell-29-24" aria-hidden="true" tabindex="-1"></a>        researcher <span class="op">=</span> Agent(</span>
+<span id="annotated-cell-29-25"><a href="#annotated-cell-29-25" aria-hidden="true" tabindex="-1"></a>            name<span class="op">=</span><span class="st">"researcher"</span>,</span>
+<span id="annotated-cell-29-26"><a href="#annotated-cell-29-26" aria-hidden="true" tabindex="-1"></a>            instruction<span class="op">=</span><span class="st">"Use search to gather evidence. "</span></span>
+<span id="annotated-cell-29-27"><a href="#annotated-cell-29-27" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"Return a structured brief with sources."</span>,</span>
+<span id="annotated-cell-29-28"><a href="#annotated-cell-29-28" aria-hidden="true" tabindex="-1"></a>            server_names<span class="op">=</span>[<span class="st">"brave-search"</span>],</span>
+<span id="annotated-cell-29-29"><a href="#annotated-cell-29-29" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="annotated-cell-29-30"><a href="#annotated-cell-29-30" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-29" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-29-31" class="code-annotation-target"><a href="#annotated-cell-29-31" aria-hidden="true" tabindex="-1"></a>        synthesizer <span class="op">=</span> Agent(</span>
+<span id="annotated-cell-29-32"><a href="#annotated-cell-29-32" aria-hidden="true" tabindex="-1"></a>            name<span class="op">=</span><span class="st">"synthesizer"</span>,</span>
+<span id="annotated-cell-29-33"><a href="#annotated-cell-29-33" aria-hidden="true" tabindex="-1"></a>            instruction<span class="op">=</span><span class="st">"Answer the user's question grounded "</span></span>
+<span id="annotated-cell-29-34"><a href="#annotated-cell-29-34" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"in the provided research."</span>,</span>
+<span id="annotated-cell-29-35"><a href="#annotated-cell-29-35" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="annotated-cell-29-36"><a href="#annotated-cell-29-36" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-29" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-29-37" class="code-annotation-target"><a href="#annotated-cell-29-37" aria-hidden="true" tabindex="-1"></a>        direct_answerer <span class="op">=</span> Agent(</span>
+<span id="annotated-cell-29-38"><a href="#annotated-cell-29-38" aria-hidden="true" tabindex="-1"></a>            name<span class="op">=</span><span class="st">"direct_answerer"</span>,</span>
+<span id="annotated-cell-29-39"><a href="#annotated-cell-29-39" aria-hidden="true" tabindex="-1"></a>            instruction<span class="op">=</span><span class="st">"Answer simple conversational questions "</span></span>
+<span id="annotated-cell-29-40"><a href="#annotated-cell-29-40" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"that don't require research."</span>,</span>
+<span id="annotated-cell-29-41"><a href="#annotated-cell-29-41" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="annotated-cell-29-42"><a href="#annotated-cell-29-42" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-29" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-29-43" class="code-annotation-target"><a href="#annotated-cell-29-43" aria-hidden="true" tabindex="-1"></a>        router <span class="op">=</span> <span class="cf">await</span> create_router_llm(</span>
+<span id="annotated-cell-29-44"><a href="#annotated-cell-29-44" aria-hidden="true" tabindex="-1"></a>            agents<span class="op">=</span>[researcher, synthesizer, direct_answerer],</span>
+<span id="annotated-cell-29-45"><a href="#annotated-cell-29-45" aria-hidden="true" tabindex="-1"></a>            routing_instruction<span class="op">=</span><span class="st">"Route factual questions to researcher, "</span></span>
+<span id="annotated-cell-29-46"><a href="#annotated-cell-29-46" aria-hidden="true" tabindex="-1"></a>                               <span class="st">"then synthesizer. Route conversational "</span></span>
+<span id="annotated-cell-29-47"><a href="#annotated-cell-29-47" aria-hidden="true" tabindex="-1"></a>                               <span class="st">"questions to direct_answerer."</span>,</span>
+<span id="annotated-cell-29-48"><a href="#annotated-cell-29-48" aria-hidden="true" tabindex="-1"></a>            provider<span class="op">=</span><span class="st">"anthropic"</span>,</span>
+<span id="annotated-cell-29-49"><a href="#annotated-cell-29-49" aria-hidden="true" tabindex="-1"></a>            context<span class="op">=</span>running_app.context,</span>
+<span id="annotated-cell-29-50"><a href="#annotated-cell-29-50" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="annotated-cell-29-51"><a href="#annotated-cell-29-51" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-29" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-29-52" class="code-annotation-target"><a href="#annotated-cell-29-52" aria-hidden="true" tabindex="-1"></a>        answer <span class="op">=</span> <span class="cf">await</span> router.generate_str(</span>
+<span id="annotated-cell-29-53"><a href="#annotated-cell-29-53" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Who won the 2024 Physics Nobel and what was it for?"</span></span>
+<span id="annotated-cell-29-54"><a href="#annotated-cell-29-54" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="annotated-cell-29-55"><a href="#annotated-cell-29-55" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(answer)</span>
+<span id="annotated-cell-29-56"><a href="#annotated-cell-29-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-29-57"><a href="#annotated-cell-29-57" aria-hidden="true" tabindex="-1"></a>asyncio.run(main())</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-29" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-29" data-code-lines="11" data-code-annotation="1"><strong>MCP server is declarative.</strong> The Brave Search server is started, supervised, and authenticated by mcp-agent.</span>
+<span data-code-cell="annotated-cell-29" data-code-lines="12" data-code-annotation="1"><strong>MCP server is declarative.</strong> The Brave Search server is started, supervised, and authenticated by mcp-agent.</span>
 </dd>
 <dt data-target-cell="annotated-cell-29" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-29" data-code-lines="23" data-code-annotation="2"><strong>Researcher agent</strong> gets the MCP server. It has tools; the others don’t.</span>
+<span data-code-cell="annotated-cell-29" data-code-lines="24" data-code-annotation="2"><strong>Researcher agent</strong> gets the MCP server. It has tools; the others don’t.</span>
 </dd>
 <dt data-target-cell="annotated-cell-29" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-29" data-code-lines="30" data-code-annotation="3"><strong>Synthesizer</strong> receives the researcher’s output and produces the grounded answer.</span>
+<span data-code-cell="annotated-cell-29" data-code-lines="31" data-code-annotation="3"><strong>Synthesizer</strong> receives the researcher’s output and produces the grounded answer.</span>
 </dd>
 <dt data-target-cell="annotated-cell-29" data-target-annotation="4">4</dt>
 <dd>
-<span data-code-cell="annotated-cell-29" data-code-lines="36" data-code-annotation="4"><strong>Direct answerer</strong> handles simple queries without research — the router skips the expensive path.</span>
+<span data-code-cell="annotated-cell-29" data-code-lines="37" data-code-annotation="4"><strong>Direct answerer</strong> handles simple queries without research — the router skips the expensive path.</span>
 </dd>
 <dt data-target-cell="annotated-cell-29" data-target-annotation="5">5</dt>
 <dd>
-<span data-code-cell="annotated-cell-29" data-code-lines="42" data-code-annotation="5"><strong><code>create_router_llm</code></strong> returns a Router <code>AugmentedLLM</code>. The routing decision happens inside <code>generate_str</code>.</span>
+<span data-code-cell="annotated-cell-29" data-code-lines="43" data-code-annotation="5"><strong><code>create_router_llm</code></strong> returns a Router <code>AugmentedLLM</code>. The routing decision happens inside <code>generate_str</code>.</span>
 </dd>
 <dt data-target-cell="annotated-cell-29" data-target-annotation="6">6</dt>
 <dd>
-<span data-code-cell="annotated-cell-29" data-code-lines="51" data-code-annotation="6"><strong>One call</strong> — the router picks the agent, runs it, and returns the result.</span>
+<span data-code-cell="annotated-cell-29" data-code-lines="52" data-code-annotation="6"><strong>One call</strong> — the router picks the agent, runs it, and returns the result.</span>
 </dd>
 </dl>
 <p>The shape difference is the actual decision the comparison is helping you make:</p>
