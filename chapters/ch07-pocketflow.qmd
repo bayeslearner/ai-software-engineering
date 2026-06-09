@@ -4,7 +4,7 @@ subtitle: "PocketFlow's 100-Line Framework and Burr + Pydantic's Production Guar
 author: "AI-Powered SE Tutorial"
 date: today
 abstract: |
-  Chapters 5 and 6 showed how to embed and build Claude's loop — but it's still Claude's loop. What if you want to build agents with any LLM, any tools, any orchestration logic? PocketFlow proves this takes ~100 lines of code. Its minimalist Graph + Shared Store model strips agents to their essence: nodes that prep, execute, and post-process, connected by action edges. This chapter builds three patterns (workflow, agent, RAG) in PocketFlow, showing that the hard part was never the framework — it was the design. Then it graduates to the production version of the same model: **Burr + Pydantic** replaces the mutable shared dict with typed state, immutable snapshots, and fork-from-state replay — the guardrails that turn a learning exercise into a deployable system.
+  Chapters 5 and 6 showed how to embed and build Claude's loop — but it's still Claude's loop. What if you want to build agents with any LLM, any tools, any orchestration logic? PocketFlow proves this takes ~100 lines of code. Its minimalist Graph + Shared Store model strips agents to their essence: nodes that prep, execute, and post-process, connected by action edges. This chapter builds three patterns (workflow, agent, RAG) in PocketFlow, showing that the hard part was never the framework — it was the design. Then it graduates to *a* production-grade version of the same model: **Burr + Pydantic** replaces the mutable shared dict with typed state, immutable snapshots, and fork-from-state replay — the guardrails that turn a learning exercise into a deployable system. Burr is one well-chosen option, not the only one; the chapter ends with an honest comparison to **LangGraph**, the larger-ecosystem alternative for the same job.
 ---
 
 ## Why Build from Scratch? {#sec-pf-why}
@@ -472,7 +472,7 @@ PocketFlow's mutable shared dictionary is great for learning but a liability at 
 
 The mental model — state machine over actions — is the right one. What's missing are the production guardrails: typed contracts on state, immutable snapshots, fork-from-state replay, and observability that doesn't rely on print statements.
 
-The rest of this chapter takes that exact model and upgrades it with **Burr + Pydantic** — the production version of everything PocketFlow teaches. Chapter 8 covers two more production frameworks (**Agno** and **mcp-agent**) that solve adjacent problems — batteries-included multi-agent orchestration and MCP-native pattern composition. Chapter 9 covers **Mastra**, the TypeScript equivalent for teams working in that ecosystem.
+The rest of this chapter takes that exact model and hardens it with **Burr + Pydantic** — one production-grade implementation of everything PocketFlow teaches. It's a deliberate teaching choice: Burr's actions, typed state, and fork-from-state replay make the production *concepts* unusually legible, and they transfer even if you later ship on a different framework. The biggest of those alternatives is **LangGraph**, which does the same job with a much larger ecosystem; we compare the two head-to-head in @sec-prod-burr-vs-langgraph. Chapter 8 covers two more production frameworks (**Agno** and **mcp-agent**) that solve adjacent problems — batteries-included multi-agent orchestration and MCP-native pattern composition. Chapter 9 covers **Mastra**, the TypeScript equivalent for teams working in that ecosystem.
 
 ```{mermaid}
 %%| fig-cap: "From learning to shipping — PocketFlow's model, production-hardened by Burr"
@@ -497,7 +497,11 @@ flowchart TD
 
 [Apache Burr](https://burr.dagworks.io/) (incubating) preserves PocketFlow's mental model — a state machine over actions — but replaces every loose part with a guardrail. The mutable shared dict becomes an immutable `State`. The `prep → exec → post` lifecycle becomes an `@action` that declares its `reads` and `writes`. The hand-drawn flow diagram becomes a graph you can ask the framework to draw for you.
 
-And — the key reason we're treating Burr as the typed upgrade — it has a first-class Pydantic integration. You can declare your state as a `BaseModel`, attach it to the application, and write actions that take a typed state object instead of a string-keyed dict. The IDE autocompletes the fields. Pydantic validates writes. The "any action can corrupt any key" problem becomes a typed-attribute problem.
+And — a key reason we reach for Burr as the typed upgrade — it has a first-class Pydantic integration. You can declare your state as a `BaseModel`, attach it to the application, and write actions that take a typed state object instead of a string-keyed dict. The IDE autocompletes the fields. Pydantic validates writes. The "any action can corrupt any key" problem becomes a typed-attribute problem.
+
+::: {.callout-note title="Burr here is illustrative, not prescriptive"}
+We build on Burr because its actions-and-transitions model makes the production concepts in this section — typed state contracts, immutable snapshots, replay debugging — exceptionally clear, and because its observability and fork-from-state are strong out of the box and fully self-hosted. For many teams the right default is instead **LangGraph**, whose ecosystem and community are far larger. Read this section for the *concepts*; they carry over either way. @sec-prod-burr-vs-langgraph lays out exactly when to pick which.
+:::
 
 ### The core API
 
@@ -719,7 +723,7 @@ Burr is currently in the Apache Software Foundation incubator. The library is st
 
 ## Worked Example: Q&A Agent in Burr + Pydantic {#sec-prod-burr-example}
 
-Earlier in this chapter we built a Q&A agent in PocketFlow: a `DecideAction` node returning `"search"` or `"answer"`, a `SearchWeb` node, and an `Answer` node. Now let's port it to Burr + Pydantic and see what the production version of the same logic looks like.
+Earlier in this chapter we built a Q&A agent in PocketFlow: a `DecideAction` node returning `"search"` or `"answer"`, a `SearchWeb` node, and an `Answer` node. Now let's port it to Burr + Pydantic and see what a production-grade version of the same logic looks like.
 
 ### The state schema
 
@@ -831,6 +835,161 @@ The PocketFlow version was roughly the same number of lines, but the Burr versio
 
 The shape is identical — decide/search/answer with edges encoding the loop. The difference is entirely in what the framework guarantees about the state flowing through that shape.
 
+## Beyond the Worked Example: Burr's Feature Set {#sec-prod-burr-features}
+
+The Q&A agent used Burr's spine — actions, typed state, transitions, persistence. Production agents need more than a spine. This section tours the features that turn it into a deployable system, each grounded in [Burr's documentation](https://burr.dagworks.io/). None of them change the mental model; they hang off the same actions-and-transitions machine you already have.
+
+### Lifecycle hooks: cross-cutting logic without touching actions {#sec-prod-burr-hooks}
+
+An action should do one job. But production has concerns that cut across *every* action — structured logging, latency and token-cost metrics, PII redaction, a "pause here for approval" gate. Threading those into each action body duplicates code and buries the business logic. Burr's answer is **lifecycle hooks**: small classes whose methods fire at fixed points in the run.
+
+```python
+from typing import Any, Optional
+from burr.core import Action, State
+from burr.lifecycle import PreRunStepHook, PostRunStepHook
+
+class TracingHook(PreRunStepHook, PostRunStepHook):                  # <1>
+    def pre_run_step(self, *, state: State, action: Action,
+                     **future_kwargs: Any):                          # <2>
+        print(f"▶ {action.name}  reads={action.reads}")
+
+    def post_run_step(self, *, state: State, action: Action,
+                      result: Optional[dict], sequence_id: int,
+                      exception: Exception, **future_kwargs: Any):   # <3>
+        if exception:
+            print(f"✗ {action.name} raised {exception!r}")
+        else:
+            print(f"✓ {action.name}  wrote={action.writes}  seq={sequence_id}")
+
+# register at build time — hooks see every action, no action knows they exist
+app = ApplicationBuilder().with_actions(...).with_hooks(TracingHook()).build()  # <4>
+```
+1. **A hook subclasses one or more hook protocols.** `PreRunStepHook` + `PostRunStepHook` are the two you reach for most; the family also includes `PostApplicationCreateHook`, `PreRunApplicationHook`/`PostRunApplicationHook` (around the whole run), and `PostEndStreamHook` for streaming.
+2. **`pre_run_step` fires before each action.** Always accept `**future_kwargs` — Burr adds keyword arguments over time, and this keeps your hook forward-compatible.
+3. **`post_run_step` fires after each action** and receives the `result`, the `sequence_id` (the snapshot number you'd fork from), and any `exception`. This is exactly where a cost meter, an OpenTelemetry span, or a Datadog metric goes.
+4. **`with_hooks(...)` registers them.** The actions stay pure; the cross-cutting concern lives in one place. This is the idiomatic way to bolt observability vendors onto Burr without editing a single action body.
+
+### Streaming: token-by-token without losing typed state {#sec-prod-burr-streaming}
+
+The worked example returned the answer all at once. For a chat UI you want tokens as they arrive — but you still want the final, validated state snapshot for persistence and replay. Burr's streaming actions give you both: yield partial chunks during generation, then a final yield carries the state update.
+
+```python
+from typing import AsyncGenerator
+from burr.core.action import StreamingAction
+
+class StreamingAnswer(StreamingAction):
+    async def stream_run(self, state: State, **kwargs) -> AsyncGenerator[dict, None]:
+        buffer = []
+        async for delta in llm.astream(state["query"]):   # <1>
+            buffer.append(delta)
+            yield {"response": delta}                      # <2>
+        yield {"response": "".join(buffer)}               # <3>
+
+    @property
+    def reads(self):  return ["query"]
+    @property
+    def writes(self): return ["answer"]
+    def update(self, result: dict, state: State) -> State:
+        return state.update(answer=result["response"])    # <4>
+```
+1. **`stream_run` is an async generator.** Each `yield` is a partial result pushed to the caller.
+2. **Intermediate chunks** drive the UI — print them, send them over a websocket.
+3. **The last yield is the complete value** that `update` will commit. Burr distinguishes "still streaming" from "done" by the generator finishing.
+4. **`update` runs once at the end** and produces the immutable snapshot — so streaming output and the replayable state contract coexist. The typed sibling is `@streaming_action.pydantic` (with `state_input_type`, `state_output_type`, `stream_type`), which streams *partial Pydantic objects* via Instructor.
+
+Consume it with the `stream_result` variant of `run` (the third sibling alongside `run` and `iterate` mentioned in @sec-prod-burr — §7.9.1):
+
+```python
+action, container = app.stream_result(halt_after=["generate"], inputs={"query": q})
+for partial in container:        # tokens as they arrive
+    print(partial["response"], end="", flush=True)
+_, _, state = container.get()    # final, committed state once the stream closes
+```
+
+### Human-in-the-loop: halt, inspect, resume {#sec-prod-burr-hitl}
+
+HITL in Burr is **not** a hook — it's the halting API plus the persister. You tell `run` to stop *before* a side-effecting action, inspect the proposed action, get a human decision, then resume the same application past the gate. Because the persister already snapshotted the state, the human can approve an hour later from a different process.
+
+```python
+# 1. Stop BEFORE the risky step — nothing irreversible has happened yet
+action, result, state = app.run(halt_before=["execute_trade"])     # <1>
+
+# 2. State is fully serialized by the persister — show the human what's pending
+proposed = state.data.proposed_trade
+if get_human_approval(proposed):                                   # <2>
+    # 3. Resume the SAME app, now allowed past the gate, feeding the decision in
+    action, result, state = app.run(halt_after=["execute_trade"],
+                                    inputs={"approved": True})      # <3>
+```
+1. **`halt_before=["execute_trade"]`** runs the loop right up to — but not into — the named action, and returns control. `halt_after` is its sibling for "stop once this completes."
+2. **The gate is your code, not Burr's.** Burr's job is to *pause cleanly with the full state available*; the approval channel (a web form, a Slack button, a CLI prompt) is yours.
+3. **Resuming is just another `run`** with `inputs` supplying the human's answer. With persistence on, this can be a brand-new process — load the app from the snapshot (`initialize_from`, @sec-prod-burr-replay) and continue. That's what makes Burr HITL work for a deployed web service, not just a notebook.
+
+### Observability: a built-in UI, plus OpenTelemetry {#sec-prod-burr-otel}
+
+This is Burr's clearest advantage, and the row most worth getting right in the comparison below. Burr ships its **own open-source tracking server** — you do not wire up a third-party SaaS to see traces.
+
+```python
+app = (
+    ApplicationBuilder()
+    .with_actions(...)
+    .with_tracker("local", project="qa-agent")   # <1>
+    .build()
+)
+# then, in a terminal:  `burr`  → opens the UI at http://localhost:7241
+```
+1. **`with_tracker("local", project=...)`** streams every run, action, and state snapshot to the local tracking store. The bundled `burr` CLI launches the dashboard — the same graph view, run timeline, state diff, and fork button from @sec-prod-burr-ui, now fed live.
+
+On top of the built-in UI, Burr has **two** OpenTelemetry integrations: it can (1) export its own action-level traces to any OTel backend, and (2) capture OTel spans created *inside* an action — e.g. by an auto-instrumented LLM SDK — and nest them under that step. The result is one timeline that shows the agent's decisions *and* the HTTP calls underneath them. By contrast, LangGraph's first-party tracing UI is **LangSmith, a commercial hosted service** (it also speaks OTel); Burr's equivalent is OSS and self-hosted.
+
+### Testing: fixtures captured from real runs {#sec-prod-burr-testing}
+
+Because every action is pure — `State` in, `State` out — you can unit-test one in isolation without standing up the whole graph. Burr ships a pytest helper that parametrizes a test from a JSON fixture of expected input/output state (which you can capture straight from a real run via the tracker):
+
+```python
+import pytest
+from our_agent import decide
+from burr.core import state
+from burr.testing import pytest_generate_tests                     # <1>
+
+@pytest.mark.file_name("decide_search.json")                       # <2>
+def test_decide_routes_to_search(input_state, expected_state):
+    in_state  = state.State.deserialize(input_state)
+    out_state = decide(in_state, llm=fake_llm)                     # <3>
+    # exact match, or fuzzy/LLM-graded for non-deterministic fields
+    assert out_state["next_action"] == expected_state["next_action"]
+```
+1. **Importing `pytest_generate_tests`** activates Burr's file-based parametrization.
+2. **`@pytest.mark.file_name(...)`** points at a fixture holding `input_state` and `expected_state` — generated by serializing a captured snapshot, so your tests exercise real production states.
+3. **Call the action directly** with a stub LLM. No builder, no transitions, no I/O — the reads/writes contract is what makes this isolation sound.
+
+### Parallelism, briefly {#sec-prod-burr-parallel}
+
+When one step must fan out — summarize ten documents, query five tools, evaluate three candidate answers — Burr's [parallelism module](https://burr.dagworks.io/concepts/parallelism/) spawns sub-applications and gathers their states (map-reduce over state). It's the recursive case of the same model: an action whose body is itself a set of Burr runs. We don't use it for the Ralph loop (sequential by nature), but it's the right tool for batch agents.
+
+## Burr vs LangGraph {#sec-prod-burr-vs-langgraph}
+
+Burr's closest neighbor is **LangGraph** — the other open-source framework that models an agent as a stateful graph you can persist, replay, and inspect. If you're choosing between them, the differences are real but narrower than the marketing suggests: both express a state machine over an LLM loop, and both support persistence, streaming, human-in-the-loop, and replay. The split is about *defaults, ergonomics, and ecosystem*, not capability checkboxes.
+
+| Dimension | Burr | LangGraph |
+|---|---|---|
+| **Programming model** | Explicit FSM — `@action`s with declared `reads`/`writes`; edges are `(from, to, Condition)` tuples | Graph — nodes are functions; edges (incl. conditional) wire them, routing returns the next node |
+| **State** | Immutable `State`; one snapshot per step, automatic | Typed channels (`TypedDict`) with **reducers** you define for merge semantics |
+| **Observability** | **Built-in OSS tracking UI** + OpenTelemetry, self-hosted | LangSmith (commercial SaaS) or OpenTelemetry |
+| **Replay / time-travel** | `fork_from_sequence_id` — fork from any snapshot | Checkpointer + `update_state` time-travel — both support it |
+| **Human-in-the-loop** | `halt_before`/`halt_after` + `inputs` + persister | `interrupt()` / `Command(resume=...)` |
+| **Streaming** | Native (`StreamingAction`, `stream_result`) | Native (`stream`/`astream`, multiple modes) |
+| **Testing** | `burr.testing` pytest fixtures from captured runs | Standard Python — invoke nodes directly; no dedicated helpers |
+| **Learning curve** | Gentle — plain functions, explicit transitions | More moving parts — channels, reducers, the LangChain model |
+| **Ecosystem** | DAGWorks; sibling Hamilton for data pipelines; Apache incubating | LangChain ecosystem — LangSmith, LangServe, large integration surface |
+| **GitHub stars (early 2026)** | ~2k | ~34k |
+
+::: {.callout-note title="The numbers move — and a few common claims are wrong"}
+Star counts are a snapshot (Burr ~2k, LangGraph ~34k as of early 2026) and shift monthly — treat them as "small vs large community," not a scoreboard. Two corrections to the comparison you'll often see online: LangGraph **does** have replay (checkpointer time-travel), so it's not a Burr exclusive; and Burr's human-in-the-loop is the `halt_before` + persister mechanism above, **not** lifecycle hooks. Hooks are for cross-cutting concerns; halting is for HITL.
+:::
+
+The honest summary: **pick LangGraph if you already live in the LangChain ecosystem** — the integration surface, LangSmith, and a 34k-vs-2k community gap are decisive when you need a connector that already exists or a teammate who already knows the model. **Pick Burr when self-hosted observability and replay are first-order requirements** — the built-in UI and `fork_from_sequence_id` are more polished out of the box, and the actions-and-transitions model has fewer concepts to onboard a team into. For *this book's* purpose — a Ralph harness you need to debug when iteration 137 edits the wrong file — Burr's built-in tracing and fork-from-state are exactly why we reach for it. Neither is wrong; they optimize for different first problems, and porting the core FSM between them is a day's work because the surrounding ecosystem, not the loop, is the real lock-in.
+
 ## Forward Link: From Typed State to the Ralph Loop {#sec-prod-ralph}
 
 The next chapters introduce more frameworks and then Ralph — Geoffrey Huntley's minimal autonomous coding loop: load spec, select task, execute, observe, repeat. Burr and the frameworks in Chapters 8–9 are different layers of the same stack. They provide the *state machine*; Ralph provides the *loop shape* that runs on it.
@@ -850,8 +1009,10 @@ The book's path is: this chapter picks the state machine, Chapter 8 covers more 
 - PocketFlow proves that 100 lines of framework code can implement workflows, agents, RAG, and multi-agent systems
 - **The framework isn't the hard part — the design is.** Deciding what nodes to build, what actions to route, and what data to share requires engineering judgment that no framework eliminates
 - PocketFlow's mutable shared dict stops being enough when multiple developers share an agent, production failures need debugging, or you need audit trails
-- **Burr + Pydantic** is the production upgrade of the same model. `@action.pydantic`, `PydanticTypingSystem`, and immutable `state.update()` give compile-time-ish guarantees on state changes; `fork_from_sequence_id` is the production debugger
+- **Burr + Pydantic** is *one* production-grade implementation of the same model — chosen here because it makes the concepts legible and ships strong self-hosted observability. `@action.pydantic`, `PydanticTypingSystem`, and immutable `state.update()` give compile-time-ish guarantees on state changes; `fork_from_sequence_id` is the production debugger
 - The Burr UI provides graph visualization, run timelines, state diffs, and a fork button — the closest thing in open-source agents to a real debugger
+- Burr's production feature set hangs off the same actions-and-transitions spine: **lifecycle hooks** for cross-cutting concerns, **streaming actions** that keep typed state intact, **`halt_before` + persister** for human-in-the-loop, a **built-in OSS tracking UI** plus OpenTelemetry, and **pytest fixtures** for testing pure actions in isolation
+- **Burr vs LangGraph** comes down to defaults and ecosystem, not capability: LangGraph wins on community size (~34k vs ~2k stars) and the LangChain integration surface; Burr wins on self-hosted observability and fork-from-state replay out of the box
 - Chapter 8 covers **Agno** (batteries-included multi-agent platform) and **mcp-agent** (MCP-native pattern composition) — two more frameworks that solve adjacent production pressures
 
 ## Concept Map {#sec-pf-concept-map}
