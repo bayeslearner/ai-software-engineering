@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="AI-Powered SE Tutorial">
-<meta name="dcterms.date" content="2026-06-03">
+<meta name="dcterms.date" content="2026-06-09">
 
 <title>7&nbsp; Building Agents from Scratch — Then Shipping Them – AI-Powered Software Engineering</title>
 <style>
@@ -285,9 +285,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#transitions-and-persistence" id="toc-transitions-and-persistence" class="nav-link" data-scroll-target="#transitions-and-persistence"><span class="header-section-number">7.10.3</span> Transitions and persistence</a></li>
   <li><a href="#what-you-gained-over-pocketflow" id="toc-what-you-gained-over-pocketflow" class="nav-link" data-scroll-target="#what-you-gained-over-pocketflow"><span class="header-section-number">7.10.4</span> What you gained over PocketFlow</a></li>
   </ul></li>
-  <li><a href="#sec-prod-ralph" id="toc-sec-prod-ralph" class="nav-link" data-scroll-target="#sec-prod-ralph"><span class="header-section-number">7.11</span> Forward Link: From Typed State to the Ralph Loop</a></li>
-  <li><a href="#sec-pf-takeaways" id="toc-sec-pf-takeaways" class="nav-link" data-scroll-target="#sec-pf-takeaways"><span class="header-section-number">7.12</span> Key Takeaways</a></li>
-  <li><a href="#sec-pf-concept-map" id="toc-sec-pf-concept-map" class="nav-link" data-scroll-target="#sec-pf-concept-map"><span class="header-section-number">7.13</span> Concept Map</a></li>
+  <li><a href="#sec-prod-burr-features" id="toc-sec-prod-burr-features" class="nav-link" data-scroll-target="#sec-prod-burr-features"><span class="header-section-number">7.11</span> Beyond the Worked Example: Burr’s Feature Set</a>
+  <ul class="collapse">
+  <li><a href="#sec-prod-burr-hooks" id="toc-sec-prod-burr-hooks" class="nav-link" data-scroll-target="#sec-prod-burr-hooks"><span class="header-section-number">7.11.1</span> Lifecycle hooks: cross-cutting logic without touching actions</a></li>
+  <li><a href="#sec-prod-burr-streaming" id="toc-sec-prod-burr-streaming" class="nav-link" data-scroll-target="#sec-prod-burr-streaming"><span class="header-section-number">7.11.2</span> Streaming: token-by-token without losing typed state</a></li>
+  <li><a href="#sec-prod-burr-hitl" id="toc-sec-prod-burr-hitl" class="nav-link" data-scroll-target="#sec-prod-burr-hitl"><span class="header-section-number">7.11.3</span> Human-in-the-loop: halt, inspect, resume</a></li>
+  <li><a href="#sec-prod-burr-otel" id="toc-sec-prod-burr-otel" class="nav-link" data-scroll-target="#sec-prod-burr-otel"><span class="header-section-number">7.11.4</span> Observability: a built-in UI, plus OpenTelemetry</a></li>
+  <li><a href="#sec-prod-burr-testing" id="toc-sec-prod-burr-testing" class="nav-link" data-scroll-target="#sec-prod-burr-testing"><span class="header-section-number">7.11.5</span> Testing: fixtures captured from real runs</a></li>
+  <li><a href="#sec-prod-burr-parallel" id="toc-sec-prod-burr-parallel" class="nav-link" data-scroll-target="#sec-prod-burr-parallel"><span class="header-section-number">7.11.6</span> Parallelism, briefly</a></li>
+  </ul></li>
+  <li><a href="#sec-prod-burr-vs-langgraph" id="toc-sec-prod-burr-vs-langgraph" class="nav-link" data-scroll-target="#sec-prod-burr-vs-langgraph"><span class="header-section-number">7.12</span> Burr vs LangGraph</a></li>
+  <li><a href="#sec-prod-ralph" id="toc-sec-prod-ralph" class="nav-link" data-scroll-target="#sec-prod-ralph"><span class="header-section-number">7.13</span> Forward Link: From Typed State to the Ralph Loop</a></li>
+  <li><a href="#sec-pf-takeaways" id="toc-sec-pf-takeaways" class="nav-link" data-scroll-target="#sec-pf-takeaways"><span class="header-section-number">7.14</span> Key Takeaways</a></li>
+  <li><a href="#sec-pf-concept-map" id="toc-sec-pf-concept-map" class="nav-link" data-scroll-target="#sec-pf-concept-map"><span class="header-section-number">7.15</span> Concept Map</a></li>
   </ul>
 </nav>
     </div>
@@ -314,7 +324,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 3, 2026</p>
+      <p class="date">June 9, 2026</p>
     </div>
   </div>
   
@@ -324,7 +334,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div>
   <div class="abstract">
     <div class="block-title">Abstract</div>
-    <p>Chapters 5 and 6 showed how to embed and build Claude’s loop — but it’s still Claude’s loop. What if you want to build agents with any LLM, any tools, any orchestration logic? PocketFlow proves this takes ~100 lines of code. Its minimalist Graph + Shared Store model strips agents to their essence: nodes that prep, execute, and post-process, connected by action edges. This chapter builds three patterns (workflow, agent, RAG) in PocketFlow, showing that the hard part was never the framework — it was the design. Then it graduates to the production version of the same model: <strong>Burr + Pydantic</strong> replaces the mutable shared dict with typed state, immutable snapshots, and fork-from-state replay — the guardrails that turn a learning exercise into a deployable system.</p>
+    <p>Chapters 5 and 6 showed how to embed and build Claude’s loop — but it’s still Claude’s loop. What if you want to build agents with any LLM, any tools, any orchestration logic? PocketFlow proves this takes ~100 lines of code. Its minimalist Graph + Shared Store model strips agents to their essence: nodes that prep, execute, and post-process, connected by action edges. This chapter builds three patterns (workflow, agent, RAG) in PocketFlow, showing that the hard part was never the framework — it was the design. Then it graduates to <em>a</em> production-grade version of the same model: <strong>Burr + Pydantic</strong> replaces the mutable shared dict with typed state, immutable snapshots, and fork-from-state replay — the guardrails that turn a learning exercise into a deployable system. Burr is one well-chosen option, not the only one; the chapter ends with an honest comparison to <strong>LangGraph</strong>, the larger-ecosystem alternative for the same job.</p>
   </div>
 </div>
 
@@ -1102,7 +1112,7 @@ Note
 <li><strong>You need audit trails and reproducibility.</strong> Regulators, customers, or your own future self will ask “why did the agent do X?” Without immutable state snapshots, you can’t answer.</li>
 </ol>
 <p>The mental model — state machine over actions — is the right one. What’s missing are the production guardrails: typed contracts on state, immutable snapshots, fork-from-state replay, and observability that doesn’t rely on print statements.</p>
-<p>The rest of this chapter takes that exact model and upgrades it with <strong>Burr + Pydantic</strong> — the production version of everything PocketFlow teaches. Chapter 8 covers two more production frameworks (<strong>Agno</strong> and <strong>mcp-agent</strong>) that solve adjacent problems — batteries-included multi-agent orchestration and MCP-native pattern composition. Chapter 9 covers <strong>Mastra</strong>, the TypeScript equivalent for teams working in that ecosystem.</p>
+<p>The rest of this chapter takes that exact model and hardens it with <strong>Burr + Pydantic</strong> — one production-grade implementation of everything PocketFlow teaches. It’s a deliberate teaching choice: Burr’s actions, typed state, and fork-from-state replay make the production <em>concepts</em> unusually legible, and they transfer even if you later ship on a different framework. The biggest of those alternatives is <strong>LangGraph</strong>, which does the same job with a much larger ecosystem; we compare the two head-to-head in <a href="#sec-prod-burr-vs-langgraph" class="quarto-xref"><span>Section 7.12</span></a>. Chapter 8 covers two more production frameworks (<strong>Agno</strong> and <strong>mcp-agent</strong>) that solve adjacent problems — batteries-included multi-agent orchestration and MCP-native pattern composition. Chapter 9 covers <strong>Mastra</strong>, the TypeScript equivalent for teams working in that ecosystem.</p>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
@@ -1133,7 +1143,20 @@ Note
 <section id="sec-prod-burr" class="level2" data-number="7.9">
 <h2 data-number="7.9" class="anchored" data-anchor-id="sec-prod-burr"><span class="header-section-number">7.9</span> Burr + Pydantic: Typed FSM with Replay</h2>
 <p><a href="https://burr.dagworks.io/">Apache Burr</a> (incubating) preserves PocketFlow’s mental model — a state machine over actions — but replaces every loose part with a guardrail. The mutable shared dict becomes an immutable <code>State</code>. The <code>prep → exec → post</code> lifecycle becomes an <code>@action</code> that declares its <code>reads</code> and <code>writes</code>. The hand-drawn flow diagram becomes a graph you can ask the framework to draw for you.</p>
-<p>And — the key reason we’re treating Burr as the typed upgrade — it has a first-class Pydantic integration. You can declare your state as a <code>BaseModel</code>, attach it to the application, and write actions that take a typed state object instead of a string-keyed dict. The IDE autocompletes the fields. Pydantic validates writes. The “any action can corrupt any key” problem becomes a typed-attribute problem.</p>
+<p>And — a key reason we reach for Burr as the typed upgrade — it has a first-class Pydantic integration. You can declare your state as a <code>BaseModel</code>, attach it to the application, and write actions that take a typed state object instead of a string-keyed dict. The IDE autocompletes the fields. Pydantic validates writes. The “any action can corrupt any key” problem becomes a typed-attribute problem.</p>
+<div class="callout callout-style-default callout-note callout-titled" title="Burr here is illustrative, not prescriptive">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Burr here is illustrative, not prescriptive
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>We build on Burr because its actions-and-transitions model makes the production concepts in this section — typed state contracts, immutable snapshots, replay debugging — exceptionally clear, and because its observability and fork-from-state are strong out of the box and fully self-hosted. For many teams the right default is instead <strong>LangGraph</strong>, whose ecosystem and community are far larger. Read this section for the <em>concepts</em>; they carry over either way. <a href="#sec-prod-burr-vs-langgraph" class="quarto-xref"><span>Section 7.12</span></a> lays out exactly when to pick which.</p>
+</div>
+</div>
 <section id="the-core-api" class="level3" data-number="7.9.1">
 <h3 data-number="7.9.1" class="anchored" data-anchor-id="the-core-api"><span class="header-section-number">7.9.1</span> The core API</h3>
 <p>The smallest possible Burr application:</p>
@@ -1462,7 +1485,7 @@ Note
 </section>
 <section id="sec-prod-burr-example" class="level2" data-number="7.10">
 <h2 data-number="7.10" class="anchored" data-anchor-id="sec-prod-burr-example"><span class="header-section-number">7.10</span> Worked Example: Q&amp;A Agent in Burr + Pydantic</h2>
-<p>Earlier in this chapter we built a Q&amp;A agent in PocketFlow: a <code>DecideAction</code> node returning <code>"search"</code> or <code>"answer"</code>, a <code>SearchWeb</code> node, and an <code>Answer</code> node. Now let’s port it to Burr + Pydantic and see what the production version of the same logic looks like.</p>
+<p>Earlier in this chapter we built a Q&amp;A agent in PocketFlow: a <code>DecideAction</code> node returning <code>"search"</code> or <code>"answer"</code>, a <code>SearchWeb</code> node, and an <code>Answer</code> node. Now let’s port it to Burr + Pydantic and see what a production-grade version of the same logic looks like.</p>
 <section id="the-state-schema" class="level3" data-number="7.10.1">
 <h3 data-number="7.10.1" class="anchored" data-anchor-id="the-state-schema"><span class="header-section-number">7.10.1</span> The state schema</h3>
 <p>We use the same <code>QAState</code> introduced in <a href="#sec-prod-burr-pydantic" class="quarto-xref"><span>Section 7.9.2</span></a> — five fields, one canonical schema for the whole chapter:</p>
@@ -1611,8 +1634,259 @@ Note
 <p>The shape is identical — decide/search/answer with edges encoding the loop. The difference is entirely in what the framework guarantees about the state flowing through that shape.</p>
 </section>
 </section>
-<section id="sec-prod-ralph" class="level2" data-number="7.11">
-<h2 data-number="7.11" class="anchored" data-anchor-id="sec-prod-ralph"><span class="header-section-number">7.11</span> Forward Link: From Typed State to the Ralph Loop</h2>
+<section id="sec-prod-burr-features" class="level2" data-number="7.11">
+<h2 data-number="7.11" class="anchored" data-anchor-id="sec-prod-burr-features"><span class="header-section-number">7.11</span> Beyond the Worked Example: Burr’s Feature Set</h2>
+<p>The Q&amp;A agent used Burr’s spine — actions, typed state, transitions, persistence. Production agents need more than a spine. This section tours the features that turn it into a deployable system, each grounded in <a href="https://burr.dagworks.io/">Burr’s documentation</a>. None of them change the mental model; they hang off the same actions-and-transitions machine you already have.</p>
+<section id="sec-prod-burr-hooks" class="level3" data-number="7.11.1">
+<h3 data-number="7.11.1" class="anchored" data-anchor-id="sec-prod-burr-hooks"><span class="header-section-number">7.11.1</span> Lifecycle hooks: cross-cutting logic without touching actions</h3>
+<p>An action should do one job. But production has concerns that cut across <em>every</em> action — structured logging, latency and token-cost metrics, PII redaction, a “pause here for approval” gate. Threading those into each action body duplicates code and buries the business logic. Burr’s answer is <strong>lifecycle hooks</strong>: small classes whose methods fire at fixed points in the run.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-25"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-25-1"><a href="#annotated-cell-25-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Any, Optional</span>
+<span id="annotated-cell-25-2"><a href="#annotated-cell-25-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core <span class="im">import</span> Action, State</span>
+<span id="annotated-cell-25-3"><a href="#annotated-cell-25-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.lifecycle <span class="im">import</span> PreRunStepHook, PostRunStepHook</span>
+<span id="annotated-cell-25-4"><a href="#annotated-cell-25-4" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-25" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-25-5" class="code-annotation-target"><a href="#annotated-cell-25-5" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> TracingHook(PreRunStepHook, PostRunStepHook):</span>
+<span id="annotated-cell-25-6"><a href="#annotated-cell-25-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> pre_run_step(<span class="va">self</span>, <span class="op">*</span>, state: State, action: Action,</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-25" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-25-7" class="code-annotation-target"><a href="#annotated-cell-25-7" aria-hidden="true" tabindex="-1"></a>                     <span class="op">**</span>future_kwargs: Any):</span>
+<span id="annotated-cell-25-8"><a href="#annotated-cell-25-8" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"▶ </span><span class="sc">{</span>action<span class="sc">.</span>name<span class="sc">}</span><span class="ss">  reads=</span><span class="sc">{</span>action<span class="sc">.</span>reads<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="annotated-cell-25-9"><a href="#annotated-cell-25-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-25-10"><a href="#annotated-cell-25-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post_run_step(<span class="va">self</span>, <span class="op">*</span>, state: State, action: Action,</span>
+<span id="annotated-cell-25-11"><a href="#annotated-cell-25-11" aria-hidden="true" tabindex="-1"></a>                      result: Optional[<span class="bu">dict</span>], sequence_id: <span class="bu">int</span>,</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-25" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-25-12" class="code-annotation-target"><a href="#annotated-cell-25-12" aria-hidden="true" tabindex="-1"></a>                      exception: <span class="pp">Exception</span>, <span class="op">**</span>future_kwargs: Any):</span>
+<span id="annotated-cell-25-13"><a href="#annotated-cell-25-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> exception:</span>
+<span id="annotated-cell-25-14"><a href="#annotated-cell-25-14" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f"✗ </span><span class="sc">{</span>action<span class="sc">.</span>name<span class="sc">}</span><span class="ss"> raised </span><span class="sc">{</span>exception<span class="sc">!r}</span><span class="ss">"</span>)</span>
+<span id="annotated-cell-25-15"><a href="#annotated-cell-25-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="annotated-cell-25-16"><a href="#annotated-cell-25-16" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f"✓ </span><span class="sc">{</span>action<span class="sc">.</span>name<span class="sc">}</span><span class="ss">  wrote=</span><span class="sc">{</span>action<span class="sc">.</span>writes<span class="sc">}</span><span class="ss">  seq=</span><span class="sc">{</span>sequence_id<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="annotated-cell-25-17"><a href="#annotated-cell-25-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-25-18"><a href="#annotated-cell-25-18" aria-hidden="true" tabindex="-1"></a><span class="co"># register at build time — hooks see every action, no action knows they exist</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-25" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-25-19" class="code-annotation-target"><a href="#annotated-cell-25-19" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> ApplicationBuilder().with_actions(...).with_hooks(TracingHook()).build()</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-25" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-25" data-code-lines="5" data-code-annotation="1"><strong>A hook subclasses one or more hook protocols.</strong> <code>PreRunStepHook</code> + <code>PostRunStepHook</code> are the two you reach for most; the family also includes <code>PostApplicationCreateHook</code>, <code>PreRunApplicationHook</code>/<code>PostRunApplicationHook</code> (around the whole run), and <code>PostEndStreamHook</code> for streaming.</span>
+</dd>
+<dt data-target-cell="annotated-cell-25" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-25" data-code-lines="7" data-code-annotation="2"><strong><code>pre_run_step</code> fires before each action.</strong> Always accept <code>**future_kwargs</code> — Burr adds keyword arguments over time, and this keeps your hook forward-compatible.</span>
+</dd>
+<dt data-target-cell="annotated-cell-25" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-25" data-code-lines="12" data-code-annotation="3"><strong><code>post_run_step</code> fires after each action</strong> and receives the <code>result</code>, the <code>sequence_id</code> (the snapshot number you’d fork from), and any <code>exception</code>. This is exactly where a cost meter, an OpenTelemetry span, or a Datadog metric goes.</span>
+</dd>
+<dt data-target-cell="annotated-cell-25" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-25" data-code-lines="19" data-code-annotation="4"><strong><code>with_hooks(...)</code> registers them.</strong> The actions stay pure; the cross-cutting concern lives in one place. This is the idiomatic way to bolt observability vendors onto Burr without editing a single action body.</span>
+</dd>
+</dl>
+</section>
+<section id="sec-prod-burr-streaming" class="level3" data-number="7.11.2">
+<h3 data-number="7.11.2" class="anchored" data-anchor-id="sec-prod-burr-streaming"><span class="header-section-number">7.11.2</span> Streaming: token-by-token without losing typed state</h3>
+<p>The worked example returned the answer all at once. For a chat UI you want tokens as they arrive — but you still want the final, validated state snapshot for persistence and replay. Burr’s streaming actions give you both: yield partial chunks during generation, then a final yield carries the state update.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-26"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-26-1"><a href="#annotated-cell-26-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> AsyncGenerator</span>
+<span id="annotated-cell-26-2"><a href="#annotated-cell-26-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core.action <span class="im">import</span> StreamingAction</span>
+<span id="annotated-cell-26-3"><a href="#annotated-cell-26-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-26-4"><a href="#annotated-cell-26-4" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> StreamingAnswer(StreamingAction):</span>
+<span id="annotated-cell-26-5"><a href="#annotated-cell-26-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">async</span> <span class="kw">def</span> stream_run(<span class="va">self</span>, state: State, <span class="op">**</span>kwargs) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">dict</span>, <span class="va">None</span>]:</span>
+<span id="annotated-cell-26-6"><a href="#annotated-cell-26-6" aria-hidden="true" tabindex="-1"></a>        <span class="bu">buffer</span> <span class="op">=</span> []</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-26" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-26-7" class="code-annotation-target"><a href="#annotated-cell-26-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">async</span> <span class="cf">for</span> delta <span class="kw">in</span> llm.astream(state[<span class="st">"query"</span>]):</span>
+<span id="annotated-cell-26-8"><a href="#annotated-cell-26-8" aria-hidden="true" tabindex="-1"></a>            <span class="bu">buffer</span>.append(delta)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-26" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-26-9" class="code-annotation-target"><a href="#annotated-cell-26-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">yield</span> {<span class="st">"response"</span>: delta}</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-26" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-26-10" class="code-annotation-target"><a href="#annotated-cell-26-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">yield</span> {<span class="st">"response"</span>: <span class="st">""</span>.join(<span class="bu">buffer</span>)}</span>
+<span id="annotated-cell-26-11"><a href="#annotated-cell-26-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-26-12"><a href="#annotated-cell-26-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">@property</span></span>
+<span id="annotated-cell-26-13"><a href="#annotated-cell-26-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> reads(<span class="va">self</span>):  <span class="cf">return</span> [<span class="st">"query"</span>]</span>
+<span id="annotated-cell-26-14"><a href="#annotated-cell-26-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">@property</span></span>
+<span id="annotated-cell-26-15"><a href="#annotated-cell-26-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> writes(<span class="va">self</span>): <span class="cf">return</span> [<span class="st">"answer"</span>]</span>
+<span id="annotated-cell-26-16"><a href="#annotated-cell-26-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> update(<span class="va">self</span>, result: <span class="bu">dict</span>, state: State) <span class="op">-&gt;</span> State:</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-26" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-26-17" class="code-annotation-target"><a href="#annotated-cell-26-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> state.update(answer<span class="op">=</span>result[<span class="st">"response"</span>])</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-26" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-26" data-code-lines="7" data-code-annotation="1"><strong><code>stream_run</code> is an async generator.</strong> Each <code>yield</code> is a partial result pushed to the caller.</span>
+</dd>
+<dt data-target-cell="annotated-cell-26" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-26" data-code-lines="9" data-code-annotation="2"><strong>Intermediate chunks</strong> drive the UI — print them, send them over a websocket.</span>
+</dd>
+<dt data-target-cell="annotated-cell-26" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-26" data-code-lines="10" data-code-annotation="3"><strong>The last yield is the complete value</strong> that <code>update</code> will commit. Burr distinguishes “still streaming” from “done” by the generator finishing.</span>
+</dd>
+<dt data-target-cell="annotated-cell-26" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-26" data-code-lines="17" data-code-annotation="4"><strong><code>update</code> runs once at the end</strong> and produces the immutable snapshot — so streaming output and the replayable state contract coexist. The typed sibling is <code>@streaming_action.pydantic</code> (with <code>state_input_type</code>, <code>state_output_type</code>, <code>stream_type</code>), which streams <em>partial Pydantic objects</em> via Instructor.</span>
+</dd>
+</dl>
+<p>Consume it with the <code>stream_result</code> variant of <code>run</code> (the third sibling alongside <code>run</code> and <code>iterate</code> mentioned in <a href="#sec-prod-burr" class="quarto-xref"><span>Section 7.9</span></a> — §7.9.1):</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>action, container <span class="op">=</span> app.stream_result(halt_after<span class="op">=</span>[<span class="st">"generate"</span>], inputs<span class="op">=</span>{<span class="st">"query"</span>: q})</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> partial <span class="kw">in</span> container:        <span class="co"># tokens as they arrive</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(partial[<span class="st">"response"</span>], end<span class="op">=</span><span class="st">""</span>, flush<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>_, _, state <span class="op">=</span> container.get()    <span class="co"># final, committed state once the stream closes</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="sec-prod-burr-hitl" class="level3" data-number="7.11.3">
+<h3 data-number="7.11.3" class="anchored" data-anchor-id="sec-prod-burr-hitl"><span class="header-section-number">7.11.3</span> Human-in-the-loop: halt, inspect, resume</h3>
+<p>HITL in Burr is <strong>not</strong> a hook — it’s the halting API plus the persister. You tell <code>run</code> to stop <em>before</em> a side-effecting action, inspect the proposed action, get a human decision, then resume the same application past the gate. Because the persister already snapshotted the state, the human can approve an hour later from a different process.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-28"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-28-1"><a href="#annotated-cell-28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Stop BEFORE the risky step — nothing irreversible has happened yet</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-28" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-28-2" class="code-annotation-target"><a href="#annotated-cell-28-2" aria-hidden="true" tabindex="-1"></a>action, result, state <span class="op">=</span> app.run(halt_before<span class="op">=</span>[<span class="st">"execute_trade"</span>])</span>
+<span id="annotated-cell-28-3"><a href="#annotated-cell-28-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-28-4"><a href="#annotated-cell-28-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. State is fully serialized by the persister — show the human what's pending</span></span>
+<span id="annotated-cell-28-5"><a href="#annotated-cell-28-5" aria-hidden="true" tabindex="-1"></a>proposed <span class="op">=</span> state.data.proposed_trade</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-28" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-28-6" class="code-annotation-target"><a href="#annotated-cell-28-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> get_human_approval(proposed):</span>
+<span id="annotated-cell-28-7"><a href="#annotated-cell-28-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 3. Resume the SAME app, now allowed past the gate, feeding the decision in</span></span>
+<span id="annotated-cell-28-8"><a href="#annotated-cell-28-8" aria-hidden="true" tabindex="-1"></a>    action, result, state <span class="op">=</span> app.run(halt_after<span class="op">=</span>[<span class="st">"execute_trade"</span>],</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-28" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-28-9" class="code-annotation-target"><a href="#annotated-cell-28-9" aria-hidden="true" tabindex="-1"></a>                                    inputs<span class="op">=</span>{<span class="st">"approved"</span>: <span class="va">True</span>})</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-28" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-28" data-code-lines="2" data-code-annotation="1"><strong><code>halt_before=["execute_trade"]</code></strong> runs the loop right up to — but not into — the named action, and returns control. <code>halt_after</code> is its sibling for “stop once this completes.”</span>
+</dd>
+<dt data-target-cell="annotated-cell-28" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-28" data-code-lines="6" data-code-annotation="2"><strong>The gate is your code, not Burr’s.</strong> Burr’s job is to <em>pause cleanly with the full state available</em>; the approval channel (a web form, a Slack button, a CLI prompt) is yours.</span>
+</dd>
+<dt data-target-cell="annotated-cell-28" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-28" data-code-lines="9" data-code-annotation="3"><strong>Resuming is just another <code>run</code></strong> with <code>inputs</code> supplying the human’s answer. With persistence on, this can be a brand-new process — load the app from the snapshot (<code>initialize_from</code>, <a href="#sec-prod-burr-replay" class="quarto-xref"><span>Section 7.9.4</span></a>) and continue. That’s what makes Burr HITL work for a deployed web service, not just a notebook.</span>
+</dd>
+</dl>
+</section>
+<section id="sec-prod-burr-otel" class="level3" data-number="7.11.4">
+<h3 data-number="7.11.4" class="anchored" data-anchor-id="sec-prod-burr-otel"><span class="header-section-number">7.11.4</span> Observability: a built-in UI, plus OpenTelemetry</h3>
+<p>This is Burr’s clearest advantage, and the row most worth getting right in the comparison below. Burr ships its <strong>own open-source tracking server</strong> — you do not wire up a third-party SaaS to see traces.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-29"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-29-1"><a href="#annotated-cell-29-1" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (</span>
+<span id="annotated-cell-29-2"><a href="#annotated-cell-29-2" aria-hidden="true" tabindex="-1"></a>    ApplicationBuilder()</span>
+<span id="annotated-cell-29-3"><a href="#annotated-cell-29-3" aria-hidden="true" tabindex="-1"></a>    .with_actions(...)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-29" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-29-4" class="code-annotation-target"><a href="#annotated-cell-29-4" aria-hidden="true" tabindex="-1"></a>    .with_tracker(<span class="st">"local"</span>, project<span class="op">=</span><span class="st">"qa-agent"</span>)</span>
+<span id="annotated-cell-29-5"><a href="#annotated-cell-29-5" aria-hidden="true" tabindex="-1"></a>    .build()</span>
+<span id="annotated-cell-29-6"><a href="#annotated-cell-29-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="annotated-cell-29-7"><a href="#annotated-cell-29-7" aria-hidden="true" tabindex="-1"></a><span class="co"># then, in a terminal:  `burr`  → opens the UI at http://localhost:7241</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-29" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-29" data-code-lines="4" data-code-annotation="1"><strong><code>with_tracker("local", project=...)</code></strong> streams every run, action, and state snapshot to the local tracking store. The bundled <code>burr</code> CLI launches the dashboard — the same graph view, run timeline, state diff, and fork button from <a href="#sec-prod-burr-ui" class="quarto-xref"><span>Section 7.9.5</span></a>, now fed live.</span>
+</dd>
+</dl>
+<p>On top of the built-in UI, Burr has <strong>two</strong> OpenTelemetry integrations: it can (1) export its own action-level traces to any OTel backend, and (2) capture OTel spans created <em>inside</em> an action — e.g.&nbsp;by an auto-instrumented LLM SDK — and nest them under that step. The result is one timeline that shows the agent’s decisions <em>and</em> the HTTP calls underneath them. By contrast, LangGraph’s first-party tracing UI is <strong>LangSmith, a commercial hosted service</strong> (it also speaks OTel); Burr’s equivalent is OSS and self-hosted.</p>
+</section>
+<section id="sec-prod-burr-testing" class="level3" data-number="7.11.5">
+<h3 data-number="7.11.5" class="anchored" data-anchor-id="sec-prod-burr-testing"><span class="header-section-number">7.11.5</span> Testing: fixtures captured from real runs</h3>
+<p>Because every action is pure — <code>State</code> in, <code>State</code> out — you can unit-test one in isolation without standing up the whole graph. Burr ships a pytest helper that parametrizes a test from a JSON fixture of expected input/output state (which you can capture straight from a real run via the tracker):</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-30"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-30-1"><a href="#annotated-cell-30-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pytest</span>
+<span id="annotated-cell-30-2"><a href="#annotated-cell-30-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> our_agent <span class="im">import</span> decide</span>
+<span id="annotated-cell-30-3"><a href="#annotated-cell-30-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core <span class="im">import</span> state</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-30" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-30-4" class="code-annotation-target"><a href="#annotated-cell-30-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.testing <span class="im">import</span> pytest_generate_tests</span>
+<span id="annotated-cell-30-5"><a href="#annotated-cell-30-5" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-30" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-30-6" class="code-annotation-target"><a href="#annotated-cell-30-6" aria-hidden="true" tabindex="-1"></a><span class="at">@pytest.mark.file_name</span>(<span class="st">"decide_search.json"</span>)</span>
+<span id="annotated-cell-30-7"><a href="#annotated-cell-30-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test_decide_routes_to_search(input_state, expected_state):</span>
+<span id="annotated-cell-30-8"><a href="#annotated-cell-30-8" aria-hidden="true" tabindex="-1"></a>    in_state  <span class="op">=</span> state.State.deserialize(input_state)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-30" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-30-9" class="code-annotation-target"><a href="#annotated-cell-30-9" aria-hidden="true" tabindex="-1"></a>    out_state <span class="op">=</span> decide(in_state, llm<span class="op">=</span>fake_llm)</span>
+<span id="annotated-cell-30-10"><a href="#annotated-cell-30-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># exact match, or fuzzy/LLM-graded for non-deterministic fields</span></span>
+<span id="annotated-cell-30-11"><a href="#annotated-cell-30-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> out_state[<span class="st">"next_action"</span>] <span class="op">==</span> expected_state[<span class="st">"next_action"</span>]</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-30" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-30" data-code-lines="4" data-code-annotation="1"><strong>Importing <code>pytest_generate_tests</code></strong> activates Burr’s file-based parametrization.</span>
+</dd>
+<dt data-target-cell="annotated-cell-30" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-30" data-code-lines="6" data-code-annotation="2"><strong><code>@pytest.mark.file_name(...)</code></strong> points at a fixture holding <code>input_state</code> and <code>expected_state</code> — generated by serializing a captured snapshot, so your tests exercise real production states.</span>
+</dd>
+<dt data-target-cell="annotated-cell-30" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-30" data-code-lines="9" data-code-annotation="3"><strong>Call the action directly</strong> with a stub LLM. No builder, no transitions, no I/O — the reads/writes contract is what makes this isolation sound.</span>
+</dd>
+</dl>
+</section>
+<section id="sec-prod-burr-parallel" class="level3" data-number="7.11.6">
+<h3 data-number="7.11.6" class="anchored" data-anchor-id="sec-prod-burr-parallel"><span class="header-section-number">7.11.6</span> Parallelism, briefly</h3>
+<p>When one step must fan out — summarize ten documents, query five tools, evaluate three candidate answers — Burr’s <a href="https://burr.dagworks.io/concepts/parallelism/">parallelism module</a> spawns sub-applications and gathers their states (map-reduce over state). It’s the recursive case of the same model: an action whose body is itself a set of Burr runs. We don’t use it for the Ralph loop (sequential by nature), but it’s the right tool for batch agents.</p>
+</section>
+</section>
+<section id="sec-prod-burr-vs-langgraph" class="level2" data-number="7.12">
+<h2 data-number="7.12" class="anchored" data-anchor-id="sec-prod-burr-vs-langgraph"><span class="header-section-number">7.12</span> Burr vs LangGraph</h2>
+<p>Burr’s closest neighbor is <strong>LangGraph</strong> — the other open-source framework that models an agent as a stateful graph you can persist, replay, and inspect. If you’re choosing between them, the differences are real but narrower than the marketing suggests: both express a state machine over an LLM loop, and both support persistence, streaming, human-in-the-loop, and replay. The split is about <em>defaults, ergonomics, and ecosystem</em>, not capability checkboxes.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Dimension</th>
+<th>Burr</th>
+<th>LangGraph</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Programming model</strong></td>
+<td>Explicit FSM — <code>@action</code>s with declared <code>reads</code>/<code>writes</code>; edges are <code>(from, to, Condition)</code> tuples</td>
+<td>Graph — nodes are functions; edges (incl.&nbsp;conditional) wire them, routing returns the next node</td>
+</tr>
+<tr class="even">
+<td><strong>State</strong></td>
+<td>Immutable <code>State</code>; one snapshot per step, automatic</td>
+<td>Typed channels (<code>TypedDict</code>) with <strong>reducers</strong> you define for merge semantics</td>
+</tr>
+<tr class="odd">
+<td><strong>Observability</strong></td>
+<td><strong>Built-in OSS tracking UI</strong> + OpenTelemetry, self-hosted</td>
+<td>LangSmith (commercial SaaS) or OpenTelemetry</td>
+</tr>
+<tr class="even">
+<td><strong>Replay / time-travel</strong></td>
+<td><code>fork_from_sequence_id</code> — fork from any snapshot</td>
+<td>Checkpointer + <code>update_state</code> time-travel — both support it</td>
+</tr>
+<tr class="odd">
+<td><strong>Human-in-the-loop</strong></td>
+<td><code>halt_before</code>/<code>halt_after</code> + <code>inputs</code> + persister</td>
+<td><code>interrupt()</code> / <code>Command(resume=...)</code></td>
+</tr>
+<tr class="even">
+<td><strong>Streaming</strong></td>
+<td>Native (<code>StreamingAction</code>, <code>stream_result</code>)</td>
+<td>Native (<code>stream</code>/<code>astream</code>, multiple modes)</td>
+</tr>
+<tr class="odd">
+<td><strong>Testing</strong></td>
+<td><code>burr.testing</code> pytest fixtures from captured runs</td>
+<td>Standard Python — invoke nodes directly; no dedicated helpers</td>
+</tr>
+<tr class="even">
+<td><strong>Learning curve</strong></td>
+<td>Gentle — plain functions, explicit transitions</td>
+<td>More moving parts — channels, reducers, the LangChain model</td>
+</tr>
+<tr class="odd">
+<td><strong>Ecosystem</strong></td>
+<td>DAGWorks; sibling Hamilton for data pipelines; Apache incubating</td>
+<td>LangChain ecosystem — LangSmith, LangServe, large integration surface</td>
+</tr>
+<tr class="even">
+<td><strong>GitHub stars (early 2026)</strong></td>
+<td>~2k</td>
+<td>~34k</td>
+</tr>
+</tbody>
+</table>
+<div class="callout callout-style-default callout-note callout-titled" title="The numbers move — and a few common claims are wrong">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>The numbers move — and a few common claims are wrong
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Star counts are a snapshot (Burr ~2k, LangGraph ~34k as of early 2026) and shift monthly — treat them as “small vs large community,” not a scoreboard. Two corrections to the comparison you’ll often see online: LangGraph <strong>does</strong> have replay (checkpointer time-travel), so it’s not a Burr exclusive; and Burr’s human-in-the-loop is the <code>halt_before</code> + persister mechanism above, <strong>not</strong> lifecycle hooks. Hooks are for cross-cutting concerns; halting is for HITL.</p>
+</div>
+</div>
+<p>The honest summary: <strong>pick LangGraph if you already live in the LangChain ecosystem</strong> — the integration surface, LangSmith, and a 34k-vs-2k community gap are decisive when you need a connector that already exists or a teammate who already knows the model. <strong>Pick Burr when self-hosted observability and replay are first-order requirements</strong> — the built-in UI and <code>fork_from_sequence_id</code> are more polished out of the box, and the actions-and-transitions model has fewer concepts to onboard a team into. For <em>this book’s</em> purpose — a Ralph harness you need to debug when iteration 137 edits the wrong file — Burr’s built-in tracing and fork-from-state are exactly why we reach for it. Neither is wrong; they optimize for different first problems, and porting the core FSM between them is a day’s work because the surrounding ecosystem, not the loop, is the real lock-in.</p>
+</section>
+<section id="sec-prod-ralph" class="level2" data-number="7.13">
+<h2 data-number="7.13" class="anchored" data-anchor-id="sec-prod-ralph"><span class="header-section-number">7.13</span> Forward Link: From Typed State to the Ralph Loop</h2>
 <p>The next chapters introduce more frameworks and then Ralph — Geoffrey Huntley’s minimal autonomous coding loop: load spec, select task, execute, observe, repeat. Burr and the frameworks in Chapters 8–9 are different layers of the same stack. They provide the <em>state machine</em>; Ralph provides the <em>loop shape</em> that runs on it.</p>
 <p>Two connections worth flagging now:</p>
 <ul>
@@ -1621,8 +1895,8 @@ Note
 </ul>
 <p>The book’s path is: this chapter picks the state machine, Chapter 8 covers more production options, the Ralph loop in Chapter 10 wraps the loop around it, and Chapters 12–13 scale the loop into a fleet and a career.</p>
 </section>
-<section id="sec-pf-takeaways" class="level2" data-number="7.12">
-<h2 data-number="7.12" class="anchored" data-anchor-id="sec-pf-takeaways"><span class="header-section-number">7.12</span> Key Takeaways</h2>
+<section id="sec-pf-takeaways" class="level2" data-number="7.14">
+<h2 data-number="7.14" class="anchored" data-anchor-id="sec-pf-takeaways"><span class="header-section-number">7.14</span> Key Takeaways</h2>
 <ul>
 <li>An agent framework is just Graph + Shared Store — nodes connected by action edges, communicating through a shared dictionary</li>
 <li>The <code>prep → exec → post</code> lifecycle separates I/O (shared store access) from computation (LLM calls) — making nodes retriable and testable</li>
@@ -1630,13 +1904,15 @@ Note
 <li>PocketFlow proves that 100 lines of framework code can implement workflows, agents, RAG, and multi-agent systems</li>
 <li><strong>The framework isn’t the hard part — the design is.</strong> Deciding what nodes to build, what actions to route, and what data to share requires engineering judgment that no framework eliminates</li>
 <li>PocketFlow’s mutable shared dict stops being enough when multiple developers share an agent, production failures need debugging, or you need audit trails</li>
-<li><strong>Burr + Pydantic</strong> is the production upgrade of the same model. <code>@action.pydantic</code>, <code>PydanticTypingSystem</code>, and immutable <code>state.update()</code> give compile-time-ish guarantees on state changes; <code>fork_from_sequence_id</code> is the production debugger</li>
+<li><strong>Burr + Pydantic</strong> is <em>one</em> production-grade implementation of the same model — chosen here because it makes the concepts legible and ships strong self-hosted observability. <code>@action.pydantic</code>, <code>PydanticTypingSystem</code>, and immutable <code>state.update()</code> give compile-time-ish guarantees on state changes; <code>fork_from_sequence_id</code> is the production debugger</li>
 <li>The Burr UI provides graph visualization, run timelines, state diffs, and a fork button — the closest thing in open-source agents to a real debugger</li>
+<li>Burr’s production feature set hangs off the same actions-and-transitions spine: <strong>lifecycle hooks</strong> for cross-cutting concerns, <strong>streaming actions</strong> that keep typed state intact, <strong><code>halt_before</code> + persister</strong> for human-in-the-loop, a <strong>built-in OSS tracking UI</strong> plus OpenTelemetry, and <strong>pytest fixtures</strong> for testing pure actions in isolation</li>
+<li><strong>Burr vs LangGraph</strong> comes down to defaults and ecosystem, not capability: LangGraph wins on community size (~34k vs ~2k stars) and the LangChain integration surface; Burr wins on self-hosted observability and fork-from-state replay out of the box</li>
 <li>Chapter 8 covers <strong>Agno</strong> (batteries-included multi-agent platform) and <strong>mcp-agent</strong> (MCP-native pattern composition) — two more frameworks that solve adjacent production pressures</li>
 </ul>
 </section>
-<section id="sec-pf-concept-map" class="level2" data-number="7.13">
-<h2 data-number="7.13" class="anchored" data-anchor-id="sec-pf-concept-map"><span class="header-section-number">7.13</span> Concept Map</h2>
+<section id="sec-pf-concept-map" class="level2" data-number="7.15">
+<h2 data-number="7.15" class="anchored" data-anchor-id="sec-pf-concept-map"><span class="header-section-number">7.15</span> Concept Map</h2>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
