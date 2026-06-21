@@ -255,7 +255,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#sec-build-skills" id="toc-sec-build-skills" class="nav-link" data-scroll-target="#sec-build-skills"><span class="header-section-number">6.5</span> Skills: Lazy-Loading Knowledge</a></li>
   <li><a href="#sec-build-hooks" id="toc-sec-build-hooks" class="nav-link" data-scroll-target="#sec-build-hooks"><span class="header-section-number">6.6</span> Hooks: Deterministic Control Outside the Loop</a></li>
   <li><a href="#sec-build-fullpicture" id="toc-sec-build-fullpicture" class="nav-link" data-scroll-target="#sec-build-fullpicture"><span class="header-section-number">6.7</span> The Full Picture</a></li>
-  <li><a href="#sec-build-capstone" id="toc-sec-build-capstone" class="nav-link" data-scroll-target="#sec-build-capstone"><span class="header-section-number">6.8</span> Putting It All Together: One File, Every Mechanism</a>
+  <li><a href="#sec-build-capstone" id="toc-sec-build-capstone" class="nav-link" data-scroll-target="#sec-build-capstone"><span class="header-section-number">6.8</span> Putting It All Together: One Loop, Every Mechanism</a>
   <ul class="collapse">
   <li><a href="#sec-build-taskgraph" id="toc-sec-build-taskgraph" class="nav-link" data-scroll-target="#sec-build-taskgraph"><span class="header-section-number">6.8.1</span> A task graph the agent can plan against</a></li>
   <li><a href="#sec-build-worktrees" id="toc-sec-build-worktrees" class="nav-link" data-scroll-target="#sec-build-worktrees"><span class="header-section-number">6.8.2</span> Worktrees: real isolation for parallel work</a></li>
@@ -653,11 +653,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<p>The <a href="https://learn.shareai.run/en/">Learn Claude Code course</a> continues beyond what we’ve covered here — adding permission systems (s07), memory (s09), task graphs (s12), background execution (s13), agent teams (s15-s16), autonomous agents (s17), and worktree isolation (s18). All 19 sessions layer onto the same 30-line loop without restructuring it. The next section makes that claim concrete: the course’s final session reassembles <em>every</em> mechanism into a single file, and the core is still the loop you’ve already read.</p>
+<p>The <a href="https://learn.shareai.run/en/">Learn Claude Code course</a> continues beyond what we’ve covered here — adding permission systems (s07), memory (s09), task graphs (s12), background execution (s13), agent teams (s15-s16), autonomous agents (s17), and worktree isolation (s18). All 19 sessions layer onto the same 30-line loop without restructuring it. The next section makes that claim concrete: it reassembles <em>every</em> mechanism into one agent, and the core is still the loop you’ve already read.</p>
 </section>
 <section id="sec-build-capstone" class="level2" data-number="6.8">
-<h2 data-number="6.8" class="anchored" data-anchor-id="sec-build-capstone"><span class="header-section-number">6.8</span> Putting It All Together: One File, Every Mechanism</h2>
-<p>The course’s final session — <a href="https://github.com/shareAI-lab/learn-claude-code/blob/main/s20_comprehensive/code.py"><code>s20_comprehensive/code.py</code></a> — is the payoff for everything above. It is roughly two thousand lines, but it contains no new <em>kind</em> of idea: it puts dispatch, permission, hooks, todos, subagents, skills, compaction, memory, a task graph, error recovery, background tasks, cron, teams, and MCP back into <strong>the same loop</strong>. This section walks the load-bearing additions the earlier sections promised but didn’t show. The snippets are trimmed to their teaching core; read the source for the production edge cases.</p>
+<h2 data-number="6.8" class="anchored" data-anchor-id="sec-build-capstone"><span class="header-section-number">6.8</span> Putting It All Together: One Loop, Every Mechanism</h2>
+<p>A complete agent — the kind that runs for hours, coordinates with peers, and survives a flaky network — is the payoff for everything above. It is a few thousand lines, but it contains no new <em>kind</em> of idea: it puts dispatch, permission, hooks, todos, subagents, skills, compaction, memory, a task graph, error recovery, background tasks, cron, teams, and MCP back into <strong>the same loop</strong>. This section builds the load-bearing additions the earlier sections promised but didn’t show. The snippets are trimmed to their teaching core — production code adds more edge-case handling, but no new structure.</p>
 <section id="sec-build-taskgraph" class="level3" data-number="6.8.1">
 <h3 data-number="6.8.1" class="anchored" data-anchor-id="sec-build-taskgraph"><span class="header-section-number">6.8.1</span> A task graph the agent can plan against</h3>
 <p>Once an agent does multi-step work, “what’s left, and what’s blocked?” needs a durable home outside the context window. A task is a small record on disk; dependencies are just a list of other task ids that must finish first:</p>
@@ -847,7 +847,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="sec-build-capstone-rest" class="level3" data-number="6.8.7">
 <h3 data-number="6.8.7" class="anchored" data-anchor-id="sec-build-capstone-rest"><span class="header-section-number">6.8.7</span> …and the rest</h3>
-<p>For brevity this section skipped several subsystems that follow the identical “layer on, don’t restructure” rule. In the source they are each a handful of functions:</p>
+<p>For brevity this section skipped several subsystems that follow the identical “layer on, don’t restructure” rule. Each is a handful of functions:</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -884,7 +884,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 </tbody>
 </table>
-<p>The full file is worth reading end to end precisely <em>because</em> none of it is surprising once you’ve internalized the loop. Each subsystem is a small, self-contained module that the loop calls at a well-defined moment — which is the whole thesis of this chapter, demonstrated at scale.</p>
+<p>None of it is surprising once you’ve internalized the loop. Each subsystem is a small, self-contained module that the loop calls at a well-defined moment — which is the whole thesis of this chapter, demonstrated at scale.</p>
 </section>
 </section>
 <section id="sec-build-takeaways" class="level2" data-number="6.9">
@@ -897,7 +897,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Compaction summarizes old messages when tokens exceed a threshold — the agent doesn’t know it happened</li>
 <li>Skills load full knowledge on-demand via a tool call, keeping the system prompt lean</li>
 <li>Hooks run shell commands at named moments (PreToolUse, PostToolUse) with zero context cost</li>
-<li>The capstone (<code>s20</code>) reassembles <em>every</em> mechanism — task graph, worktrees, teams + approval protocol, error recovery, background, cron, MCP — into one file, and the core is still the same loop</li>
+<li>A complete agent reassembles <em>every</em> mechanism — task graph, worktrees, teams + approval protocol, error recovery, background, cron, MCP — into one program, and the core is still the same loop</li>
 <li>Durable state (tasks, jobs, transcripts) lives <strong>on disk as files</strong>, so it survives restarts and is shared between agents without special infrastructure</li>
 <li>Isolation of <em>context</em> (subagents, worktrees) and enforcement of <em>policy</em> (permission, hooks) are independent layers — a fresh context still obeys the same rules</li>
 <li><strong>Every feature layers on without changing the core loop</strong> — the 30-line foundation carries the entire system</li>
