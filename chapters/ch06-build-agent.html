@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="AI-Powered SE Tutorial">
-<meta name="dcterms.date" content="2026-06-09">
+<meta name="dcterms.date" content="2026-06-21">
 
 <title>6&nbsp; Build a Claude Code Clone – AI-Powered Software Engineering</title>
 <style>
@@ -81,7 +81,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-48abc47ddc2cbc14860ddec9e9fdb395.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-3f70bac5631458d474a321d4182f9338.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -255,7 +255,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#sec-build-skills" id="toc-sec-build-skills" class="nav-link" data-scroll-target="#sec-build-skills"><span class="header-section-number">6.5</span> Skills: Lazy-Loading Knowledge</a></li>
   <li><a href="#sec-build-hooks" id="toc-sec-build-hooks" class="nav-link" data-scroll-target="#sec-build-hooks"><span class="header-section-number">6.6</span> Hooks: Deterministic Control Outside the Loop</a></li>
   <li><a href="#sec-build-fullpicture" id="toc-sec-build-fullpicture" class="nav-link" data-scroll-target="#sec-build-fullpicture"><span class="header-section-number">6.7</span> The Full Picture</a></li>
-  <li><a href="#sec-build-takeaways" id="toc-sec-build-takeaways" class="nav-link" data-scroll-target="#sec-build-takeaways"><span class="header-section-number">6.8</span> Key Takeaways</a></li>
+  <li><a href="#sec-build-capstone" id="toc-sec-build-capstone" class="nav-link" data-scroll-target="#sec-build-capstone"><span class="header-section-number">6.8</span> Putting It All Together: One File, Every Mechanism</a>
+  <ul class="collapse">
+  <li><a href="#sec-build-taskgraph" id="toc-sec-build-taskgraph" class="nav-link" data-scroll-target="#sec-build-taskgraph"><span class="header-section-number">6.8.1</span> A task graph the agent can plan against</a></li>
+  <li><a href="#sec-build-worktrees" id="toc-sec-build-worktrees" class="nav-link" data-scroll-target="#sec-build-worktrees"><span class="header-section-number">6.8.2</span> Worktrees: real isolation for parallel work</a></li>
+  <li><a href="#sec-build-subagent-full" id="toc-sec-build-subagent-full" class="nav-link" data-scroll-target="#sec-build-subagent-full"><span class="header-section-number">6.8.3</span> Subagents, with the safety boundary wired in</a></li>
+  <li><a href="#sec-build-teams" id="toc-sec-build-teams" class="nav-link" data-scroll-target="#sec-build-teams"><span class="header-section-number">6.8.4</span> Teams and a plan-approval protocol</a></li>
+  <li><a href="#sec-build-recovery" id="toc-sec-build-recovery" class="nav-link" data-scroll-target="#sec-build-recovery"><span class="header-section-number">6.8.5</span> Surviving the real world: error recovery</a></li>
+  <li><a href="#sec-build-capstone-loop" id="toc-sec-build-capstone-loop" class="nav-link" data-scroll-target="#sec-build-capstone-loop"><span class="header-section-number">6.8.6</span> The loop that ties it together</a></li>
+  <li><a href="#sec-build-capstone-rest" id="toc-sec-build-capstone-rest" class="nav-link" data-scroll-target="#sec-build-capstone-rest"><span class="header-section-number">6.8.7</span> …and the rest</a></li>
+  </ul></li>
+  <li><a href="#sec-build-takeaways" id="toc-sec-build-takeaways" class="nav-link" data-scroll-target="#sec-build-takeaways"><span class="header-section-number">6.9</span> Key Takeaways</a></li>
   </ul>
 </nav>
     </div>
@@ -282,7 +292,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 9, 2026</p>
+      <p class="date">June 21, 2026</p>
     </div>
   </div>
   
@@ -643,10 +653,242 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<p>The <a href="https://learn.shareai.run/en/">Learn Claude Code course</a> continues beyond what we’ve covered here — adding permission systems (s07), memory (s09), task graphs (s12), background execution (s13), agent teams (s15-s16), autonomous agents (s17), and worktree isolation (s18). All 19 sessions layer onto the same 30-line loop without restructuring it.</p>
+<p>The <a href="https://learn.shareai.run/en/">Learn Claude Code course</a> continues beyond what we’ve covered here — adding permission systems (s07), memory (s09), task graphs (s12), background execution (s13), agent teams (s15-s16), autonomous agents (s17), and worktree isolation (s18). All 19 sessions layer onto the same 30-line loop without restructuring it. The next section makes that claim concrete: the course’s final session reassembles <em>every</em> mechanism into a single file, and the core is still the loop you’ve already read.</p>
 </section>
-<section id="sec-build-takeaways" class="level2" data-number="6.8">
-<h2 data-number="6.8" class="anchored" data-anchor-id="sec-build-takeaways"><span class="header-section-number">6.8</span> Key Takeaways</h2>
+<section id="sec-build-capstone" class="level2" data-number="6.8">
+<h2 data-number="6.8" class="anchored" data-anchor-id="sec-build-capstone"><span class="header-section-number">6.8</span> Putting It All Together: One File, Every Mechanism</h2>
+<p>The course’s final session — <a href="https://github.com/shareAI-lab/learn-claude-code/blob/main/s20_comprehensive/code.py"><code>s20_comprehensive/code.py</code></a> — is the payoff for everything above. It is roughly two thousand lines, but it contains no new <em>kind</em> of idea: it puts dispatch, permission, hooks, todos, subagents, skills, compaction, memory, a task graph, error recovery, background tasks, cron, teams, and MCP back into <strong>the same loop</strong>. This section walks the load-bearing additions the earlier sections promised but didn’t show. The snippets are trimmed to their teaching core; read the source for the production edge cases.</p>
+<section id="sec-build-taskgraph" class="level3" data-number="6.8.1">
+<h3 data-number="6.8.1" class="anchored" data-anchor-id="sec-build-taskgraph"><span class="header-section-number">6.8.1</span> A task graph the agent can plan against</h3>
+<p>Once an agent does multi-step work, “what’s left, and what’s blocked?” needs a durable home outside the context window. A task is a small record on disk; dependencies are just a list of other task ids that must finish first:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dataclasses <span class="im">import</span> dataclass, asdict</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>TASKS_DIR <span class="op">=</span> Path(<span class="st">".tasks"</span>)<span class="op">;</span> TASKS_DIR.mkdir(exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Task:</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">id</span>: <span class="bu">str</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    subject: <span class="bu">str</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    status: <span class="bu">str</span>            <span class="co"># pending | in_progress | completed</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    owner: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    blockedBy: <span class="bu">list</span>[<span class="bu">str</span>]   <span class="co"># ids that must be completed first</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _path(tid): <span class="cf">return</span> TASKS_DIR <span class="op">/</span> <span class="ss">f"</span><span class="sc">{</span>tid<span class="sc">}</span><span class="ss">.json"</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> load_task(tid): <span class="cf">return</span> Task(<span class="op">**</span>json.loads(_path(tid).read_text()))</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> save_task(t): _path(t.<span class="bu">id</span>).write_text(json.dumps(asdict(t), indent<span class="op">=</span><span class="dv">2</span>))</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> can_start(tid: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">bool</span>:</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Runnable only when every blocker exists and is completed."""</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">all</span>(_path(d).exists() <span class="kw">and</span> load_task(d).status <span class="op">==</span> <span class="st">"completed"</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>               <span class="cf">for</span> d <span class="kw">in</span> load_task(tid).blockedBy)</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> claim_task(tid: <span class="bu">str</span>, owner: <span class="bu">str</span> <span class="op">=</span> <span class="st">"agent"</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>    task <span class="op">=</span> load_task(tid)</span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> task.status <span class="op">!=</span> <span class="st">"pending"</span>:  <span class="cf">return</span> <span class="ss">f"</span><span class="sc">{</span>tid<span class="sc">}</span><span class="ss"> is </span><span class="sc">{</span>task<span class="sc">.</span>status<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> can_start(tid):        <span class="cf">return</span> <span class="ss">f"</span><span class="sc">{</span>tid<span class="sc">}</span><span class="ss"> is still blocked"</span></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>    task.owner, task.status <span class="op">=</span> owner, <span class="st">"in_progress"</span></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>    save_task(task)</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f"Claimed </span><span class="sc">{</span>tid<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span>task<span class="sc">.</span>subject<span class="sc">}</span><span class="ss">)"</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> complete_task(tid: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>    task <span class="op">=</span> load_task(tid)<span class="op">;</span> task.status <span class="op">=</span> <span class="st">"completed"</span><span class="op">;</span> save_task(task)</span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>    unblocked <span class="op">=</span> [t.subject <span class="cf">for</span> p <span class="kw">in</span> TASKS_DIR.glob(<span class="st">"task_*.json"</span>)</span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>                 <span class="cf">if</span> (t <span class="op">:=</span> load_task(p.stem)).status <span class="op">==</span> <span class="st">"pending"</span> <span class="kw">and</span> can_start(t.<span class="bu">id</span>)]</span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f"Completed </span><span class="sc">{</span>tid<span class="sc">}</span><span class="ss">"</span> <span class="op">+</span> (<span class="ss">f" — unblocked: </span><span class="sc">{</span>unblocked<span class="sc">}</span><span class="ss">"</span> <span class="cf">if</span> unblocked <span class="cf">else</span> <span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The graph is just files. <code>can_start</code> is a pure dependency check, and <code>complete_task</code> reports which tasks its completion <em>unblocked</em> — which is exactly the signal an autonomous agent (or a teammate) needs to pick up the next available work without being told.</p>
+</section>
+<section id="sec-build-worktrees" class="level3" data-number="6.8.2">
+<h3 data-number="6.8.2" class="anchored" data-anchor-id="sec-build-worktrees"><span class="header-section-number">6.8.2</span> Worktrees: real isolation for parallel work</h3>
+<p>When more than one agent edits the same repo, a shared working tree is a data-loss hazard — one agent’s checkout yanks the files out from under another. Git worktrees give each branch its own directory. The agent gets a tool that wraps <code>git worktree add</code>, plus strict name validation, because the name becomes a filesystem path:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re, subprocess</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>WORKTREES_DIR <span class="op">=</span> Path(<span class="st">".worktrees"</span>)<span class="op">;</span> WORKTREES_DIR.mkdir(exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>VALID_NAME <span class="op">=</span> re.<span class="bu">compile</span>(<span class="vs">r'</span><span class="dv">^</span><span class="pp">[A-Za-z0-9._-]</span><span class="op">{1,64}</span><span class="dv">$</span><span class="vs">'</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> create_worktree(name: <span class="bu">str</span>, task_id: <span class="bu">str</span> <span class="op">=</span> <span class="st">""</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> VALID_NAME.match(name <span class="kw">or</span> <span class="st">""</span>):</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="ss">f"Error: invalid worktree name '</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">'"</span>   <span class="co"># tool-layer safety boundary</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    path <span class="op">=</span> WORKTREES_DIR <span class="op">/</span> name</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> path.exists():</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="ss">f"Worktree '</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">' already exists"</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    r <span class="op">=</span> subprocess.run([<span class="st">"git"</span>, <span class="st">"worktree"</span>, <span class="st">"add"</span>, <span class="bu">str</span>(path), <span class="st">"-b"</span>, <span class="ss">f"wt/</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">"</span>, <span class="st">"HEAD"</span>],</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>                       capture_output<span class="op">=</span><span class="va">True</span>, text<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> r.returncode <span class="op">!=</span> <span class="dv">0</span>:</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="ss">f"Git error: </span><span class="sc">{</span>r<span class="sc">.</span>stderr<span class="sc">.</span>strip()<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> task_id:                       <span class="co"># bind the task to its sandbox</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>        t <span class="op">=</span> load_task(task_id)<span class="op">;</span> t.worktree <span class="op">=</span> name<span class="op">;</span> save_task(t)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f"Worktree '</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">' created at </span><span class="sc">{</span>path<span class="sc">}</span><span class="ss">"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Note where the validation lives: in the <em>tool</em>, before git ever sees the name — not relying on git to reject something afterward. Removal is the mirror image, and deliberately refuses to delete a worktree with uncommitted changes unless forced (<code>discard_changes=true</code>) or explicitly kept for review. The agent now has a safe place to do parallel work; the task graph above records <em>which</em> sandbox each task owns.</p>
+</section>
+<section id="sec-build-subagent-full" class="level3" data-number="6.8.3">
+<h3 data-number="6.8.3" class="anchored" data-anchor-id="sec-build-subagent-full"><span class="header-section-number">6.8.3</span> Subagents, with the safety boundary wired in</h3>
+<p>The subagent from <a href="#sec-build-subagent" class="quarto-xref"><span>Section 6.3</span></a> returns in the full system, but now it runs tool calls through the same permission and hook layer as the parent, and caps its own iterations so a confused child can’t spin forever:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> spawn_subagent(description: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    messages <span class="op">=</span> [{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: description}]</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">30</span>):                       <span class="co"># bounded — no runaway child</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>        response <span class="op">=</span> client.messages.create(</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>            model<span class="op">=</span>MODEL, system<span class="op">=</span>SUB_SYSTEM,   <span class="co"># "...do not spawn more agents."</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>            messages<span class="op">=</span>messages, tools<span class="op">=</span>SUB_TOOLS, max_tokens<span class="op">=</span><span class="dv">8000</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>        messages.append({<span class="st">"role"</span>: <span class="st">"assistant"</span>, <span class="st">"content"</span>: response.content})</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> has_tool_use(response.content):</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span>                             <span class="co"># return only the final summary</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        results <span class="op">=</span> []</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> block <span class="kw">in</span> response.content:</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> block.<span class="bu">type</span> <span class="op">!=</span> <span class="st">"tool_use"</span>:</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>            blocked <span class="op">=</span> trigger_hooks(<span class="st">"PreToolUse"</span>, block)     <span class="co"># same permission layer</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>            output <span class="op">=</span> <span class="bu">str</span>(blocked) <span class="cf">if</span> blocked <span class="cf">else</span> <span class="op">\</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>                     call_tool_handler(SUB_HANDLERS.get(block.name), block.<span class="bu">input</span>, block.name)</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>            results.append({<span class="st">"type"</span>: <span class="st">"tool_result"</span>, <span class="st">"tool_use_id"</span>: block.<span class="bu">id</span>, <span class="st">"content"</span>: output})</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>        messages.append({<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: results})</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> extract_text(messages[<span class="op">-</span><span class="dv">1</span>][<span class="st">"content"</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Same fresh-context, short-summary-out pattern as before — but the subagent has no <code>task</code> tool (no recursion), a bounded loop, and its tool calls are gated by the very same <code>PreToolUse</code> hooks the parent uses. Isolation of <em>context</em> and enforcement of <em>policy</em> are independent: the child gets its own message array, but not its own rules.</p>
+</section>
+<section id="sec-build-teams" class="level3" data-number="6.8.4">
+<h3 data-number="6.8.4" class="anchored" data-anchor-id="sec-build-teams"><span class="header-section-number">6.8.4</span> Teams and a plan-approval protocol</h3>
+<p>Multiple long-lived agents need two things the subagent pattern lacks: a way to <strong>message each other</strong>, and a way to <strong>gate an action on another agent’s approval</strong>. The message bus is one append-only inbox file per agent:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MessageBus:</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> send(<span class="va">self</span>, frm, to, content, msg_type<span class="op">=</span><span class="st">"message"</span>, metadata<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>        inbox <span class="op">=</span> MAILBOX_DIR <span class="op">/</span> <span class="ss">f"</span><span class="sc">{</span>to<span class="sc">}</span><span class="ss">.jsonl"</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">with</span> <span class="bu">open</span>(inbox, <span class="st">"a"</span>) <span class="im">as</span> f:</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>            f.write(json.dumps({<span class="st">"from"</span>: frm, <span class="st">"to"</span>: to, <span class="st">"content"</span>: content,</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"type"</span>: msg_type, <span class="st">"metadata"</span>: metadata <span class="kw">or</span> {}}) <span class="op">+</span> <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> read_inbox(<span class="va">self</span>, agent):</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>        inbox <span class="op">=</span> MAILBOX_DIR <span class="op">/</span> <span class="ss">f"</span><span class="sc">{</span>agent<span class="sc">}</span><span class="ss">.jsonl"</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> inbox.exists(): <span class="cf">return</span> []</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        msgs <span class="op">=</span> [json.loads(l) <span class="cf">for</span> l <span class="kw">in</span> inbox.read_text().splitlines() <span class="cf">if</span> l.strip()]</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>        inbox.unlink()                         <span class="co"># read-once: drain the mailbox</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> msgs</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>A <em>protocol</em> layers request/response semantics on top of raw messages. Each request gets an id; a reply is only valid if it references a pending request of the matching type — so one approval can’t accidentally satisfy a different pending ask:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ProtocolState:</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    request_id: <span class="bu">str</span><span class="op">;</span> <span class="bu">type</span>: <span class="bu">str</span><span class="op">;</span> sender: <span class="bu">str</span><span class="op">;</span> target: <span class="bu">str</span><span class="op">;</span> status: <span class="bu">str</span><span class="op">;</span> payload: <span class="bu">str</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>pending_requests: <span class="bu">dict</span>[<span class="bu">str</span>, ProtocolState] <span class="op">=</span> {}</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> request_plan(teammate: <span class="bu">str</span>, task: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    rid <span class="op">=</span> new_request_id()</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    pending_requests[rid] <span class="op">=</span> ProtocolState(rid, <span class="st">"plan_approval"</span>, <span class="st">"lead"</span>, teammate, <span class="st">"pending"</span>, task)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    BUS.send(<span class="st">"lead"</span>, teammate, <span class="ss">f"Submit a plan for: </span><span class="sc">{</span>task<span class="sc">}</span><span class="ss">"</span>, <span class="st">"plan_request"</span>, {<span class="st">"request_id"</span>: rid})</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f"Asked </span><span class="sc">{</span>teammate<span class="sc">}</span><span class="ss"> to plan </span><span class="sc">{</span>task<span class="sc">}</span><span class="ss"> (request </span><span class="sc">{</span>rid<span class="sc">}</span><span class="ss">)"</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> match_response(response_type: <span class="bu">str</span>, request_id: <span class="bu">str</span>, approve: <span class="bu">bool</span>):</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> pending_requests.get(request_id)</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> state <span class="kw">or</span> <span class="kw">not</span> response_type.startswith(state.<span class="bu">type</span>):</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span>                                 <span class="co"># wrong request or wrong type — ignore</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    state.status <span class="op">=</span> <span class="st">"approved"</span> <span class="cf">if</span> approve <span class="cf">else</span> <span class="st">"rejected"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This is the spine of the “orchestrator + teammates” pattern from Chapter 12: the lead spawns teammates, asks for a plan, and <strong>waits for explicit approval</strong> before any teammate touches files — all expressed as messages on disk, with no special infrastructure.</p>
+</section>
+<section id="sec-build-recovery" class="level3" data-number="6.8.5">
+<h3 data-number="6.8.5" class="anchored" data-anchor-id="sec-build-recovery"><span class="header-section-number">6.8.5</span> Surviving the real world: error recovery</h3>
+<p>A loop that runs for hours will hit rate limits (429), overloaded servers (529), and prompts that grow past the context window. Production agents wrap every model call in a retry policy with exponential backoff and jitter, and escalate when a class of error repeats:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> retry_delay(attempt: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    base <span class="op">=</span> <span class="bu">min</span>(BASE_DELAY_MS <span class="op">*</span> (<span class="dv">2</span> <span class="op">**</span> attempt), <span class="dv">32_000</span>) <span class="op">/</span> <span class="dv">1000</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> base <span class="op">+</span> random.uniform(<span class="dv">0</span>, base <span class="op">*</span> <span class="fl">0.25</span>)          <span class="co"># backoff + jitter</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> with_retry(fn, state: RecoveryState):</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> attempt <span class="kw">in</span> <span class="bu">range</span>(MAX_RETRIES):</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span>:</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>            result <span class="op">=</span> fn()<span class="op">;</span> state.consecutive_529 <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> <span class="cf">return</span> result</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> e:</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>            name, msg <span class="op">=</span> <span class="bu">type</span>(e).<span class="va">__name__</span>.lower(), <span class="bu">str</span>(e).lower()</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="st">"ratelimit"</span> <span class="kw">in</span> name <span class="kw">or</span> <span class="st">"429"</span> <span class="kw">in</span> msg:               <span class="co"># transient → wait</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>                time.sleep(retry_delay(attempt))<span class="op">;</span> <span class="cf">continue</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="st">"overloaded"</span> <span class="kw">in</span> name <span class="kw">or</span> <span class="st">"529"</span> <span class="kw">in</span> msg:              <span class="co"># repeated → fail over</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>                state.consecutive_529 <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> state.consecutive_529 <span class="op">&gt;=</span> MAX_CONSECUTIVE_529 <span class="kw">and</span> FALLBACK_MODEL:</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>                    state.current_model <span class="op">=</span> FALLBACK_MODEL           <span class="co"># smaller/cheaper model</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>                time.sleep(retry_delay(attempt))<span class="op">;</span> <span class="cf">continue</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>            <span class="cf">raise</span>                                                  <span class="co"># unknown → don't mask it</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">RuntimeError</span>(<span class="st">"Max retries exceeded"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The companion case is the prompt that’s simply <em>too long</em>. Rather than crash, the loop catches that specific error once, runs a <strong>reactive compaction</strong> to summarize old turns, and retries — the same lossy-compression idea from <a href="#sec-build-compact" class="quarto-xref"><span>Section 6.4</span></a>, now triggered by failure instead of a token threshold. Note the discipline in the <code>except</code>: transient errors are retried, a recurring class triggers a model fallback, and anything unrecognized is re-raised rather than silently swallowed.</p>
+</section>
+<section id="sec-build-capstone-loop" class="level3" data-number="6.8.6">
+<h3 data-number="6.8.6" class="anchored" data-anchor-id="sec-build-capstone-loop"><span class="header-section-number">6.8.6</span> The loop that ties it together</h3>
+<p>Here is the final <code>agent_loop</code>, stripped to its skeleton. Read it against the 30-line loop from <a href="#sec-build-loop" class="quarto-xref"><span>Section 6.1</span></a> — it is the <em>same shape</em>, with each new mechanism slotted into the cycle at the point where it belongs:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> agent_loop(messages: <span class="bu">list</span>, context: <span class="bu">dict</span>):</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    tools, handlers <span class="op">=</span> assemble_tool_pool()      <span class="co"># builtin tools + every MCP server's tools</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> RecoveryState()</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="va">True</span>:</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> job <span class="kw">in</span> consume_cron_queue():        <span class="co"># scheduled work shows up as a user turn</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>            messages.append({<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="ss">f"[Scheduled] </span><span class="sc">{</span>job<span class="sc">.</span>prompt<span class="sc">}</span><span class="ss">"</span>})</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>        inject_background_notifications(messages)  <span class="co"># finished background tasks report back</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>        prepare_context(messages)               <span class="co"># compaction / tool-result budget</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span>:</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>            response <span class="op">=</span> call_llm(messages, context, tools, state)   <span class="co"># wrapped in with_retry</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> e:</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> is_prompt_too_long_error(e):     <span class="co"># reactive compaction, then retry</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>                messages[:] <span class="op">=</span> reactive_compact(messages)<span class="op">;</span> <span class="cf">continue</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">raise</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>        messages.append({<span class="st">"role"</span>: <span class="st">"assistant"</span>, <span class="st">"content"</span>: response.content})</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> has_tool_use(response.content):</span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>            trigger_hooks(<span class="st">"Stop"</span>, messages)     <span class="co"># the "are we really done?" gate</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>        results <span class="op">=</span> []</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> block <span class="kw">in</span> response.content:</span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> block.<span class="bu">type</span> <span class="op">!=</span> <span class="st">"tool_use"</span>:</span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> blocked <span class="op">:=</span> trigger_hooks(<span class="st">"PreToolUse"</span>, block):      <span class="co"># permission + policy</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>                output <span class="op">=</span> <span class="bu">str</span>(blocked)</span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>            <span class="cf">elif</span> should_run_background(block.name, block.<span class="bu">input</span>):   <span class="co"># slow tool → detach</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>                output <span class="op">=</span> start_background_task(block, handlers)</span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>                output <span class="op">=</span> call_tool_handler(handlers.get(block.name), block.<span class="bu">input</span>, block.name)</span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>                trigger_hooks(<span class="st">"PostToolUse"</span>, block, output)</span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a>            results.append({<span class="st">"type"</span>: <span class="st">"tool_result"</span>, <span class="st">"tool_use_id"</span>: block.<span class="bu">id</span>, <span class="st">"content"</span>: output})</span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>        messages.append({<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: build_user_content(results)})  <span class="co"># write-back</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Everything is here, and nothing has displaced the core. Cron and background notifications enter as ordinary user turns. Context preparation and recovery wrap the model call. Permission, background routing, and hooks sit <em>between</em> “the model asked for a tool” and “the tool ran.” And the last line is still the write-back — the single most important line from <a href="#sec-build-loop" class="quarto-xref"><span>Section 6.1</span></a>. The 30-line loop didn’t get replaced; it got surrounded.</p>
+</section>
+<section id="sec-build-capstone-rest" class="level3" data-number="6.8.7">
+<h3 data-number="6.8.7" class="anchored" data-anchor-id="sec-build-capstone-rest"><span class="header-section-number">6.8.7</span> …and the rest</h3>
+<p>For brevity this section skipped several subsystems that follow the identical “layer on, don’t restructure” rule. In the source they are each a handful of functions:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Mechanism</th>
+<th>What it adds</th>
+<th>Where it plugs in</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Background tasks</strong></td>
+<td>slow tools (<code>build</code>, <code>pytest</code>, <code>install</code>) return a placeholder immediately; real output arrives later as a <code>task_notification</code></td>
+<td>the <code>should_run_background</code> branch in the loop</td>
+</tr>
+<tr class="even">
+<td><strong>Cron</strong></td>
+<td>durable cron-expression jobs persisted to disk; a scheduler thread fires them</td>
+<td><code>consume_cron_queue</code> at the top of the loop</td>
+</tr>
+<tr class="odd">
+<td><strong>MCP</strong></td>
+<td>external tool servers merged into one prefixed (<code>mcp__server__tool</code>) pool</td>
+<td><code>assemble_tool_pool</code> builds <code>tools</code> + <code>handlers</code></td>
+</tr>
+<tr class="even">
+<td><strong>Memory</strong></td>
+<td>transcripts and durable task/job state on disk survive restarts</td>
+<td>written throughout; re-read on resume</td>
+</tr>
+</tbody>
+</table>
+<p>The full file is worth reading end to end precisely <em>because</em> none of it is surprising once you’ve internalized the loop. Each subsystem is a small, self-contained module that the loop calls at a well-defined moment — which is the whole thesis of this chapter, demonstrated at scale.</p>
+</section>
+</section>
+<section id="sec-build-takeaways" class="level2" data-number="6.9">
+<h2 data-number="6.9" class="anchored" data-anchor-id="sec-build-takeaways"><span class="header-section-number">6.9</span> Key Takeaways</h2>
 <ul>
 <li>A complete autonomous agent is a <code>while True</code> loop that sends messages, executes tool calls, and appends results — 30 lines of Python</li>
 <li>The <strong>write-back step</strong> (appending tool results as a user message) is the single most important line — it’s what makes the loop self-sustaining</li>
@@ -655,6 +897,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Compaction summarizes old messages when tokens exceed a threshold — the agent doesn’t know it happened</li>
 <li>Skills load full knowledge on-demand via a tool call, keeping the system prompt lean</li>
 <li>Hooks run shell commands at named moments (PreToolUse, PostToolUse) with zero context cost</li>
+<li>The capstone (<code>s20</code>) reassembles <em>every</em> mechanism — task graph, worktrees, teams + approval protocol, error recovery, background, cron, MCP — into one file, and the core is still the same loop</li>
+<li>Durable state (tasks, jobs, transcripts) lives <strong>on disk as files</strong>, so it survives restarts and is shared between agents without special infrastructure</li>
+<li>Isolation of <em>context</em> (subagents, worktrees) and enforcement of <em>policy</em> (permission, hooks) are independent layers — a fresh context still obeys the same rules</li>
 <li><strong>Every feature layers on without changing the core loop</strong> — the 30-line foundation carries the entire system</li>
 </ul>
 
