@@ -51,6 +51,8 @@ These are the same concurrency problems that distributed systems engineers deal 
 
 The primary solution is **isolation**: each agent operates in its own bounded workspace where it can't interfere with others.
 
+Chapter 6's capstone (@sec-build-capstone) built the *in-process* version of this — worktree creation and a teammate protocol living inside one program, coordinating threads through file-based mailboxes. Gas Town is what happens when those loops stop being threads in one process and become **separate, concurrent processes** against a shared repo. The mechanism (worktrees) is the same; what changes is everything around it — conflict resolution, release engineering, and quality gates now have to work without a single program holding the whole picture in memory.
+
 In Claude Code, this means:
 - **Git worktrees** — each subagent gets its own copy of the repo on a separate branch
 - **Separate context windows** — each agent sees only its own task, not the others'

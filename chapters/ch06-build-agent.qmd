@@ -4,7 +4,7 @@ subtitle: "30 Lines to a Working Agent — Then Layer Everything On"
 author: "AI-Powered SE Tutorial"
 date: today
 abstract: |
-  You've learned how the ReAct loop works (Chapter 2), how context accumulates and compacts (Chapter 3), and how extensions customize behavior (Chapter 4). Now build it yourself. Starting from a 30-line Python loop using the raw Anthropic Messages API, this chapter progressively adds tool dispatch, subagents, compaction, skills, and hooks — proving that Claude Code's sophistication grows from a trivial core. Based on the open-source [Learn Claude Code](https://learn.shareai.run/en/) course by shareAI.
+  You've learned how the ReAct loop works (Chapter 2), how context accumulates and compacts (Chapter 3), and how extensions customize behavior (Chapter 4). Now build it yourself. Starting from a 30-line Python loop using the raw Anthropic Messages API, this chapter progressively adds tool dispatch, subagents, compaction, skills, and hooks, then assembles a complete agent — a task graph, worktree isolation, a teammate protocol, and error recovery — proving that Claude Code's sophistication grows from a trivial core and that every later mechanism layers on without touching the loop. Based on the open-source [Learn Claude Code](https://learn.shareai.run/en/) course by shareAI.
 ---
 
 ## The Loop Is 30 Lines {#sec-build-loop}
