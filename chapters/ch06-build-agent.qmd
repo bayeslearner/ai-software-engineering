@@ -354,11 +354,11 @@ flowchart TD
     style GA fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
 ```
 
-The [Learn Claude Code course](https://learn.shareai.run/en/) continues beyond what we've covered here — adding permission systems (s07), memory (s09), task graphs (s12), background execution (s13), agent teams (s15-s16), autonomous agents (s17), and worktree isolation (s18). All 19 sessions layer onto the same 30-line loop without restructuring it. The next section makes that claim concrete: the course's final session reassembles *every* mechanism into a single file, and the core is still the loop you've already read.
+The [Learn Claude Code course](https://learn.shareai.run/en/) continues beyond what we've covered here — adding permission systems (s07), memory (s09), task graphs (s12), background execution (s13), agent teams (s15-s16), autonomous agents (s17), and worktree isolation (s18). All 19 sessions layer onto the same 30-line loop without restructuring it. The next section makes that claim concrete: it reassembles *every* mechanism into one agent, and the core is still the loop you've already read.
 
-## Putting It All Together: One File, Every Mechanism {#sec-build-capstone}
+## Putting It All Together: One Loop, Every Mechanism {#sec-build-capstone}
 
-The course's final session — [`s20_comprehensive/code.py`](https://github.com/shareAI-lab/learn-claude-code/blob/main/s20_comprehensive/code.py) — is the payoff for everything above. It is roughly two thousand lines, but it contains no new *kind* of idea: it puts dispatch, permission, hooks, todos, subagents, skills, compaction, memory, a task graph, error recovery, background tasks, cron, teams, and MCP back into **the same loop**. This section walks the load-bearing additions the earlier sections promised but didn't show. The snippets are trimmed to their teaching core; read the source for the production edge cases.
+A complete agent — the kind that runs for hours, coordinates with peers, and survives a flaky network — is the payoff for everything above. It is a few thousand lines, but it contains no new *kind* of idea: it puts dispatch, permission, hooks, todos, subagents, skills, compaction, memory, a task graph, error recovery, background tasks, cron, teams, and MCP back into **the same loop**. This section builds the load-bearing additions the earlier sections promised but didn't show. The snippets are trimmed to their teaching core — production code adds more edge-case handling, but no new structure.
 
 ### A task graph the agent can plan against {#sec-build-taskgraph}
 
@@ -577,7 +577,7 @@ Everything is here, and nothing has displaced the core. Cron and background noti
 
 ### ...and the rest {#sec-build-capstone-rest}
 
-For brevity this section skipped several subsystems that follow the identical "layer on, don't restructure" rule. In the source they are each a handful of functions:
+For brevity this section skipped several subsystems that follow the identical "layer on, don't restructure" rule. Each is a handful of functions:
 
 | Mechanism | What it adds | Where it plugs in |
 |---|---|---|
@@ -586,7 +586,7 @@ For brevity this section skipped several subsystems that follow the identical "l
 | **MCP** | external tool servers merged into one prefixed (`mcp__server__tool`) pool | `assemble_tool_pool` builds `tools` + `handlers` |
 | **Memory** | transcripts and durable task/job state on disk survive restarts | written throughout; re-read on resume |
 
-The full file is worth reading end to end precisely *because* none of it is surprising once you've internalized the loop. Each subsystem is a small, self-contained module that the loop calls at a well-defined moment — which is the whole thesis of this chapter, demonstrated at scale.
+None of it is surprising once you've internalized the loop. Each subsystem is a small, self-contained module that the loop calls at a well-defined moment — which is the whole thesis of this chapter, demonstrated at scale.
 
 ## Key Takeaways {#sec-build-takeaways}
 
@@ -597,7 +597,7 @@ The full file is worth reading end to end precisely *because* none of it is surp
 - Compaction summarizes old messages when tokens exceed a threshold — the agent doesn't know it happened
 - Skills load full knowledge on-demand via a tool call, keeping the system prompt lean
 - Hooks run shell commands at named moments (PreToolUse, PostToolUse) with zero context cost
-- The capstone (`s20`) reassembles *every* mechanism — task graph, worktrees, teams + approval protocol, error recovery, background, cron, MCP — into one file, and the core is still the same loop
+- A complete agent reassembles *every* mechanism — task graph, worktrees, teams + approval protocol, error recovery, background, cron, MCP — into one program, and the core is still the same loop
 - Durable state (tasks, jobs, transcripts) lives **on disk as files**, so it survives restarts and is shared between agents without special infrastructure
 - Isolation of *context* (subagents, worktrees) and enforcement of *policy* (permission, hooks) are independent layers — a fresh context still obeys the same rules
 - **Every feature layers on without changing the core loop** — the 30-line foundation carries the entire system
