@@ -354,7 +354,239 @@ flowchart TD
     style GA fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
 ```
 
-The [Learn Claude Code course](https://learn.shareai.run/en/) continues beyond what we've covered here — adding permission systems (s07), memory (s09), task graphs (s12), background execution (s13), agent teams (s15-s16), autonomous agents (s17), and worktree isolation (s18). All 19 sessions layer onto the same 30-line loop without restructuring it.
+The [Learn Claude Code course](https://learn.shareai.run/en/) continues beyond what we've covered here — adding permission systems (s07), memory (s09), task graphs (s12), background execution (s13), agent teams (s15-s16), autonomous agents (s17), and worktree isolation (s18). All 19 sessions layer onto the same 30-line loop without restructuring it. The next section makes that claim concrete: the course's final session reassembles *every* mechanism into a single file, and the core is still the loop you've already read.
+
+## Putting It All Together: One File, Every Mechanism {#sec-build-capstone}
+
+The course's final session — [`s20_comprehensive/code.py`](https://github.com/shareAI-lab/learn-claude-code/blob/main/s20_comprehensive/code.py) — is the payoff for everything above. It is roughly two thousand lines, but it contains no new *kind* of idea: it puts dispatch, permission, hooks, todos, subagents, skills, compaction, memory, a task graph, error recovery, background tasks, cron, teams, and MCP back into **the same loop**. This section walks the load-bearing additions the earlier sections promised but didn't show. The snippets are trimmed to their teaching core; read the source for the production edge cases.
+
+### A task graph the agent can plan against {#sec-build-taskgraph}
+
+Once an agent does multi-step work, "what's left, and what's blocked?" needs a durable home outside the context window. A task is a small record on disk; dependencies are just a list of other task ids that must finish first:
+
+```python
+from dataclasses import dataclass, asdict
+import json
+from pathlib import Path
+
+TASKS_DIR = Path(".tasks"); TASKS_DIR.mkdir(exist_ok=True)
+
+@dataclass
+class Task:
+    id: str
+    subject: str
+    status: str            # pending | in_progress | completed
+    owner: str | None
+    blockedBy: list[str]   # ids that must be completed first
+
+def _path(tid): return TASKS_DIR / f"{tid}.json"
+def load_task(tid): return Task(**json.loads(_path(tid).read_text()))
+def save_task(t): _path(t.id).write_text(json.dumps(asdict(t), indent=2))
+
+def can_start(tid: str) -> bool:
+    """Runnable only when every blocker exists and is completed."""
+    return all(_path(d).exists() and load_task(d).status == "completed"
+               for d in load_task(tid).blockedBy)
+
+def claim_task(tid: str, owner: str = "agent") -> str:
+    task = load_task(tid)
+    if task.status != "pending":  return f"{tid} is {task.status}"
+    if not can_start(tid):        return f"{tid} is still blocked"
+    task.owner, task.status = owner, "in_progress"
+    save_task(task)
+    return f"Claimed {tid} ({task.subject})"
+
+def complete_task(tid: str) -> str:
+    task = load_task(tid); task.status = "completed"; save_task(task)
+    unblocked = [t.subject for p in TASKS_DIR.glob("task_*.json")
+                 if (t := load_task(p.stem)).status == "pending" and can_start(t.id)]
+    return f"Completed {tid}" + (f" — unblocked: {unblocked}" if unblocked else "")
+```
+
+The graph is just files. `can_start` is a pure dependency check, and `complete_task` reports which tasks its completion *unblocked* — which is exactly the signal an autonomous agent (or a teammate) needs to pick up the next available work without being told.
+
+### Worktrees: real isolation for parallel work {#sec-build-worktrees}
+
+When more than one agent edits the same repo, a shared working tree is a data-loss hazard — one agent's checkout yanks the files out from under another. Git worktrees give each branch its own directory. The agent gets a tool that wraps `git worktree add`, plus strict name validation, because the name becomes a filesystem path:
+
+```python
+import re, subprocess
+WORKTREES_DIR = Path(".worktrees"); WORKTREES_DIR.mkdir(exist_ok=True)
+VALID_NAME = re.compile(r'^[A-Za-z0-9._-]{1,64}$')
+
+def create_worktree(name: str, task_id: str = "") -> str:
+    if not VALID_NAME.match(name or ""):
+        return f"Error: invalid worktree name '{name}'"   # tool-layer safety boundary
+    path = WORKTREES_DIR / name
+    if path.exists():
+        return f"Worktree '{name}' already exists"
+    r = subprocess.run(["git", "worktree", "add", str(path), "-b", f"wt/{name}", "HEAD"],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        return f"Git error: {r.stderr.strip()}"
+    if task_id:                       # bind the task to its sandbox
+        t = load_task(task_id); t.worktree = name; save_task(t)
+    return f"Worktree '{name}' created at {path}"
+```
+
+Note where the validation lives: in the *tool*, before git ever sees the name — not relying on git to reject something afterward. Removal is the mirror image, and deliberately refuses to delete a worktree with uncommitted changes unless forced (`discard_changes=true`) or explicitly kept for review. The agent now has a safe place to do parallel work; the task graph above records *which* sandbox each task owns.
+
+### Subagents, with the safety boundary wired in {#sec-build-subagent-full}
+
+The subagent from [@sec-build-subagent] returns in the full system, but now it runs tool calls through the same permission and hook layer as the parent, and caps its own iterations so a confused child can't spin forever:
+
+```python
+def spawn_subagent(description: str) -> str:
+    messages = [{"role": "user", "content": description}]
+    for _ in range(30):                       # bounded — no runaway child
+        response = client.messages.create(
+            model=MODEL, system=SUB_SYSTEM,   # "...do not spawn more agents."
+            messages=messages, tools=SUB_TOOLS, max_tokens=8000)
+        messages.append({"role": "assistant", "content": response.content})
+        if not has_tool_use(response.content):
+            break                             # return only the final summary
+        results = []
+        for block in response.content:
+            if block.type != "tool_use":
+                continue
+            blocked = trigger_hooks("PreToolUse", block)     # same permission layer
+            output = str(blocked) if blocked else \
+                     call_tool_handler(SUB_HANDLERS.get(block.name), block.input, block.name)
+            results.append({"type": "tool_result", "tool_use_id": block.id, "content": output})
+        messages.append({"role": "user", "content": results})
+    return extract_text(messages[-1]["content"])
+```
+
+Same fresh-context, short-summary-out pattern as before — but the subagent has no `task` tool (no recursion), a bounded loop, and its tool calls are gated by the very same `PreToolUse` hooks the parent uses. Isolation of *context* and enforcement of *policy* are independent: the child gets its own message array, but not its own rules.
+
+### Teams and a plan-approval protocol {#sec-build-teams}
+
+Multiple long-lived agents need two things the subagent pattern lacks: a way to **message each other**, and a way to **gate an action on another agent's approval**. The message bus is one append-only inbox file per agent:
+
+```python
+class MessageBus:
+    def send(self, frm, to, content, msg_type="message", metadata=None):
+        inbox = MAILBOX_DIR / f"{to}.jsonl"
+        with open(inbox, "a") as f:
+            f.write(json.dumps({"from": frm, "to": to, "content": content,
+                                "type": msg_type, "metadata": metadata or {}}) + "\n")
+    def read_inbox(self, agent):
+        inbox = MAILBOX_DIR / f"{agent}.jsonl"
+        if not inbox.exists(): return []
+        msgs = [json.loads(l) for l in inbox.read_text().splitlines() if l.strip()]
+        inbox.unlink()                         # read-once: drain the mailbox
+        return msgs
+```
+
+A *protocol* layers request/response semantics on top of raw messages. Each request gets an id; a reply is only valid if it references a pending request of the matching type — so one approval can't accidentally satisfy a different pending ask:
+
+```python
+@dataclass
+class ProtocolState:
+    request_id: str; type: str; sender: str; target: str; status: str; payload: str
+
+pending_requests: dict[str, ProtocolState] = {}
+
+def request_plan(teammate: str, task: str) -> str:
+    rid = new_request_id()
+    pending_requests[rid] = ProtocolState(rid, "plan_approval", "lead", teammate, "pending", task)
+    BUS.send("lead", teammate, f"Submit a plan for: {task}", "plan_request", {"request_id": rid})
+    return f"Asked {teammate} to plan {task} (request {rid})"
+
+def match_response(response_type: str, request_id: str, approve: bool):
+    state = pending_requests.get(request_id)
+    if not state or not response_type.startswith(state.type):
+        return                                 # wrong request or wrong type — ignore
+    state.status = "approved" if approve else "rejected"
+```
+
+This is the spine of the "orchestrator + teammates" pattern from Chapter 12: the lead spawns teammates, asks for a plan, and **waits for explicit approval** before any teammate touches files — all expressed as messages on disk, with no special infrastructure.
+
+### Surviving the real world: error recovery {#sec-build-recovery}
+
+A loop that runs for hours will hit rate limits (429), overloaded servers (529), and prompts that grow past the context window. Production agents wrap every model call in a retry policy with exponential backoff and jitter, and escalate when a class of error repeats:
+
+```python
+def retry_delay(attempt: int) -> float:
+    base = min(BASE_DELAY_MS * (2 ** attempt), 32_000) / 1000
+    return base + random.uniform(0, base * 0.25)          # backoff + jitter
+
+def with_retry(fn, state: RecoveryState):
+    for attempt in range(MAX_RETRIES):
+        try:
+            result = fn(); state.consecutive_529 = 0; return result
+        except Exception as e:
+            name, msg = type(e).__name__.lower(), str(e).lower()
+            if "ratelimit" in name or "429" in msg:               # transient → wait
+                time.sleep(retry_delay(attempt)); continue
+            if "overloaded" in name or "529" in msg:              # repeated → fail over
+                state.consecutive_529 += 1
+                if state.consecutive_529 >= MAX_CONSECUTIVE_529 and FALLBACK_MODEL:
+                    state.current_model = FALLBACK_MODEL           # smaller/cheaper model
+                time.sleep(retry_delay(attempt)); continue
+            raise                                                  # unknown → don't mask it
+    raise RuntimeError("Max retries exceeded")
+```
+
+The companion case is the prompt that's simply *too long*. Rather than crash, the loop catches that specific error once, runs a **reactive compaction** to summarize old turns, and retries — the same lossy-compression idea from [@sec-build-compact], now triggered by failure instead of a token threshold. Note the discipline in the `except`: transient errors are retried, a recurring class triggers a model fallback, and anything unrecognized is re-raised rather than silently swallowed.
+
+### The loop that ties it together {#sec-build-capstone-loop}
+
+Here is the final `agent_loop`, stripped to its skeleton. Read it against the 30-line loop from [@sec-build-loop] — it is the *same shape*, with each new mechanism slotted into the cycle at the point where it belongs:
+
+```python
+def agent_loop(messages: list, context: dict):
+    tools, handlers = assemble_tool_pool()      # builtin tools + every MCP server's tools
+    state = RecoveryState()
+
+    while True:
+        for job in consume_cron_queue():        # scheduled work shows up as a user turn
+            messages.append({"role": "user", "content": f"[Scheduled] {job.prompt}"})
+        inject_background_notifications(messages)  # finished background tasks report back
+        prepare_context(messages)               # compaction / tool-result budget
+
+        try:
+            response = call_llm(messages, context, tools, state)   # wrapped in with_retry
+        except Exception as e:
+            if is_prompt_too_long_error(e):     # reactive compaction, then retry
+                messages[:] = reactive_compact(messages); continue
+            raise
+
+        messages.append({"role": "assistant", "content": response.content})
+        if not has_tool_use(response.content):
+            trigger_hooks("Stop", messages)     # the "are we really done?" gate
+            return
+
+        results = []
+        for block in response.content:
+            if block.type != "tool_use":
+                continue
+            if blocked := trigger_hooks("PreToolUse", block):      # permission + policy
+                output = str(blocked)
+            elif should_run_background(block.name, block.input):   # slow tool → detach
+                output = start_background_task(block, handlers)
+            else:
+                output = call_tool_handler(handlers.get(block.name), block.input, block.name)
+                trigger_hooks("PostToolUse", block, output)
+            results.append({"type": "tool_result", "tool_use_id": block.id, "content": output})
+
+        messages.append({"role": "user", "content": build_user_content(results)})  # write-back
+```
+
+Everything is here, and nothing has displaced the core. Cron and background notifications enter as ordinary user turns. Context preparation and recovery wrap the model call. Permission, background routing, and hooks sit *between* "the model asked for a tool" and "the tool ran." And the last line is still the write-back — the single most important line from [@sec-build-loop]. The 30-line loop didn't get replaced; it got surrounded.
+
+### ...and the rest {#sec-build-capstone-rest}
+
+For brevity this section skipped several subsystems that follow the identical "layer on, don't restructure" rule. In the source they are each a handful of functions:
+
+| Mechanism | What it adds | Where it plugs in |
+|---|---|---|
+| **Background tasks** | slow tools (`build`, `pytest`, `install`) return a placeholder immediately; real output arrives later as a `task_notification` | the `should_run_background` branch in the loop |
+| **Cron** | durable cron-expression jobs persisted to disk; a scheduler thread fires them | `consume_cron_queue` at the top of the loop |
+| **MCP** | external tool servers merged into one prefixed (`mcp__server__tool`) pool | `assemble_tool_pool` builds `tools` + `handlers` |
+| **Memory** | transcripts and durable task/job state on disk survive restarts | written throughout; re-read on resume |
+
+The full file is worth reading end to end precisely *because* none of it is surprising once you've internalized the loop. Each subsystem is a small, self-contained module that the loop calls at a well-defined moment — which is the whole thesis of this chapter, demonstrated at scale.
 
 ## Key Takeaways {#sec-build-takeaways}
 
@@ -365,4 +597,7 @@ The [Learn Claude Code course](https://learn.shareai.run/en/) continues beyond w
 - Compaction summarizes old messages when tokens exceed a threshold — the agent doesn't know it happened
 - Skills load full knowledge on-demand via a tool call, keeping the system prompt lean
 - Hooks run shell commands at named moments (PreToolUse, PostToolUse) with zero context cost
+- The capstone (`s20`) reassembles *every* mechanism — task graph, worktrees, teams + approval protocol, error recovery, background, cron, MCP — into one file, and the core is still the same loop
+- Durable state (tasks, jobs, transcripts) lives **on disk as files**, so it survives restarts and is shared between agents without special infrastructure
+- Isolation of *context* (subagents, worktrees) and enforcement of *policy* (permission, hooks) are independent layers — a fresh context still obeys the same rules
 - **Every feature layers on without changing the core loop** — the 30-line foundation carries the entire system
