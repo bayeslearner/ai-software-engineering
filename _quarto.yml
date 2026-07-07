@@ -34,6 +34,10 @@ format:
     mermaid:
       theme: default
 
+    css:
+      - present-mode.css
+    include-after-body:
+      - present-mode.html
   pdf:
     documentclass: scrreprt
     papersize: letter
