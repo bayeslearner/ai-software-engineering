@@ -34,30 +34,36 @@ def run_bash(command: str) -> str:
     return result.stdout + result.stderr
 
 def agent_loop(query: str):
-    messages = [{"role": "user", "content": query}]
+    messages = [{"role": "user", "content": query}]          # <1>
 
     while True:
         response = client.messages.create(
             model=MODEL, system=SYSTEM, messages=messages,
             tools=TOOLS, max_tokens=8000,
         )
-        messages.append({"role": "assistant", "content": response.content})
+        messages.append({"role": "assistant", "content": response.content})  # <2>
 
-        if response.stop_reason != "tool_use":
+        if response.stop_reason != "tool_use":               # <3>
             return response.content[0].text  # Done — final text response
 
         # Execute tool calls, collect results
         results = []
-        for block in response.content:
+        for block in response.content:                       # <4>
             if block.type == "tool_use":
                 output = run_bash(block.input["command"])
                 results.append({
                     "type": "tool_result",
-                    "tool_use_id": block.id,
+                    "tool_use_id": block.id,                  # <5>
                     "content": output,
                 })
-        messages.append({"role": "user", "content": results})
+        messages.append({"role": "user", "content": results})  # <6>
 ```
+1. **`messages` is the agent's entire memory** — one list of turns that every step appends to. There is no hidden state; the whole agent is "what's in this list."
+2. **Append the assistant turn *before* acting on it** — the reply (including its `tool_use` blocks) must already be in history, or the `tool_result` you send next has nothing to attach to and the API rejects it.
+3. **The "text or tool call?" decision** — `stop_reason == "tool_use"` is the API signalling the model wants to run a tool. Any other stop reason means it's answering, so the loop returns.
+4. **One assistant turn can hold several blocks** — the model may request multiple tools (and interleave text) in a single response, so you iterate rather than handling just one.
+5. **`tool_use_id` ties each result back to its call** — with parallel tool calls in one turn, this id is how the model knows which result answers which request.
+6. **The write-back** — feeding results back as a new `user` turn is what makes the loop self-sustaining. Omit this one line and the model never sees what its tools did.
 
 That's a complete autonomous agent. It reads files, runs tests, installs packages, and self-corrects — because the `while True` loop keeps spinning until the model decides it's done.
 
@@ -86,8 +92,8 @@ WORKDIR = Path(".")
 
 def safe_path(p: str) -> Path:
     """Prevent directory escape."""
-    path = (WORKDIR / p).resolve()
-    if not path.is_relative_to(WORKDIR):
+    path = (WORKDIR / p).resolve()                  # <1>
+    if not path.is_relative_to(WORKDIR):            # <2>
         raise ValueError(f"Path escapes workspace: {p}")
     return path
 
@@ -96,7 +102,7 @@ def run_read(path: str, limit: int = None) -> str:
     lines = text.splitlines()
     if limit and limit < len(lines):
         lines = lines[:limit]
-    return "\n".join(lines)[:50_000]
+    return "\n".join(lines)[:50_000]                # <3>
 
 def run_write(path: str, content: str) -> str:
     safe_path(path).write_text(content)
@@ -106,32 +112,40 @@ def run_edit(path: str, old_text: str, new_text: str) -> str:
     p = safe_path(path)
     text = p.read_text()
     if old_text not in text:
-        return f"ERROR: old_text not found in {path}"
-    p.write_text(text.replace(old_text, new_text, 1))
+        return f"ERROR: old_text not found in {path}"   # <4>
+    p.write_text(text.replace(old_text, new_text, 1))    # <5>
     return f"Edited: {path}"
 
 # The dispatch map — add tools here, never touch the loop
 TOOL_HANDLERS = {
-    "bash":       lambda **kw: run_bash(kw["command"]),
+    "bash":       lambda **kw: run_bash(kw["command"]),  # <6>
     "read_file":  lambda **kw: run_read(kw["path"], kw.get("limit")),
     "write_file": lambda **kw: run_write(kw["path"], kw["content"]),
     "edit_file":  lambda **kw: run_edit(kw["path"], kw["old_text"], kw["new_text"]),
 }
 ```
+1. **`.resolve()` collapses `..` and symlinks** into a real absolute path — you can't safety-check a path until it's been normalized.
+2. **The actual escape guard** — after resolving, confirm the path is still *inside* `WORKDIR`; this is what stops `read_file("../../etc/passwd")`.
+3. **Truncate tool output to a token budget** — a single huge file could blow the context window, so the read is capped (here ~50k chars) before it ever reaches the model.
+4. **Return an error *string*, don't raise** — the model reads this like any other tool result and can self-correct (re-read, fix the `old_text`), whereas an exception would kill the loop.
+5. **`replace(..., 1)` edits only the first match** — the count `1` makes the edit surgical, so duplicate text elsewhere in the file isn't clobbered.
+6. **Each handler adapts the model's JSON args (`**kw`) to a plain function** — adding a tool means adding one line here (and its schema to `TOOLS`); the loop never changes.
 
 The loop's tool execution block becomes:
 
 ```python
 for block in response.content:
     if block.type == "tool_use":
-        handler = TOOL_HANDLERS.get(block.name)
-        output = handler(**block.input) if handler else f"Unknown tool: {block.name}"
+        handler = TOOL_HANDLERS.get(block.name)      # <1>
+        output = handler(**block.input) if handler else f"Unknown tool: {block.name}"  # <2>
         results.append({
             "type": "tool_result",
             "tool_use_id": block.id,
             "content": output,
         })
 ```
+1. **Route by the name the model chose** — `block.name` is whatever tool the model asked for; `.get` looks it up in the dispatch map instead of a hard-coded `if/elif` chain.
+2. **Unknown tools degrade to a message, not a crash** — if the model hallucinates a tool name, it gets a "Unknown tool" string back and can try again; the loop survives.
 
 The loop itself never changes. You add capabilities by adding entries to `TOOL_HANDLERS` and corresponding schemas to `TOOLS`. This is why the course's tagline is "Bash is all you need" — the loop structure established in s01 carries the entire 19-chapter curriculum.
 
@@ -142,18 +156,18 @@ Chapter 4 explained that subagents get their own context window. Here's what tha
 ```python
 def run_subagent(task: str) -> str:
     """Spawn a child agent with fresh context. Return only its final answer."""
-    child_messages = [{"role": "user", "content": task}]
+    child_messages = [{"role": "user", "content": task}]   # <1>
 
     while True:
         response = client.messages.create(
             model=MODEL, system=SYSTEM, messages=child_messages,
-            tools=TOOLS, max_tokens=8000,  # No "task" tool — prevents recursion
+            tools=TOOLS, max_tokens=8000,                  # <2>
         )
         child_messages.append({"role": "assistant", "content": response.content})
 
         if response.stop_reason != "tool_use":
             # Return ONLY the final text — discard all intermediate context
-            return response.content[0].text
+            return response.content[0].text               # <3>
 
         results = []
         for block in response.content:
@@ -163,6 +177,9 @@ def run_subagent(task: str) -> str:
                 results.append({"type": "tool_result", "tool_use_id": block.id, "content": output})
         child_messages.append({"role": "user", "content": results})
 ```
+1. **A fresh array is the whole point** — `child_messages` starts empty, so the child's exploration never enters the parent's context. This is the "context boundary."
+2. **The child is handed tools *without* a `task`/spawn tool** — that omission is what prevents a subagent from spawning subagents forever.
+3. **Only the final text crosses back** — the parent receives this one summary; every intermediate file read and command the child ran is discarded when the function returns.
 
 The subagent is the **same loop** with `child_messages = []` — a fresh context. It might read 10 files and run 5 commands, but the parent only sees the final summary. All intermediate tool calls and results are discarded when the function returns.
 
@@ -175,7 +192,7 @@ Chapter 3 explained that context fills up and gets compressed. Here's the implem
 ```python
 def count_tokens(messages: list) -> int:
     """Approximate token count."""
-    return sum(len(str(m)) // 4 for m in messages)
+    return sum(len(str(m)) // 4 for m in messages)        # <1>
 
 def micro_compact(messages: list, keep_recent: int = 6) -> list:
     """Replace old tool results with one-line placeholders."""
@@ -183,7 +200,7 @@ def micro_compact(messages: list, keep_recent: int = 6) -> list:
         return messages
     compacted = []
     for i, msg in enumerate(messages):
-        if i < len(messages) - keep_recent and msg["role"] == "user":
+        if i < len(messages) - keep_recent and msg["role"] == "user":  # <2>
             # Check if it's a tool result
             content = msg.get("content", "")
             if isinstance(content, list) and any(
@@ -191,7 +208,7 @@ def micro_compact(messages: list, keep_recent: int = 6) -> list:
             ):
                 compacted.append({
                     "role": "user",
-                    "content": "[Previous tool results compacted]"
+                    "content": "[Previous tool results compacted]"   # <3>
                 })
                 continue
         compacted.append(msg)
@@ -200,7 +217,7 @@ def micro_compact(messages: list, keep_recent: int = 6) -> list:
 def full_compact(messages: list) -> list:
     """Use the LLM itself to summarize the conversation so far."""
     transcript = "\n".join(str(m) for m in messages)
-    summary = client.messages.create(
+    summary = client.messages.create(                     # <4>
         model=MODEL,
         messages=[{"role": "user", "content":
             f"Summarize this agent conversation. Preserve: "
@@ -210,11 +227,16 @@ def full_compact(messages: list) -> list:
         max_tokens=2000,
     ).content[0].text
 
-    return [{"role": "user", "content":
+    return [{"role": "user", "content":                   # <5>
         f"[Session compacted. Summary of prior work:]\n{summary}\n\n"
         f"Continue from where you left off."
     }]
 ```
+1. **A tokenizer-free estimate** — `len(str(m)) // 4` uses the rough "~4 characters per token" rule so the check is instant and needs no API call just to measure size.
+2. **Only *old* turns are touched** — everything within the last `keep_recent` messages is left intact; compaction never rewrites the recent context the model is actively using.
+3. **Swap bulky tool output for a stub** — micro-compaction is the cheap lever: it drops the *content* of old tool results while keeping the conversation's shape (lossy, but no LLM call).
+4. **Full compaction is a *separate* LLM call** — when micro-compaction isn't enough, the model is asked to summarize its own transcript, preserving done/current/remaining.
+5. **Replace the entire history with one summary turn** — the returned list is a single message; the agent resumes from the summary and never knows the old turns existed.
 
 Integrated into the loop:
 
@@ -224,14 +246,16 @@ def agent_loop(query: str):
 
     while True:
         # Compaction check before each API call
-        if count_tokens(messages) > 50_000:
+        if count_tokens(messages) > 50_000:              # <1>
             messages = full_compact(messages)
         else:
-            messages = micro_compact(messages)
+            messages = micro_compact(messages)           # <2>
 
         response = client.messages.create(...)
         # ... rest of loop unchanged
 ```
+1. **Two levers, picked by size** — only past a token threshold do you pay for the expensive LLM summarization (`full_compact`); below it, the cheap lever is enough.
+2. **Micro-compaction runs *every* turn** — trimming old tool results is constant background maintenance, so context grows slowly and the costly full pass is rarely needed.
 
 This is exactly the mechanism from Chapter 3's "compaction is lossy compression" — now visible as code. The agent doesn't even know it happened; it just sees a summary of prior work and continues.
 
@@ -248,9 +272,9 @@ class SkillLoader:
         for skill_file in skills_dir.glob("*/SKILL.md"):
             text = skill_file.read_text()
             # Parse YAML frontmatter
-            _, frontmatter, body = text.split("---", 2)
+            _, frontmatter, body = text.split("---", 2)   # <1>
             meta = yaml.safe_load(frontmatter)
-            self.skills[meta["name"]] = {
+            self.skills[meta["name"]] = {                 # <2>
                 "description": meta["description"],
                 "body": body.strip(),
             }
@@ -259,7 +283,7 @@ class SkillLoader:
         """Layer 1: names + descriptions for system prompt."""
         lines = ["Available skills:"]
         for name, skill in self.skills.items():
-            lines.append(f"  - {name}: {skill['description']}")
+            lines.append(f"  - {name}: {skill['description']}")  # <3>
         return "\n".join(lines)
 
     def load_skill(self, name: str) -> str:
@@ -267,8 +291,12 @@ class SkillLoader:
         skill = self.skills.get(name)
         if not skill:
             return f"Unknown skill: {name}"
-        return f"<skill name=\"{name}\">\n{skill['body']}\n</skill>"
+        return f"<skill name=\"{name}\">\n{skill['body']}\n</skill>"  # <4>
 ```
+1. **Split a `SKILL.md` into header + body** — the maxsplit of `2` separates the leading `---`, the YAML frontmatter, and the rest, while leaving any `---` *inside* the body untouched.
+2. **Store description and body separately** — the description is the cheap part shown to every prompt; the body is the expensive part held back until needed.
+3. **Layer 1 — the directory** — only `name: description` lines (≈100 tokens total) go into the system prompt, so the model knows skills *exist* without paying to load them.
+4. **Layer 2 — the full body** — returned only when the model calls `load_skill`, so a skill's full instructions cost tokens exactly when they're relevant and never otherwise.
 
 **Layer 2** — full content loaded via a `load_skill` tool when the model decides it needs it:
 
@@ -296,39 +324,46 @@ def run_hooks(event: str, context: dict, hooks_config: dict) -> dict:
 
     for hook in hooks_config.get(event, []):
         matcher = hook.get("matcher")
-        if matcher and matcher != context.get("tool_name"):
+        if matcher and matcher != context.get("tool_name"):  # <1>
             continue  # Doesn't match this tool
 
-        env = {
+        env = {                                          # <2>
             **os.environ,
             "HOOK_EVENT": event,
             "HOOK_TOOL_NAME": context.get("tool_name", ""),
             "HOOK_TOOL_INPUT": json.dumps(context.get("tool_input", {})),
         }
 
-        proc = subprocess.run(hook["command"], shell=True, env=env,
+        proc = subprocess.run(hook["command"], shell=True, env=env,  # <3>
                               capture_output=True, text=True)
 
-        if proc.returncode == 1 and event == "PreToolUse":
+        if proc.returncode == 1 and event == "PreToolUse":   # <4>
             result["blocked"] = True
             result["block_reason"] = proc.stderr or "Blocked by hook"
-        elif proc.returncode == 2:
+        elif proc.returncode == 2:                       # <5>
             result["messages"].append(proc.stderr)
 
     return result
 ```
+1. **A hook can scope to one tool** — if its `matcher` names a tool, it only fires for that tool; otherwise it's skipped. This is how a "lint on edit" hook ignores `bash` calls.
+2. **Context crosses to the hook through env vars** — the loop has no idea what the hook does; it just hands over event/tool/input as environment variables, the universal shell interface.
+3. **A hook is an arbitrary shell command** — defined entirely in `.hooks.json`, outside this code, so policy is configured rather than programmed.
+4. **Exit code 1 on `PreToolUse` = veto** — a non-zero exit before the tool runs blocks it (e.g. a security check refusing a dangerous command); `stderr` becomes the reason shown to the model.
+5. **Exit code 2 = inject a message, don't block** — the hook can feed advice back into the conversation while still letting the tool run.
 
 In the loop:
 
 ```python
 # Before tool execution
 pre = run_hooks("PreToolUse", {"tool_name": block.name, "tool_input": block.input}, hooks)
-if pre["blocked"]:
+if pre["blocked"]:                                   # <1>
     output = f"BLOCKED: {pre['block_reason']}"
 else:
     output = handler(**block.input)
-    run_hooks("PostToolUse", {"tool_name": block.name, "tool_output": output}, hooks)
+    run_hooks("PostToolUse", {"tool_name": block.name, "tool_output": output}, hooks)  # <2>
 ```
+1. **The veto gate** — if a `PreToolUse` hook blocked the call, the handler is never invoked; the model simply receives "BLOCKED: …" as the tool result and adjusts.
+2. **`PostToolUse` fires only after a successful run** — it sees the output (for logging, formatting, follow-up checks) but can't un-run the tool; the loop body itself stays untouched.
 
 The loop doesn't know what the hooks do — it just calls them at the right moments. A lint hook, a security check, a logging hook — all configured externally, zero context cost.
 
@@ -380,17 +415,17 @@ class Task:
     blockedBy: list[str]   # ids that must be completed first
 
 def _path(tid): return TASKS_DIR / f"{tid}.json"
-def load_task(tid): return Task(**json.loads(_path(tid).read_text()))
+def load_task(tid): return Task(**json.loads(_path(tid).read_text()))   # <1>
 def save_task(t): _path(t.id).write_text(json.dumps(asdict(t), indent=2))
 
 def can_start(tid: str) -> bool:
     """Runnable only when every blocker exists and is completed."""
-    return all(_path(d).exists() and load_task(d).status == "completed"
+    return all(_path(d).exists() and load_task(d).status == "completed"  # <2>
                for d in load_task(tid).blockedBy)
 
 def claim_task(tid: str, owner: str = "agent") -> str:
     task = load_task(tid)
-    if task.status != "pending":  return f"{tid} is {task.status}"
+    if task.status != "pending":  return f"{tid} is {task.status}"   # <3>
     if not can_start(tid):        return f"{tid} is still blocked"
     task.owner, task.status = owner, "in_progress"
     save_task(task)
@@ -399,9 +434,13 @@ def claim_task(tid: str, owner: str = "agent") -> str:
 def complete_task(tid: str) -> str:
     task = load_task(tid); task.status = "completed"; save_task(task)
     unblocked = [t.subject for p in TASKS_DIR.glob("task_*.json")
-                 if (t := load_task(p.stem)).status == "pending" and can_start(t.id)]
+                 if (t := load_task(p.stem)).status == "pending" and can_start(t.id)]  # <4>
     return f"Completed {tid}" + (f" — unblocked: {unblocked}" if unblocked else "")
 ```
+1. **A task is just a JSON file** — load/save are one line each because the "database" is the `.tasks/` directory; this is what lets state survive a restart and be shared between agents.
+2. **`can_start` is a pure dependency check** — a task is runnable only when *every* id in its `blockedBy` exists and is `completed`. No scheduler, just `all(...)` over the blockers.
+3. **Claiming is guarded twice** — already-claimed or still-blocked tasks are refused, so two agents reading the same directory can't both grab the same work.
+4. **On completion, report what was *unblocked*** — the walrus `:=` loads each pending task once and re-checks `can_start`; the returned list is exactly the signal a teammate needs to pick up newly-available work without being told.
 
 The graph is just files. `can_start` is a pure dependency check, and `complete_task` reports which tasks its completion *unblocked* — which is exactly the signal an autonomous agent (or a teammate) needs to pick up the next available work without being told.
 
@@ -412,22 +451,26 @@ When more than one agent edits the same repo, a shared working tree is a data-lo
 ```python
 import re, subprocess
 WORKTREES_DIR = Path(".worktrees"); WORKTREES_DIR.mkdir(exist_ok=True)
-VALID_NAME = re.compile(r'^[A-Za-z0-9._-]{1,64}$')
+VALID_NAME = re.compile(r'^[A-Za-z0-9._-]{1,64}$')   # <1>
 
 def create_worktree(name: str, task_id: str = "") -> str:
-    if not VALID_NAME.match(name or ""):
-        return f"Error: invalid worktree name '{name}'"   # tool-layer safety boundary
+    if not VALID_NAME.match(name or ""):             # <2>
+        return f"Error: invalid worktree name '{name}'"
     path = WORKTREES_DIR / name
     if path.exists():
         return f"Worktree '{name}' already exists"
-    r = subprocess.run(["git", "worktree", "add", str(path), "-b", f"wt/{name}", "HEAD"],
+    r = subprocess.run(["git", "worktree", "add", str(path), "-b", f"wt/{name}", "HEAD"],  # <3>
                        capture_output=True, text=True)
     if r.returncode != 0:
         return f"Git error: {r.stderr.strip()}"
-    if task_id:                       # bind the task to its sandbox
+    if task_id:                                      # <4>
         t = load_task(task_id); t.worktree = name; save_task(t)
     return f"Worktree '{name}' created at {path}"
 ```
+1. **A strict whitelist, because the name becomes a path** — it's used as both a directory and a branch name, so anything outside `[A-Za-z0-9._-]` (or longer than 64) is rejected up front.
+2. **Validate in the *tool*, before git ever sees the name** — the safety boundary lives here, not in hoping git rejects a malicious value afterward.
+3. **List-form `subprocess` (no `shell=True`)** — passing args as a list avoids shell injection entirely, and `-b wt/{name}` gives each worktree its own branch off `HEAD`.
+4. **Bind the task to its sandbox** — recording `worktree` on the task is how the graph above knows *which* isolated checkout each piece of work owns.
 
 Note where the validation lives: in the *tool*, before git ever sees the name — not relying on git to reject something afterward. Removal is the mirror image, and deliberately refuses to delete a worktree with uncommitted changes unless forced (`discard_changes=true`) or explicitly kept for review. The agent now has a safe place to do parallel work; the task graph above records *which* sandbox each task owns.
 
@@ -438,9 +481,9 @@ The subagent from [@sec-build-subagent] returns in the full system, but now it r
 ```python
 def spawn_subagent(description: str) -> str:
     messages = [{"role": "user", "content": description}]
-    for _ in range(30):                       # bounded — no runaway child
+    for _ in range(30):                       # <1>
         response = client.messages.create(
-            model=MODEL, system=SUB_SYSTEM,   # "...do not spawn more agents."
+            model=MODEL, system=SUB_SYSTEM,   # <2>
             messages=messages, tools=SUB_TOOLS, max_tokens=8000)
         messages.append({"role": "assistant", "content": response.content})
         if not has_tool_use(response.content):
@@ -449,13 +492,16 @@ def spawn_subagent(description: str) -> str:
         for block in response.content:
             if block.type != "tool_use":
                 continue
-            blocked = trigger_hooks("PreToolUse", block)     # same permission layer
+            blocked = trigger_hooks("PreToolUse", block)     # <3>
             output = str(blocked) if blocked else \
                      call_tool_handler(SUB_HANDLERS.get(block.name), block.input, block.name)
             results.append({"type": "tool_result", "tool_use_id": block.id, "content": output})
         messages.append({"role": "user", "content": results})
     return extract_text(messages[-1]["content"])
 ```
+1. **`range(30)` instead of `while True`** — a child gets a bounded budget, so a confused subagent can't spin forever; the parent's loop is still unbounded, but delegated work is capped.
+2. **Belt *and* braces against recursion** — the child's system prompt tells it not to spawn agents *and* `SUB_TOOLS` omits the spawn tool, so neither prompt drift nor a stray tool call can start an infinite tree.
+3. **Context is isolated, policy is not** — the child gets its own message array but its tool calls still pass through the *same* `PreToolUse` hooks as the parent. A fresh context does not mean fresh rules.
 
 Same fresh-context, short-summary-out pattern as before — but the subagent has no `task` tool (no recursion), a bounded loop, and its tool calls are gated by the very same `PreToolUse` hooks the parent uses. Isolation of *context* and enforcement of *policy* are independent: the child gets its own message array, but not its own rules.
 
@@ -467,16 +513,18 @@ Multiple long-lived agents need two things the subagent pattern lacks: a way to 
 class MessageBus:
     def send(self, frm, to, content, msg_type="message", metadata=None):
         inbox = MAILBOX_DIR / f"{to}.jsonl"
-        with open(inbox, "a") as f:
+        with open(inbox, "a") as f:                  # <1>
             f.write(json.dumps({"from": frm, "to": to, "content": content,
                                 "type": msg_type, "metadata": metadata or {}}) + "\n")
     def read_inbox(self, agent):
         inbox = MAILBOX_DIR / f"{agent}.jsonl"
         if not inbox.exists(): return []
         msgs = [json.loads(l) for l in inbox.read_text().splitlines() if l.strip()]
-        inbox.unlink()                         # read-once: drain the mailbox
+        inbox.unlink()                               # <2>
         return msgs
 ```
+1. **Append-only JSONL, one message per line** — the inbox is a file each agent appends to; `"a"` mode plus a trailing newline means senders never overwrite each other, no message broker required.
+2. **Read-once: reading drains the mailbox** — `unlink()` deletes the inbox after it's read, so each message is delivered exactly once and the file doesn't grow unbounded.
 
 A *protocol* layers request/response semantics on top of raw messages. Each request gets an id; a reply is only valid if it references a pending request of the matching type — so one approval can't accidentally satisfy a different pending ask:
 
@@ -489,18 +537,21 @@ pending_requests: dict[str, ProtocolState] = {}
 
 def request_plan(teammate: str, task: str) -> str:
     rid = new_request_id()
-    pending_requests[rid] = ProtocolState(rid, "plan_approval", "lead", teammate, "pending", task)
-    BUS.send("lead", teammate, f"Submit a plan for: {task}", "plan_request", {"request_id": rid})
+    pending_requests[rid] = ProtocolState(rid, "plan_approval", "lead", teammate, "pending", task)  # <1>
+    BUS.send("lead", teammate, f"Submit a plan for: {task}", "plan_request", {"request_id": rid})    # <2>
     return f"Asked {teammate} to plan {task} (request {rid})"
 
 def match_response(response_type: str, request_id: str, approve: bool):
     state = pending_requests.get(request_id)
-    if not state or not response_type.startswith(state.type):
+    if not state or not response_type.startswith(state.type):   # <3>
         return                                 # wrong request or wrong type — ignore
     state.status = "approved" if approve else "rejected"
 ```
+1. **Each ask is tracked by a unique id** — `pending_requests` records the outstanding request so a later reply can be correlated back to it; raw messages alone have no request/response semantics.
+2. **The `request_id` rides along in metadata** — the teammate echoes it in their reply, which is how the lead matches an approval to the exact thing it asked about.
+3. **A reply only counts if id *and* type match** — this guard stops one approval from accidentally satisfying a different pending request; mismatches are silently ignored rather than acted on.
 
-This is the spine of the "orchestrator + teammates" pattern from Chapter 12: the lead spawns teammates, asks for a plan, and **waits for explicit approval** before any teammate touches files — all expressed as messages on disk, with no special infrastructure.
+This is the spine of the "orchestrator + teammates" pattern from Chapter 13: the lead spawns teammates, asks for a plan, and **waits for explicit approval** before any teammate touches files — all expressed as messages on disk, with no special infrastructure.
 
 ### Surviving the real world: error recovery {#sec-build-recovery}
 
@@ -508,13 +559,13 @@ A loop that runs for hours will hit rate limits (429), overloaded servers (529),
 
 ```python
 def retry_delay(attempt: int) -> float:
-    base = min(BASE_DELAY_MS * (2 ** attempt), 32_000) / 1000
-    return base + random.uniform(0, base * 0.25)          # backoff + jitter
+    base = min(BASE_DELAY_MS * (2 ** attempt), 32_000) / 1000   # <1>
+    return base + random.uniform(0, base * 0.25)          # <2>
 
 def with_retry(fn, state: RecoveryState):
     for attempt in range(MAX_RETRIES):
         try:
-            result = fn(); state.consecutive_529 = 0; return result
+            result = fn(); state.consecutive_529 = 0; return result   # <3>
         except Exception as e:
             name, msg = type(e).__name__.lower(), str(e).lower()
             if "ratelimit" in name or "429" in msg:               # transient → wait
@@ -522,11 +573,16 @@ def with_retry(fn, state: RecoveryState):
             if "overloaded" in name or "529" in msg:              # repeated → fail over
                 state.consecutive_529 += 1
                 if state.consecutive_529 >= MAX_CONSECUTIVE_529 and FALLBACK_MODEL:
-                    state.current_model = FALLBACK_MODEL           # smaller/cheaper model
+                    state.current_model = FALLBACK_MODEL           # <4>
                 time.sleep(retry_delay(attempt)); continue
-            raise                                                  # unknown → don't mask it
+            raise                                                  # <5>
     raise RuntimeError("Max retries exceeded")
 ```
+1. **Exponential backoff, capped** — the delay doubles each attempt (`2 ** attempt`) but `min(..., 32_000)` ceilings it at 32s so retries don't drift into minutes.
+2. **Jitter prevents a thundering herd** — adding a random fraction means many agents that hit a limit at once don't all retry on the same beat and re-collide.
+3. **Success resets the failure counter** — one good call clears `consecutive_529`, so the fallback logic only triggers on *sustained* overload, not a single blip.
+4. **Repeated 529s fail over to a cheaper model** — when the primary model stays overloaded, switch to `FALLBACK_MODEL` to keep making progress instead of stalling.
+5. **Unknown errors are re-raised, not swallowed** — only the error classes you understand are retried; anything else propagates so a real bug isn't silently masked as "transient."
 
 The companion case is the prompt that's simply *too long*. Rather than crash, the loop catches that specific error once, runs a **reactive compaction** to summarize old turns, and retries — the same lossy-compression idea from [@sec-build-compact], now triggered by failure instead of a token threshold. Note the discipline in the `except`: transient errors are retried, a recurring class triggers a model fallback, and anything unrecognized is re-raised rather than silently swallowed.
 
@@ -536,42 +592,51 @@ Here is the final `agent_loop`, stripped to its skeleton. Read it against the 30
 
 ```python
 def agent_loop(messages: list, context: dict):
-    tools, handlers = assemble_tool_pool()      # builtin tools + every MCP server's tools
+    tools, handlers = assemble_tool_pool()      # <1>
     state = RecoveryState()
 
     while True:
-        for job in consume_cron_queue():        # scheduled work shows up as a user turn
+        for job in consume_cron_queue():        # <2>
             messages.append({"role": "user", "content": f"[Scheduled] {job.prompt}"})
-        inject_background_notifications(messages)  # finished background tasks report back
-        prepare_context(messages)               # compaction / tool-result budget
+        inject_background_notifications(messages)  # <3>
+        prepare_context(messages)               # <4>
 
         try:
             response = call_llm(messages, context, tools, state)   # wrapped in with_retry
         except Exception as e:
-            if is_prompt_too_long_error(e):     # reactive compaction, then retry
+            if is_prompt_too_long_error(e):     # <5>
                 messages[:] = reactive_compact(messages); continue
             raise
 
         messages.append({"role": "assistant", "content": response.content})
         if not has_tool_use(response.content):
-            trigger_hooks("Stop", messages)     # the "are we really done?" gate
+            trigger_hooks("Stop", messages)     # <6>
             return
 
         results = []
         for block in response.content:
             if block.type != "tool_use":
                 continue
-            if blocked := trigger_hooks("PreToolUse", block):      # permission + policy
+            if blocked := trigger_hooks("PreToolUse", block):      # <7>
                 output = str(blocked)
-            elif should_run_background(block.name, block.input):   # slow tool → detach
+            elif should_run_background(block.name, block.input):   # <8>
                 output = start_background_task(block, handlers)
             else:
                 output = call_tool_handler(handlers.get(block.name), block.input, block.name)
                 trigger_hooks("PostToolUse", block, output)
             results.append({"type": "tool_result", "tool_use_id": block.id, "content": output})
 
-        messages.append({"role": "user", "content": build_user_content(results)})  # write-back
+        messages.append({"role": "user", "content": build_user_content(results)})  # <9>
 ```
+1. **MCP folds in here** — builtin tools and every external MCP server's tools are merged into one `tools`/`handlers` pool, so the loop treats a remote tool exactly like a local one.
+2. **Cron enters as an ordinary user turn** — scheduled jobs are just appended to `messages` as `[Scheduled] …`; the model can't tell them apart from a human request, so no new code path is needed.
+3. **Background tasks report back the same way** — a finished detached task injects its result as a message; async work re-joins the conversation as plain context.
+4. **Context prep happens *before* the call** — compaction and the tool-result budget (everything from [@sec-build-compact]) run here so the request is always within limits.
+5. **Reactive compaction on a too-long prompt** — instead of crashing, catch that one error, summarize old turns in place (`messages[:]`), and `continue` to retry. Compaction triggered by failure, not a threshold.
+6. **The `Stop` hook is the "are we *really* done?" gate** — before returning, a hook can inspect the state and decide the agent isn't actually finished, sending it back around.
+7. **Permission + policy sit between request and execution** — the walrus `:=` both runs the `PreToolUse` hooks and captures a veto; if blocked, the handler is skipped and the block reason becomes the result.
+8. **Slow tools detach instead of blocking** — `build`/`pytest`/`install` return a placeholder immediately and finish in the background (their output arrives later via annotation 3).
+9. **Still the write-back** — after every surrounding mechanism, the final line is the same one from [@sec-build-loop]: results go back as a user turn. The 30-line core wasn't replaced, it was surrounded.
 
 Everything is here, and nothing has displaced the core. Cron and background notifications enter as ordinary user turns. Context preparation and recovery wrap the model call. Permission, background routing, and hooks sit *between* "the model asked for a tool" and "the tool ran." And the last line is still the write-back — the single most important line from [@sec-build-loop]. The 30-line loop didn't get replaced; it got surrounded.
 

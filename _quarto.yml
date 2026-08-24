@@ -19,10 +19,11 @@ book:
     - chapters/ch07-pocketflow.qmd
     - chapters/ch08-production-frameworks.qmd
     - chapters/ch09-mastra.qmd
-    - chapters/ch10-ralph-loop.qmd
-    - chapters/ch11-economics.qmd
-    - chapters/ch12-gas-town.qmd
-    - chapters/ch13-career.qmd
+    - chapters/ch10-choosing-a-runtime.qmd
+    - chapters/ch11-ralph-loop.qmd
+    - chapters/ch12-economics.qmd
+    - chapters/ch13-gas-town.qmd
+    - chapters/ch14-career.qmd
 
 format:
   html:

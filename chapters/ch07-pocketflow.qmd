@@ -60,16 +60,20 @@ The critical design constraint: **`exec()` cannot access the shared store.** Thi
 from pocketflow import Node, Flow
 
 class Summarize(Node):
-    def prep(self, shared):
+    def prep(self, shared):                # <1>
         return shared["document"]          # Read from store
 
-    def exec(self, text):
+    def exec(self, text):                  # <2>
         return call_llm(f"Summarize: {text}")  # Pure computation
 
-    def post(self, shared, prep_res, exec_res):
+    def post(self, shared, prep_res, exec_res):  # <3>
         shared["summary"] = exec_res       # Write to store
-        return "default"                   # Next action (edge label)
+        return "default"                   # <4>
 ```
+1. **`prep` is the read phase** — it pulls just what this node needs out of the shared store and hands it on; `exec` never touches `shared` directly.
+2. **`exec` is the pure-compute phase** — it sees only `prep`'s return value, so the LLM call is isolated and safe to retry or test without side effects.
+3. **`post` is the write phase** — given the original `shared`, the prep result, and the exec result, it writes outputs back and chooses what happens next.
+4. **The return value is the edge label** — `"default"` names which outgoing transition to follow; returning a different string (e.g. `"search"`) is how a node steers the flow.
 
 ::: {.callout-tip title="Why exec() can't touch the shared store"}
 This isn't arbitrary — it enables **automatic retries**. If an LLM call fails (rate limit, network timeout), PocketFlow can re-run `exec()` without fear of corrupting state. Since `exec()` only sees `prep_res` (a snapshot), retrying it is safe — it's a pure function over its input. If `exec()` could write to the shared store, a failed-then-retried call might write partial results twice.
@@ -747,7 +751,7 @@ import yaml
 from burr.core.action import action
 
 @action.pydantic(reads=["query", "context"],
-                 writes=["next_action", "search_term"])
+                 writes=["next_action", "search_term"])      # <1>
 def decide(state: QAState, llm) -> QAState:
     prompt = f"""Question: {state.query}
 Previous searches: {state.context or "none"}
@@ -758,8 +762,8 @@ action: search | answer
 search_term: <if action is search>
 ```"""
     raw = llm.complete(prompt)
-    parsed = yaml.safe_load(raw.split("```yaml")[1].split("```")[0])
-    state.next_action = parsed["action"]
+    parsed = yaml.safe_load(raw.split("```yaml")[1].split("```")[0])  # <2>
+    state.next_action = parsed["action"]                     # <3>
     state.search_term = parsed.get("search_term")
     return state
 
@@ -767,7 +771,7 @@ search_term: <if action is search>
 def search(state: QAState, web) -> QAState:
     result = web.search(state.search_term)
     state.context = state.context + [{"term": state.search_term,
-                                       "result": result}]
+                                       "result": result}]    # <4>
     return state
 
 @action.pydantic(reads=["query", "context"], writes=["answer"])
@@ -777,6 +781,10 @@ def answer(state: QAState, llm) -> QAState:
     )
     return state
 ```
+1. **The decorator *is* the contract** — `reads`/`writes` declare exactly which state fields this action may touch, so Burr can validate the whole graph before a single LLM call runs.
+2. **Pull the YAML back out of the model's reply** — the prompt asked for a fenced ```` ```yaml ```` block, so this splits on the fences to grab just the payload before parsing it.
+3. **Routing fields drive the FSM** — `decide` writes `next_action`; the transitions read it to choose the next edge, which is how this one action steers the loop.
+4. **Append, don't mutate** — building a *new* `context` list (rather than `.append`) keeps each step an immutable snapshot, which is what makes Burr's replay and fork-from-state work.
 
 Each action declares the exact fields it touches. The framework can now check, before any LLM call, that `search` never writes to `query`.
 
@@ -900,11 +908,14 @@ class StreamingAnswer(StreamingAction):
 Consume it with the `stream_result` variant of `run` (the third sibling alongside `run` and `iterate` mentioned in @sec-prod-burr — §7.9.1):
 
 ```python
-action, container = app.stream_result(halt_after=["generate"], inputs={"query": q})
-for partial in container:        # tokens as they arrive
+action, container = app.stream_result(halt_after=["generate"], inputs={"query": q})  # <1>
+for partial in container:        # <2>
     print(partial["response"], end="", flush=True)
-_, _, state = container.get()    # final, committed state once the stream closes
+_, _, state = container.get()    # <3>
 ```
+1. **`stream_result` hands back a *container*, not a finished result** — execution is paused mid-action so you can pull output as it's produced.
+2. **Each `partial` is an incremental chunk** — iterating the container yields tokens as the model emits them, which is what lets you print a live, streaming response.
+3. **`container.get()` returns the committed state once the stream closes** — only after streaming finishes do you get the final, persisted typed state; the streamed text and the durable snapshot stay separate.
 
 ### Human-in-the-loop: halt, inspect, resume {#sec-prod-burr-hitl}
 
@@ -999,7 +1010,11 @@ Two connections worth flagging now:
 - **Burr's `@action.pydantic` is what makes a Ralph harness inspectable.** When the loop runs for 200 iterations and one of them edits the wrong file, you want to know which action wrote which field. Typed reads/writes are not optional at that scale.
 - **The Evaluator-Optimizer pattern is the Ralph loop in disguise.** Generate a candidate change; evaluate against the spec/tests; iterate. @sec-ralph-loop will show that the "spec → execute → test → re-evaluate" loop is structurally the same pattern, just with code edits as the action space.
 
-The book's path is: this chapter picks the state machine, Chapter 8 covers more production options, the Ralph loop in Chapter 10 wraps the loop around it, and Chapters 12–13 scale the loop into a fleet and a career.
+The book's path is: this chapter picks the state machine, Chapters 8–9 cover more production options, **Chapter 10 turns the survey into a decision** — two postures, five axes, and two more runtimes (Pydantic AI, Microsoft Agent Framework) — the Ralph loop in Chapter 11 wraps the loop around it, and Chapters 13–14 scale the loop into a fleet and a career.
+
+::: {.callout-tip title="The property of Burr that Chapter 10 turns into a design"}
+`GraphBuilder().build()` returns a **value**. That sounds like an implementation detail and is actually the discriminating feature of the whole field: because a graph is a value, code can *compose one at runtime from a plan the model emitted* — which is what makes a plan inspectable, policy-checkable and costable before anything runs. @sec-rt-composed builds exactly that.
+:::
 
 ## Key Takeaways {#sec-pf-takeaways}
 
@@ -1035,7 +1050,7 @@ flowchart TD
     B --> UI["Burr UI (debugger)"]
     B --> FS["Fork-from-state"]
     B --> H["Hamilton (RAG pipelines)"]
-    B --> RL["Ralph loop (Ch 10)"]
+    B --> RL["Ralph loop (Ch 11)"]
     PR --> CH8["Agno + mcp-agent (Ch 8)"]
     PR --> CH9["Mastra (Ch 9)"]
     style GS fill:#fef3c7,stroke:#92400e,color:#92400e

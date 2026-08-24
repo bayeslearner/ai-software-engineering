@@ -346,7 +346,7 @@ Use subagents for:
 Subagents have their own context windows. They don't share the parent's context — you must pass them the information they need explicitly. Think of spawning a subagent like delegating to a colleague who just walked into the room: brief them on what they need to know.
 :::
 
-Subagents connect directly to the **Gas Town** concept from Chapter 12 — multiple autonomous loops operating concurrently, each with its own bounded context. A parent with three subagents is a miniature Gas Town.
+Subagents connect directly to the **Gas Town** concept from Chapter 13 — multiple autonomous loops operating concurrently, each with its own bounded context. A parent with three subagents is a miniature Gas Town.
 
 ## The Harness: All Five Together {#sec-harness}
 

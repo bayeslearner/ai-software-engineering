@@ -55,7 +55,7 @@ The pattern: anything that requires **understanding the problem domain** and **a
 
 **Hiring criteria shift.** "Can you implement a binary search tree?" becomes less relevant. "Can you design a system where autonomous agents safely modify a production database?" becomes the question that matters.
 
-**Code review becomes a bottleneck.** When agents produce code faster than humans can review it, manual code review may be the wrong control point. The solution isn't to skip review — it's to shift quality enforcement to automated gates: pre-commit hooks, property-based tests, snapshot tests, release gates (see Chapter 12).
+**Code review becomes a bottleneck.** When agents produce code faster than humans can review it, manual code review may be the wrong control point. The solution isn't to skip review — it's to shift quality enforcement to automated gates: pre-commit hooks, property-based tests, snapshot tests, release gates (see Chapter 13).
 
 **Velocity stops being a differentiator.** If everyone has access to the same cheap code production capability, the competitive advantage moves to what you build (product decisions) and how safely you build it (engineering quality), not how fast you type.
 

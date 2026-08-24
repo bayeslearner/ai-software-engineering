@@ -773,7 +773,7 @@ async def main():
 4. **`max_refinements=3`** caps the iterations. If the optimizer can't reach the threshold in 3 rounds, return the best attempt.
 
 ::: {.callout-note title="The Evaluator-Optimizer is the Ralph loop in disguise"}
-The Evaluator-Optimizer pattern is structurally the same as the Ralph loop you'll meet in Chapter 10: generate a candidate, evaluate against criteria, iterate. Ralph applies this shape to code editing — produce a change, run tests, iterate. The pattern is the same; the action space is different.
+The Evaluator-Optimizer pattern is structurally the same as the Ralph loop you'll meet in Chapter 11: generate a candidate, evaluate against criteria, iterate. Ralph applies this shape to code editing — produce a change, run tests, iterate. The pattern is the same; the action space is different.
 :::
 
 #### Composing patterns
@@ -1151,15 +1151,19 @@ Chapter 9 covers **Mastra** — a TypeScript-native agent framework. If your tea
 
 ## Forward Link: From Agent Platforms to the Ralph Loop {#sec-prod-ralph}
 
-Chapter 10 introduces Ralph — Geoffrey Huntley's minimal autonomous coding loop: load spec, select task, execute, observe, repeat. Ralph and the frameworks in this chapter are different layers of the same stack. Ralph is the *loop shape*; the frameworks are the *state machine the loop runs on*.
+Chapter 11 introduces Ralph — Geoffrey Huntley's minimal autonomous coding loop: load spec, select task, execute, observe, repeat. Ralph and the frameworks in this chapter are different layers of the same stack. Ralph is the *loop shape*; the frameworks are the *state machine the loop runs on*.
 
 Three connections worth flagging now:
 
-- **mcp-agent's Evaluator-Optimizer pattern is the Ralph loop in disguise.** Generate a candidate change; evaluate against the spec/tests; iterate. Chapter 10 will show that the "spec -> execute -> test -> re-evaluate" loop is structurally the same pattern, just with code edits as the action space.
-- **Agno's `Team` is what scales Ralph to Gas Town.** Chapter 12 covers multi-agent orchestration; if you adopted Agno here, the Team primitive is what you'll lean on then.
+- **mcp-agent's Evaluator-Optimizer pattern is the Ralph loop in disguise.** Generate a candidate change; evaluate against the spec/tests; iterate. Chapter 11 will show that the "spec -> execute -> test -> re-evaluate" loop is structurally the same pattern, just with code edits as the action space.
+- **Agno's `Team` is what scales Ralph to Gas Town.** Chapter 13 covers multi-agent orchestration; if you adopted Agno here, the Team primitive is what you'll lean on then.
 - **Burr's `@action.pydantic` (Chapter 7) is what makes a Ralph harness inspectable.** When the loop runs for 200 iterations and one of them edits the wrong file, you want to know which action wrote which field. Typed reads/writes are not optional at that scale.
 
-The book's path is therefore: Chapter 7 picks the state machine, this chapter picks the platform, Chapter 10 wraps the loop around it, and Chapter 12 scales the loop into a fleet.
+The book's path is therefore: Chapter 7 picks the state machine, this chapter picks the platform, **Chapter 10 picks the posture**, Chapter 11 wraps the loop around it, and Chapter 13 scales the loop into a fleet.
+
+::: {.callout-note title="Still can't choose? That's the next chapter's job"}
+Feature tables — including the one in @sec-prod-matrix — stall when the requirement is "this thing takes irreversible actions and I need to explain afterwards what it did." @sec-rt-axes reframes the choice around *when control flow is decided* rather than which features ship, scores all five candidates (adding **Pydantic AI** and **Microsoft Agent Framework**) on five axes, and names the one capability none of them provides.
+:::
 
 
 ## Key Takeaways {#sec-prod-takeaways}
@@ -1190,8 +1194,8 @@ flowchart TD
     MA --> PL["Parallel pattern"]
     MA --> EO["Evaluator-Optimizer"]
     MA --> TP["Temporal durability"]
-    EO --> RL["Ralph loop (Ch 10)"]
-    TM --> GT["Gas Town (Ch 12)"]
+    EO --> RL["Ralph loop (Ch 11)"]
+    TM --> GT["Gas Town (Ch 13)"]
     style P fill:#fef3c7,stroke:#92400e,color:#92400e
     style AG fill:#dcfce7,stroke:#166534,color:#166534
     style MA fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8

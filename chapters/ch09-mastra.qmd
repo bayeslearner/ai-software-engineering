@@ -529,7 +529,7 @@ const pipeline = createWorkflow({
 2. **`.sleepUntil(date)`** pauses until a specific timestamp. Useful for scheduled operations — "process this order when the business day starts." Both methods can also take a function that derives the duration from the previous step's output (e.g. `(prev) => prev.retryAfterSeconds`).
 
 ::: {.callout-tip title="Why suspension matters for autonomous loops"}
-Chapter 10 introduces the Ralph loop — an autonomous coding loop that runs until a spec is satisfied. But even autonomous loops need escape hatches: a test fails in a way that suggests a design mistake (not a code mistake), a deployment requires manual approval, a cost budget is exhausted. Mastra's suspension primitive is the mechanism for these escape hatches. The loop runs autonomously until it can't, suspends with context, and a human picks up where the machine left off. This is the "human-in-the-loop" pattern from Chapter 4, implemented as a workflow primitive.
+Chapter 11 introduces the Ralph loop — an autonomous coding loop that runs until a spec is satisfied. But even autonomous loops need escape hatches: a test fails in a way that suggests a design mistake (not a code mistake), a deployment requires manual approval, a cost budget is exhausted. Mastra's suspension primitive is the mechanism for these escape hatches. The loop runs autonomously until it can't, suspends with context, and a human picks up where the machine left off. This is the "human-in-the-loop" pattern from Chapter 4, implemented as a workflow primitive.
 :::
 
 ## Memory {#sec-mastra-memory}
@@ -902,7 +902,7 @@ const mastra = new Mastra({
 3. **`spanOutputProcessors`** run before export. `SensitiveDataFilter` strips PII and secrets from span attributes; write your own processor class for custom redaction.
 
 ::: {.callout-tip title="Observability in the Ralph loop"}
-When an autonomous loop runs 200 iterations (@sec-ralph-loop), the observability stack is the difference between "it failed somewhere" and "iteration 47, step 3, the search tool returned stale data and the LLM made a wrong decision based on it." Mastra's hierarchical tracing gives you that granularity. The economics chapter (Chapter 11) covers how to use these metrics for cost tracking.
+When an autonomous loop runs 200 iterations (@sec-ralph-loop), the observability stack is the difference between "it failed somewhere" and "iteration 47, step 3, the search tool returned stale data and the LLM made a wrong decision based on it." Mastra's hierarchical tracing gives you that granularity. The economics chapter (Chapter 12) covers how to use these metrics for cost tracking.
 :::
 
 ## Studio and Deployment {#sec-mastra-studio}
@@ -1070,7 +1070,7 @@ The comparison is not "which is best" — it's "which fits your stack." If your 
 
 ## Forward Link: From Mastra to the Ralph Loop {#sec-mastra-forward}
 
-Chapter 10 introduces the Ralph loop — the minimal autonomous coding loop that drives the rest of the book. Mastra's primitives map directly onto the loop's requirements:
+Chapter 11 introduces the Ralph loop — the minimal autonomous coding loop that drives the rest of the book. Mastra's primitives map directly onto the loop's requirements:
 
 - **The loop needs tools.** Mastra's `createTool()` with Zod schemas defines the tool set — `read_file`, `write_file`, `run_command`, `search` — with type-safe input validation.
 - **The loop needs memory.** Working memory stores the spec, the current task, and accumulated context. Semantic recall finds relevant past decisions across long-running sessions.
@@ -1078,6 +1078,10 @@ Chapter 10 introduces the Ralph loop — the minimal autonomous coding loop that
 - **The loop needs observability.** When iteration 47 of 200 goes wrong, hierarchical tracing tells you exactly which tool call produced the bad result.
 
 If you're building a Ralph loop in TypeScript, Mastra is the framework that provides all four requirements from a single dependency.
+
+::: {.callout-note title="One stop before Ralph"}
+Chapter 10 closes the framework survey by turning it into a decision. It asks a question none of Chapters 7–9 asked — *when does your system decide its control flow?* — introduces two more Python runtimes (**Pydantic AI** and **Microsoft Agent Framework**), and shows why every framework in this book, Mastra included, ships replay while none of them ships **undo**. Mastra's Studio time-travel is on exactly the same footing as LangGraph's fork: it rewinds the runtime, not the world.
+:::
 
 ## Key Takeaways {#sec-mastra-takeaways}
 
@@ -1106,12 +1110,12 @@ flowchart TD
     MS --> MCP["MCP<br/>Client + Server"]
     MS --> OBS["Observability<br/>OTel traces"]
     MS --> STU["Studio<br/>Visual dev"]
-    TOOLS --> RL["Ralph Loop (Ch 10)<br/>Autonomous coding"]
+    TOOLS --> RL["Ralph Loop (Ch 11)<br/>Autonomous coding"]
     WF --> RL
     MEM --> RL
     MCP --> RL
-    OBS --> EC["Economics (Ch 11)<br/>Cost tracking"]
-    MS --> GT["Gas Town (Ch 12)<br/>Multi-agent fleet"]
+    OBS --> EC["Economics (Ch 12)<br/>Cost tracking"]
+    MS --> GT["Gas Town (Ch 13)<br/>Multi-agent fleet"]
     BU --> RL
     AG --> GT
     MA --> RL

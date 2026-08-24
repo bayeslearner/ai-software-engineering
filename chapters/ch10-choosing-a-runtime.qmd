@@ -1,0 +1,652 @@
+---
+title: "Choosing a Runtime"
+subtitle: "Two Postures, Five Axes, and the One Thing None of Them Ships"
+author: "AI-Powered SE Tutorial"
+date: today
+abstract: |
+  Chapters 7–9 toured five frameworks one at a time and answered "how does this one work?" This chapter answers the question that actually blocks a project: **which one, and why?** It is built from a real evaluation — five candidate runtimes (Burr, LangGraph, Agno, Microsoft Agent Framework, Pydantic AI) sketched against a single end-to-end production shape, two of them executed against a real venv. The finding that reorganizes everything: a worker–reviewer loop is not *the shape* of an agent system, it is one **posture** — the most expensive one. The alternative is a producer that sits *outside* the graph and **composes** one, emitting a plan as ordinary data that can be inspected, policy-checked, costed and approved before a byte moves. That distinction, not a feature checklist, is what separates the frameworks. This chapter introduces two runtimes the book hasn't covered — **Pydantic AI** and **Microsoft Agent Framework** — scores all five on five axes, and closes on the capability every one of them is missing: semantic undo.
+---
+
+## The Question the Framework Chapters Skipped {#sec-rt-question}
+
+By the end of Chapter 9 you have seen five agent runtimes and roughly forty API surfaces. What you do not have is a way to choose. The comparison tables in @sec-prod-burr-vs-langgraph and @sec-prod-matrix are honest but they are *feature* tables — they line up capabilities and let you match rows to needs. That works when your requirements are already a list of features. It fails when your requirement is "this thing publishes to a real channel and I need to be able to explain, afterwards, what it did and why."
+
+This chapter comes from a live evaluation on exactly that kind of system: **StudioBay**, an agentic video-production pipeline where a request arrives, a producer plans an episode, a worker and a reviewer argue until the cut is good, a deterministic render runs, and nothing reaches YouTube without a recorded yes. Five runtimes were sketched against that one shape. Two were executed against the project venv with assertions; three were written from current documentation and marked as unverified in detail.
+
+::: {.callout-note title="What was run, and what wasn't"}
+**Executed, assertions passed:** Burr 0.42.0, LangGraph 1.2.11. **Written from current published docs, not executed:** Agno, Microsoft Agent Framework, Pydantic AI — accurate in shape, unverified in detail. Where this chapter shows terminal output, that output is real. Where it shows only code, say so. A comparison that claims a green run it did not get is worse than no comparison.
+:::
+
+The first version of that evaluation asked: *which framework can hold both a pinned pipeline and a worker–reviewer loop?* That turned out to be the wrong question — or at least a late one. Answering it properly required backing up to something more basic.
+
+## The Reframe: The Spine Is Not the Shape {#sec-rt-reframe}
+
+In a worker–reviewer **spine**, the agent sits *inside* the loop, deciding each tool call as it goes. That is genuinely what you want when the work isn't knowable up front. It also means nothing about the run is known before it happens.
+
+Follow that through and the costs are structural, not stylistic:
+
+- **Undo has to be defensive, per call.** You cannot pre-compute the inverse of something you don't know will be called.
+- **Guards have to be everywhere the agent might reach.** The agent's involvement is unpredictable, so the permission checks must be too.
+- **Budget is discovered by spending it.** There is no plan to cost.
+- **Approval becomes N interrupts** scattered through the run, rather than one decision.
+
+Now the other posture. The producer sits *outside* the graph and **composes** one: it runs once, emits a plan as ordinary data, and code turns that plan into an executable graph. The agent still decided everything — it just decided it all at once, somewhere the decision can be read before it takes effect.
+
+```{mermaid}
+%%| fig-cap: "Two postures. Same agents, same tools, same models — different moment of decision."
+flowchart TD
+    subgraph S["SPINE — agent inside the loop"]
+        direction TB
+        W["worker"] <--> R["reviewer"]
+        W -.-> T["tools · subagents"]
+        SN["every call decided now<br/>nothing knowable ahead"]
+    end
+    subgraph C["COMPOSED — agent outside, emits a plan"]
+        direction TB
+        P["producer"] --> PL["plan (data)"]
+        PL --> I["inspect · policy-check · cost"]
+        I --> A["approve — ONE decision"]
+        A --> G["compile → graph"]
+        G --> X["run deterministically"]
+    end
+    style S fill:#fef3c7,stroke:#92400e,color:#92400e
+    style C fill:#dcfce7,stroke:#166534,color:#166534
+    style A fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style SN fill:#fef3c7,stroke:#92400e,color:#92400e
+```
+
+::: {.callout-important title="The point"}
+**Determinism is not a property of the framework. It is a property of where the decision was made.**
+
+Same agents, same tools, same models in both diagrams. What differs is *when* control flow gets decided — and therefore whether anything can be inspected, approved, costed or reversed before it lands.
+:::
+
+Here is the trade-off in full. Neither column is the answer.
+
+| | **Spine** (agent in the loop) | **Composed** (agent emits a plan) |
+|---|---|---|
+| What runs next | Decided per tool call | Decided once, up front |
+| Inspect before run | Impossible | The plan is data |
+| Approve before run | Per call — N interrupts | One approval of the whole |
+| Undo | Per-call defensive | Attached when the plan is made |
+| Cross-cutting concerns | Every branch, by hand | One hook, by construction |
+| Budget / cost | Discovered as you go | Computable from the plan |
+| Adapts mid-run | Yes — that is the point | No, unless it replans |
+| Failure mode | Wanders, burns budget | Plan is wrong, wholesale |
+
+Real productions **nest** the two: a producer composes a plan, one step of which is itself a spine because that part genuinely isn't knowable. Which makes the framework question concrete — *can it express both, and can one contain the other?*
+
+## Seats Are Nodes; Capabilities Are Tools {#sec-rt-seats}
+
+Before the axes, one modelling correction that changed the evaluation's conclusions — and which you will make yourself if nobody warns you.
+
+The first draft of the StudioBay graph drew `mix_audio` and `render_video` as nodes beside the agents, and called that half of the graph "the deterministic end." That reads well and models badly. They are **tools the worker reaches for during its turn**, not stages after the argument.
+
+```{mermaid}
+%%| fig-cap: "Four nodes, not six. Rendering happens during the worker's turn — on both passes."
+flowchart TD
+    RQ["request"] --> PP["producer_plans<br/>[LLM]"]
+    PP --> WE["worker_edits"]
+    WE --> RJ["reviewer_judges<br/>[LLM]"]
+    RJ -->|"verdict = reject<br/>(with feedback)"| WE
+    RJ -->|"verdict = accept"| PG["publish_gate<br/>[GATE] irreversible"]
+    WE -.->|calls| TB["the worker's toolbox<br/>place_clip · trim_clip · set_narration<br/>mix_audio · render_video<br/>+ subagents"]
+    style PP fill:#fef3c7,stroke:#92400e,color:#92400e
+    style RJ fill:#fef3c7,stroke:#92400e,color:#92400e
+    style TB fill:#dcfce7,stroke:#166534,color:#166534
+    style PG fill:#fce7f3,stroke:#9d174d,color:#9d174d
+```
+
+Three consequences, all of which matter more than they sound:
+
+1. **Determinism is a property of a tool, not a region of the graph.** `render_video` is deterministic whether a state machine calls it or an agent does. So the "deterministic vs. autonomous" spectrum is really about *who decides which tools run in what order* — which is exactly the posture axis.
+2. **The graph stays small while the toolbox grows.** Adding `silence_cut` or `voice_clone` touches no edges at all.
+3. **The permission surface is the toolbox, not the topology.** "Who may publish" is a question for the tool seam, not for which node has an inbound edge.
+
+And the corollary that catches most people: **subagents are tools too.** A track editor and a system agent aren't peers in a mesh; they're invocations the worker makes, out of the same box as `trim_clip`. One dispatch path, guards and audit registered once — which only stays true if capabilities live in the toolbox instead of being promoted into graph nodes.
+
+## The Five Axes {#sec-rt-axes}
+
+Five questions worth asking *before* "which framework." Each is independent, each has real downstream consequences, and a runtime can be strong on one and absent on another.
+
+| Axis | Question | The spectrum |
+|---|---|---|
+| **A · Posture** | When is control flow decided? | authored ─ composed ─ improvised |
+| **B · Graph as value** | Can code *build* a graph at runtime from data and pass it around? | value ··· declaration fixed at import |
+| **C · Cross-cutting seam** | Where do audit, undo, budget, retry, redaction attach? | one seam ··· per call site |
+| **D · Knowable ahead** | Which steps, what cost, which are irreversible, does policy permit? | the whole plan ··· the next call, maybe |
+| **E · Nesting** | Can a composed plan contain a spine, in *one* mechanism? | graph-as-node ··· two separate runtimes |
+
+**Axis A** is the posture axis, and it governs the other four. **Axis B** is the discriminator: if a graph is not a value, the composed posture is unreachable and you are left with the spine plus wishful thinking. **Axis C** is the difference between registering audit once and remembering to write it at the fifteenth call site. **Axis D** in the spine posture has an honest answer of *nothing*. **Axis E** decides whether nesting the postures requires a second vocabulary that will drift from the first.
+
+::: {.callout-tip title="Why undo lands on these axes"}
+An inverse must be constructed *before* its act is applied. Under the composed posture the plan is known, so inverses attach when the plan is built (axis D) and one journal covers everything (axis C). Under the spine, the inverse has to be produced at each call site by whoever wrote that tool — which is exactly the invariant that erodes. @sec-rt-undo develops this in full.
+:::
+
+## The Five API Shapes {#sec-rt-shapes}
+
+What each framework's vocabulary actually *is*, small enough to hold in your head. Burr and Agno are covered in depth in Chapters 7 and 8; the treatment here is the shape and the axis reading. Pydantic AI and Microsoft Agent Framework are new to the book and get the fuller pass.
+
+### Burr — a graph is a value you build {#sec-rt-burr}
+
+*Executed. See @sec-prod-burr for the full API.*
+
+The vocabulary: `@action` (a function declaring what state it reads and writes), immutable `State`, `(from, to, condition)` transition triples, `GraphBuilder` (builds a `Graph` **value**, separately from the app), lifecycle hooks (the cross-cutting seam), and `halt_before` (the gate).
+
+```python
+from burr.core import action, State, ApplicationBuilder, when, default
+
+@action(reads=["draft"], writes=["verdict"])
+def reviewer(state: State) -> State:
+    ok = state["draft"]["duration"] <= 250
+    return state.update(verdict="accept" if ok else "reject")
+
+app = (ApplicationBuilder()
+    .with_actions(worker, reviewer, publish_gate)
+    .with_transitions(
+        ("worker", "reviewer", default),
+        ("reviewer", "worker", when(verdict="reject")),    # the loop
+        ("reviewer", "publish_gate", when(verdict="accept")))
+    .with_entrypoint("worker").with_state(passes=0).build())
+
+app.run(halt_before=["publish_gate"])
+```
+
+Running the full StudioBay spine in Burr produced this — and note what is *not* encoded anywhere in the graph:
+
+```text
+$ python sketch_burr.py
+halted before : publish_gate
+worker passes : 2  (2 == the reviewer sent it back once)
+llm turns     : 3  (producer 1 + reviewer 2)
+rendered      : {'path': '/nas/ep01.mp4', 'seconds': 240.0, 'mix': -14.0}
+  pass 1 tools : ['place_clip','place_clip','set_narration','mix_audio','render_video']
+  pass 2 tools : ['trim_clip','set_narration','mix_audio','render_video']
+determinism   : render(timeline) == render(timeline) -> 240.0s
+sketch_burr.py: all assertions passed
+```
+
+Nothing says "review twice." The reviewer rejected a 300s cut, the worker trimmed to 240s, the second review accepted — the loop ran because *state said so*. Both passes called the same deterministic render tools.
+
+::: {.callout-important title="A correction to a claim this book made earlier"}
+"Burr = deterministic workflow" is wrong, and it is worth unlearning explicitly. Burr is a **state machine**; determinism is a property of what you put in the actions, not of Burr. The same primitive expresses a pinned pipeline *and* a worker–reviewer argument, because "which agent goes next" is a conditional transition over state. Burr sits across the whole spectrum rather than at one end of it.
+:::
+
+The property that matters most is **axis B**: `GraphBuilder().build()` returns a value, so "compose a graph from a plan" is a `for` loop, not metaprogramming. @sec-rt-composed builds exactly that. Nesting (axis E) comes from `RunnableGraph`, which makes a graph usable as a node — so a composed plan can contain a spine step in one mechanism.
+
+### LangGraph — Pregel supersteps, channels, checkpoints {#sec-rt-langgraph}
+
+*Executed. See @sec-prod-burr-vs-langgraph for the head-to-head with Burr.*
+
+The vocabulary: `StateGraph` (typed state where each key is a channel with a merge rule), `Annotated` (the **reducer** — how concurrent writes to one key combine), `add_conditional_edges`, `Send` (dynamic fan-out), `Command` (update + goto + delegate-to-parent in one return value), `interrupt` / `Command(resume=)`, and a `checkpointer` that persists every superstep.
+
+```python
+class Production(TypedDict, total=False):
+    passes: int
+    results: Annotated[list, operator.add]   # reducer: concurrent writes append
+
+def route(state) -> str:
+    return "worker" if state["verdict"] == "reject" else "publish"
+
+g = StateGraph(Production)
+g.add_node("worker", worker); g.add_node("reviewer", reviewer)
+g.add_conditional_edges("reviewer", route, ["worker", "publish"])
+app = g.compile(checkpointer=InMemorySaver())
+```
+
+Its distinctive move is `Send`, for fan-out decided at runtime:
+
+```python
+def fan_out(state) -> list[Send]:
+    return [Send("ingest", {"src": s}) for s in state["sources"]]
+g.set_conditional_entry_point(fan_out, path_map=["ingest"])
+```
+
+`N` is unknown until the state is read. Note carefully what this is **not**: the node set is still fixed at compile time. `Send` varies *how many copies* run, not *what the graph contains*. That is real dynamism, but it is a partial credit on axis B, not a pass.
+
+Time travel is the strongest reversal story of the five:
+
+```python
+history = list(app.get_state_history(cfg))
+before = [s for s in history if s.next == ("publish",)][-1]
+app.invoke(None, before.config)                # fork; original branch preserved
+app.invoke(Command(resume="deny"), cfg)        # same gate, other answer
+```
+
+```text
+$ python sketch_langgraph.py
+checkpoints   : 8
+rewind to     : next=('publish',) passes=2
+fork          : re-entered the gate, interrupt re-fired
+denied branch : published={}  (gate said no)
+checkpoints   : 10  (original branch still there)
+```
+
+Eight checkpoints became ten. Both branches survive — the one that published and the one that declined.
+
+::: {.callout-warning title="Read this before trusting it as undo"}
+**Forking rewinds the graph, not the world.** The sketch forked *past a publish*; the video stayed published. No checkpoint reaches out and retracts it.
+
+Also: replay **re-executes** nodes after the checkpoint, so every node must be safe to run twice — a real constraint when a node shells out to `ffmpeg`.
+:::
+
+### Pydantic AI — typed agents, delegation as a tool call {#sec-rt-pydantic-ai}
+
+*From current docs. New to this book.*
+
+Pydantic AI is the FastAPI-shaped entry in this field: model + instructions + `deps_type` + `output_type`, with tools that are ordinary typed Python functions and a `RunContext` that carries deps and usage.
+
+A common first impression is "really it's like Burr." That is half right, and the wrong half is the important one. `pydantic_graph` is genuinely Burr-shaped — typed nodes returning the next node, with state persistence. But the *idiomatic production shape is not the graph.* It is an agent with typed tools, where **multi-agent means one agent calling another inside a tool**.
+
+```python
+@dataclass
+class Deps:
+    store: object
+    journal: object
+
+reviewer = Agent("openai:gpt-5.2", name="reviewer", deps_type=Deps, output_type=str,
+                 instructions="Judge the draft against the plan. Be specific when rejecting.")
+
+producer = Agent("openai:gpt-5.2", name="producer", deps_type=Deps,
+                 output_type=[str, DeferredToolRequests],   # <- required for the gate
+                 instructions="Plan and compose the episode. Iterate until the "
+                              "reviewer accepts, then render and publish.")
+
+@producer.tool
+async def review_draft(ctx: RunContext[Deps], draft: str) -> str:
+    r = await reviewer.run(f"Review: {draft}", deps=ctx.deps, usage=ctx.usage)
+    return r.output          # "reject: runs long" — the producer loops on its own
+
+@producer.tool_plain(requires_approval=True)
+def publish(path: str, channel: str) -> str:
+    """Irreversible. The framework will not run this without an approval."""
+    return f"published {path} to {channel}"
+```
+
+The gate is the cleanest of the five, and it is worth dwelling on: the approval request arrives as the run's **typed output**, not as a callback you register.
+
+```python
+result = await producer.run("make the episode", deps=deps)
+
+while isinstance(result.output, DeferredToolRequests):
+    results = DeferredToolResults()
+    for call in result.output.approvals:
+        # the audit row is written HERE — before any effect
+        results.approvals[call.tool_call_id] = (
+            True if operator_approves(call) else ToolDenied("operator declined"))
+    result = await producer.run(message_history=result.all_messages(),
+                                deferred_tool_results=results, deps=deps)
+```
+
+That is the rule "*irreversible acts stop for a recorded yes/no*" shipped as a library feature. Two details the shape alone won't tell you: the agent must declare `DeferredToolRequests` in its `output_type` or the pause never surfaces; and for *conditional* approval you raise `ApprovalRequired` from inside the tool based on `ctx.tool_call_approved`, rather than flagging the whole tool.
+
+**On the axes.** Strongest at the improvised end of axis A and weakest almost everywhere else. Observe what is *missing* compared to Burr, LangGraph and MAF: **there is no `worker → reviewer` edge.** The loop lives in the model's reasoning, so nothing structurally forces a review before render (axis D: you know nothing ahead). Durability means adopting Temporal, DBOS or a similar backend — real infrastructure the others don't need. `pydantic_graph` reaches the composed posture, but then you are writing a Burr-shaped machine in a second vocabulary inside the same project.
+
+### Microsoft Agent Framework — executors on typed edges {#sec-rt-maf}
+
+*From current docs. New to this book.*
+
+MAF's model is executors + typed edges: a node receives a typed message and sends typed messages on. Closer to Burr and LangGraph than to Agno — you wire the graph. Its distinguishing feature is that **human-in-the-loop is a genuine suspend**, not a flag on a step.
+
+```python
+@executor(id="reviewer_judges")
+async def reviewer_judges(draft: Draft, ctx) -> None:
+    verdict = await ctx.request_info(                    # suspends the whole workflow
+        ReviewRequest(prompt="Accept this cut?", draft=draft), response_type=str)
+    await ctx.send_message(
+        draft, target_id="worker_edits" if verdict == "reject" else "render")
+
+workflow = (WorkflowBuilder(start_executor=producer_plans)
+    .add_edge(producer_plans, worker_edits)
+    .add_edge(worker_edits, reviewer_judges)
+    .add_edge(reviewer_judges, worker_edits)             # the reject loop
+    .add_edge(reviewer_judges, render)
+    .add_edge(render, publish)).build()
+
+# resumed by answering the request id:
+workflow.run(stream=True, responses={request_id: "reject"})
+```
+
+On first execution `request_info()` raises an internal interrupt that the framework catches, emits a `RequestInfoEvent`, and hands the caller a pending request. Resuming with `run(responses={request_id: value})` makes the call return that value.
+
+::: {.callout-warning title="The sharp edge — and it is sharp"}
+On resume **the executor runs again from the top**, and `request_info` returns the supplied value the second time through. Everything above that call must be idempotent.
+
+Easy to miss, expensive when the line above it started a render. This is MAF's version of LangGraph's re-execution constraint, and it bites in the same place: effectful steps.
+:::
+
+**On the axes.** Cleanest suspend/resume semantics of the five, and typed edges are a real strength — the message type *is* the contract between executors. But resume is **from head**: checkpointing is keyed to a session with run-forward-or-resume-from-head semantics, with no arbitrary fork, so walkback is yours to build. The Python side is the younger half of a .NET-first framework. And in a stack that already has LangGraph underneath a deep-agent brain, adopting MAF means a second graph vocabulary beside the first.
+
+### Agno — declared steps and loops, plus a control plane {#sec-rt-agno}
+
+*From current docs. See @sec-prod-agno for the full platform tour.*
+
+Agno's distinguishing move in this comparison: **the review loop is a component you declare, not a graph you wire.** Per-iteration review, reject-with-feedback and resumption arrive without drawing a single edge.
+
+```python
+workflow = Workflow(
+    name="produce_episode", db=SqliteDb(db_file="wf.db"),   # db required for HITL
+    steps=[
+        Step(name="plan", agent=producer),
+        Loop(name="edit_review",
+             steps=[Step(agent=worker), Step(agent=reviewer)],
+             max_iterations=5, forward_iteration_output=True,
+             human_review=HumanReview(requires_iteration_review=True,
+                                      on_reject=OnReject.retry)),
+        Step(name="render", executor=render_fn),
+        Step(name="publish", agent=producer,
+             human_review=HumanReview(requires_confirmation=True,
+                                      on_reject=OnReject.skip)),
+    ])
+
+run = workflow.run("episode on the scheduler")
+while run.is_paused:
+    for req in run.steps_requiring_output_review:
+        req.confirm()                     # or req.reject(feedback="runs long")
+    run = workflow.continue_run(run)
+```
+
+**On the axes.** Fastest route to a working reviewer loop with human review at every iteration, and the only candidate shipping a control plane (sessions, RBAC, tracing) in the box. But the control flow is *Agno's vocabulary*: a `Loop` is a loop. Burr routes to any action on any predicate; here you get the shapes that ship (axis A constrained, axis B closed — the composed posture has no natural expression). No fork-from-arbitrary-checkpoint, so walkback is yours regardless.
+
+## The Composed Posture, End to End {#sec-rt-composed}
+
+This is the section that justifies the chapter. Everything above describes postures; this one *runs* the composed posture, and every number in the output is real.
+
+**Step 1 — the producer emits a plan. Data, not control flow.** In production this is one LLM call returning JSON that a Pydantic model validates. The plan is a versioned artifact: you can store it, diff two of them, show it to an operator, and refuse to run one that fails a policy check. None of that is possible when the plan lives in an agent's head.
+
+```python
+def producer_plans(request: str, sources: list[str]) -> dict[str, Any]:
+    """[LLM in real life] Decide the whole shape up front."""
+    return {
+        "request": request,
+        "steps": [{"tool": "ingest", "args": {"src": s}, "reversible": True}
+                  for s in sources]
+        + [
+            {"tool": "assemble", "args": {"style": "lesson"},  "reversible": True},
+            {"tool": "narrate",  "args": {"voice": "cloned-a"}, "reversible": True},
+            {"tool": "render",   "args": {"preset": "1080p"},  "reversible": True},
+            {"tool": "publish",  "args": {"channel": "youtube"}, "reversible": False},
+        ],
+    }
+```
+
+**Step 2 — refuse the plan before it runs.** This check is *impossible* in the spine posture: there, you learn about the publish when the agent is already calling it.
+
+```python
+def policy_check(plan: dict) -> list[str]:
+    problems = []
+    for i, s in enumerate(plan["steps"]):
+        if not s["reversible"] and i != len(plan["steps"]) - 1:
+            problems.append(f"irreversible {s['tool']} is not the last step")
+        if s["tool"] not in TOOLBOX:
+            problems.append(f"unknown tool {s['tool']}")
+    return problems
+```
+
+**Step 3 — compile the plan into a graph. This is the whole trick.**
+
+```python
+def step_action(step: dict, world: dict):
+    """One plan step becomes one Burr action."""
+    @action(reads=["done"], writes=["done"])
+    def _run(state: State) -> State:
+        JOURNAL.do(world, make_act(step))          # inverse attached at plan time
+        return state.update(done=state.get("done", []) + [step["tool"]])
+    return _run
+
+def compile_plan(plan: dict, world: dict):
+    """Plan (data) -> Graph (value)."""
+    steps = plan["steps"]
+    named = {f"s{i}_{s['tool']}": step_action(s, world) for i, s in enumerate(steps)}
+    names = list(named)
+    gb = GraphBuilder().with_actions(**named)
+    for a, b in zip(names, names[1:]):             # the plan IS the topology
+        gb = gb.with_transitions((a, b, default))
+    return gb.build(), names
+```
+
+`with_actions(**named)` takes the node name from the keyword, so the plan's own step order names the graph. Nothing here is metaprogramming — a Burr graph is an ordinary value you build with an ordinary loop. **This is axis B cashing out.**
+
+**Step 4 — attach cross-cutting concerns once.** In the spine posture, "audit every tool call" means remembering to do it in every branch the agent might take. Here the steps are known before anything runs, so a hook covers all of them *by construction*.
+
+```python
+class AuditHook(PreRunStepHook, PostRunStepHook):
+    def __init__(self): self.trail: list[str] = []
+    def pre_run_step(self, *, state, action, **kw):  self.trail.append(f"-> {action.name}")
+    def post_run_step(self, *, state, action, result, exception, **kw):
+        self.trail.append(f"<- {action.name}{' FAILED' if exception else ''}")
+```
+
+**Step 5 — run it, halting before the irreversible step, which is knowable *from the plan*.**
+
+```python
+graph, names = compile_plan(plan, world)
+app = (ApplicationBuilder().with_graph(graph).with_entrypoint(names[0])
+       .with_state(done=[]).with_hooks(audit)
+       .with_identifiers(app_id="composed-1").build())
+
+last_reversible = names[len(plan["steps"]) - 1]
+act, _, state = app.run(halt_before=[last_reversible])
+```
+
+```text
+$ python sketch_composed.py
+policy check  : clean
+graph nodes   : 6 (one per plan step, built at runtime)
+executed      : ['ingest','ingest','assemble','narrate','render']
+halted before : s5_publish  (the publish — known before we started)
+audit trail   : 10 entries from ONE hook
+undo 5 acts   : ['render','narrate','assemble','ingest','ingest']
+world after   : {'sources': []}  (back to the start)
+```
+
+The plan was policy-checked before a byte moved, one hook audited every step (5 steps × pre + post = 10 entries), the run halted at a gate identified *in advance from the plan*, and the whole thing reversed in order. **None of that needed the agent to cooperate.**
+
+::: {.callout-tip title="This is not an argument against agents"}
+The agent still decided everything — the sources, the style, the voice, the preset, the channel. It decided all of it in one call, somewhere the decision could be read. The composed posture doesn't remove the model from the loop; it moves the model's decision *earlier*, to where a human, a policy engine, and a cost estimator can all see it.
+:::
+
+## The Matrix {#sec-rt-matrix}
+
+Five runtimes against five axes. `✓` = yes, `~` = partial, `✗` = no.
+
+| Axis | Burr | LangGraph | Pydantic AI | Agno | MAF |
+|---|---|---|---|---|---|
+| **A · postures reachable** | ✓ authored, composed, improvised | ✓ authored, improvised; composed via `Send` | ~ improvised natively; composed only via a 2nd API | ~ authored + declared loops | ✓ authored, improvised |
+| **B · graph is a value** | ✓ `GraphBuilder` → value | ~ nodes fixed at compile; `Send` varies count | ✗ no graph in the main idiom | ✗ steps declared, not built | ~ builder, but edges declared |
+| **C · one seam for cross-cutting** | ✓ lifecycle hooks | ~ callbacks; per-node config | ✓ tool layer + capabilities | ~ per-step config | ~ middleware |
+| **D · knowable before running** | ✓ whole plan, if composed | ~ topology yes, path no | ✗ nothing — model decides | ~ step list, not iterations | ~ topology yes, path no |
+| **E · postures nest** | ✓ `RunnableGraph` as node | ✓ compiled graph as node | ~ agent-in-tool only | ~ teams inside steps | ~ sub-workflows |
+| **— semantic undo** | ✗ | ✗ | ✗ | ✗ | ✗ |
+
+And the operational view — the same five scored on what a system with irreversible acts actually needs:
+
+| Capability | Burr | LangGraph | Agno | MAF | Pydantic AI |
+|---|---|---|---|---|---|
+| Pinned pipeline | ✓ native | ✓ native | ~ steps | ✓ native | ~ via graph |
+| Agent collaboration | ✓ transitions | ✓ edges | ✓ teams | ✓ edges | ✓ delegation |
+| Both in one mechanism | ✓ proven | ✓ proven | ~ loop only | ✓ | ✗ two idioms |
+| Structural review guarantee | ✓ edge | ✓ edge | ✓ component | ✓ edge | ✗ model's choice |
+| Gate on irreversible act | ✓ `halt_before` | ✓ `interrupt` | ✓ `HumanReview` | ✓ `request_info` | ✓ best of five |
+| Fork from any past point | ✓ `sequence_id` | ✓ best of five | ✗ | ~ from head | ~ replay |
+| **Semantic undo** | **✗** | **✗** | **✗** | **✗** | **✗** |
+| Safe to resume effectful steps | ✓ no re-exec | ~ re-executes | ✓ | ~ re-executes | ✓ durable |
+| New infrastructure required | ✓ none | ✓ none | ~ AgentOS | ✓ none | ✗ Temporal/DBOS |
+
+**Axis B is the discriminator.** It decides whether the composed posture is available at all — and every other axis improves when it is.
+
+The one row where every column agrees is **semantic undo**. That is the next section, and it is why the choice of runtime does not hinge on it.
+
+## The Undo Gap {#sec-rt-undo}
+
+Every framework here calls its replay feature something that sounds like undo. **None of them means it.** Replay restores the runtime's memory of the world, not the world. The LangGraph fork in @sec-rt-langgraph is the proof: it rewound the graph past a publish, and the video stayed published.
+
+For a system whose acts land on a timeline and a channel, that difference is the whole game. The idea none of the five ships:
+
+> **Every act produces its own inverse at the moment it is applied.** Record the pairs in order, and undo is walking the record backwards.
+
+And the rule that makes it trustworthy is a **refusal**: an act is not applied unless its inverse was constructed first. If we can't say how to undo it, we don't do it — which forces irreversible acts to declare themselves rather than hide among the reversible ones.
+
+```python
+@dataclass
+class Act:
+    name: str
+    apply: Callable[[dict], None]
+    invert: Callable[[dict], None] | None
+    describes: str = ""
+    reversible: bool = True      # publish/delete/spend: no honest inverse
+
+@dataclass
+class Journal:
+    entries: list[Act] = field(default_factory=list)
+    snapshots: dict[str, dict] = field(default_factory=dict)
+
+    def do(self, state: dict, act: Act) -> None:
+        """Apply an act. The inverse must exist BEFORE the act runs."""
+        if act.reversible and act.invert is None:
+            raise ValueError(f"{act.name}: no inverse — refusing to apply")
+        act.apply(state)
+        self.entries.append(act)
+
+    def undo(self, state: dict, n: int = 1) -> list[str]:
+        undone = []
+        for _ in range(n):
+            if not self.entries: break
+            act = self.entries[-1]
+            if not act.reversible:
+                # Stop rather than lie. This is where walkback takes over.
+                raise ValueError(f"{act.name} is irreversible — sequential undo "
+                                 f"cannot pass it. Use walkback to a snapshot.")
+            act.invert(state); self.entries.pop(); undone.append(act.name)
+        return undone
+```
+
+The capture-before-mutate discipline is the whole implementation:
+
+```python
+def trim_clip(track: str, idx: int, new_end: float) -> Act:
+    saved = {}
+    def apply(s):
+        saved["end"] = s["timeline"][track][idx]["end"]   # capture BEFORE mutating
+        s["timeline"][track][idx]["end"] = new_end
+    def invert(s):
+        s["timeline"][track][idx]["end"] = saved["end"]
+    return Act("trim_clip", apply, invert)
+
+def publish(target: str) -> Act:
+    # no honest inverse exists — an unpublish is not a rerun
+    return Act("publish", apply, invert=None, reversible=False)
+```
+
+```text
+$ python journal.py
+journal.py: all assertions passed
+  sequential undo reverted 2 acts exactly
+  irreversible act refused to be undone (gate, not undo)
+  walkback restored the whole state past the irreversible act
+```
+
+### Three layers, and they answer different questions {#sec-rt-undo-layers}
+
+```{mermaid}
+%%| fig-cap: "Reversal is three named mechanisms, not one — and most systems only implement the middle one."
+flowchart TD
+    Q["something went wrong"] --> A{"how far back?"}
+    A -->|"the last few acts"| SU["Sequential undo<br/>act journal, inverses in reverse order<br/>exact · cheap · ordered"]
+    A -->|"the whole project, to Tuesday"| WB["Version walkback<br/>copy-on-write snapshot restore<br/>coarse · always available"]
+    A -->|"the world already moved"| GT["The gate<br/>not recovery at all —<br/>a refusal to proceed without a recorded yes"]
+    style SU fill:#dcfce7,stroke:#166534,color:#166534
+    style WB fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style GT fill:#fce7f3,stroke:#9d174d,color:#9d174d
+```
+
+- **Sequential undo** — "take back the last two things." Handles the overwhelming majority of what an operator actually wants, and is the layer they touch daily.
+- **Version walkback** — "put the project back how it was on Tuesday." Coarse, always available, discards the journal past it. The last resort, not the first tool reached for.
+- **The gate** — for acts where neither works. Not a recovery mechanism; a refusal.
+
+### Why this belongs in your domain, not the runtime {#sec-rt-undo-domain}
+
+An inverse is **semantic**. Only the editing tool knows that undoing a trim means restoring the previous out-point, and that undoing a publish means nothing at all. A checkpointer cannot know that — it sees bytes of state, not meaning.
+
+Which settles where it lives: **the journal is yours, it sits above whichever runtime you pick, and it works identically under all five.** That is the point. It never becomes a reason to switch frameworks.
+
+::: {.callout-note title="The open question worth settling before you scaffold"}
+Where does the journal sit relative to your store? An inverse referencing rows that a later act already changed is **stale**. The clean version is that acts journal against a snapshot id, and undo is valid only while no conflicting act has landed since — which is optimistic concurrency, made tractable by a single-writer lease. Composed plans help here too: the plan's step order *is* the conflict order.
+:::
+
+## What the Evaluation Concluded {#sec-rt-conclusion}
+
+For StudioBay specifically, with a stack that already had LangGraph underneath a deep-agent brain:
+
+> **Burr for the graph layer, and the composed posture as the default.**
+
+Not because Burr wins a feature count — it doesn't, on several rows above. Because a graph being a value (axis B) is what makes the producer-composes-a-plan posture expressible at all, and that posture is what turns undo, audit, cost and approval from per-call vigilance into **properties of a plan**. LangGraph stays where it already is: inside the agent brain, for the improvised steps. Pydantic AI's `requires_approval` pattern gets **stolen for the tool seam** without adopting the runtime — the infrastructure cost of Temporal buys durability that Burr's persister already provides.
+
+Your conclusion will differ, because your rows differ. What transfers is the **method**:
+
+1. **Write down one end-to-end shape** your system must express, with both a loose span and a pinned span in it. One shape, all candidates — so the differences belong to the frameworks and not to the examples.
+2. **Sketch it in each candidate.** Install the two or three you're serious about and *run* them. Mark the rest as read-not-run, and say so in the write-up.
+3. **Score on the axes, not the feature list.** Start with axis B — it determines whether half the design space is even reachable.
+4. **Identify what none of them ships.** In this evaluation it was semantic undo. Build that above the runtime, so it survives changing your mind.
+5. **Let the sketches correct your model.** The seats-are-nodes correction in @sec-rt-seats came from writing the graph wrong first. Prose would never have caught it.
+
+::: {.callout-tip title="Composing rather than choosing"}
+The pairings that actually work follow from the postures. **Burr + a deep-agent brain**: composed plan on the outside, a spine step in the middle where the work isn't knowable — one mechanism, via `RunnableGraph`. **Burr + mcp-agent** (@sec-prod-mcp-agent): fork-from-state for the outer loop, `AugmentedLLM` patterns inside the actions. What *doesn't* compose well is two graph vocabularies in one project — MAF beside LangGraph, or `pydantic_graph` beside Burr. They will drift.
+:::
+
+## Forward Link: Ralph Is the Improvised Posture {#sec-rt-forward}
+
+The next chapter introduces Ralph — load a spec, pick the next task, execute it, observe, repeat. Read it through this chapter's lens and something clicks: **Ralph is the spine posture, taken to its logical end.** The agent is inside the loop, every edit is a runtime decision, and nothing about iteration 137 is knowable at iteration 1.
+
+That is not a criticism. It is why Ralph works on problems where the plan cannot be written in advance. But it explains, precisely, why Ralph harnesses need what they need:
+
+- **Ralph's cost is discovered by spending it** (axis D), which is why Chapter 12's economics chapter exists at all and why budget caps are a harness feature rather than a plan property.
+- **Ralph's undo is per-call defensive** (axis C), which is why the harness runs in a git worktree with a commit per iteration — git *is* the act journal, and `git revert` is the inverse that the tool didn't build for itself.
+- **Ralph's approval is N interrupts** (axis A), which is why "run it unattended overnight" is a genuinely different risk posture from "run one task," and why the gate belongs on the tool seam (who may push, who may deploy) rather than on the loop.
+- **Ralph plus a composed outer plan is the mature shape.** A spec is a plan; a task list is a compiled graph; the loop is the spine step inside it. Chapter 13's fleet is that structure with the fan-out made explicit.
+
+The book's path is therefore: Chapter 7 picks the state machine, Chapters 8–9 survey the platforms, **this chapter picks the posture**, Chapter 11 wraps the loop around it, and Chapters 13–14 scale the loop into a fleet and a career.
+
+## Key Takeaways {#sec-rt-takeaways}
+
+- **A worker–reviewer spine is a posture, not the shape of agent systems** — and it is the most expensive one. With the agent inside the loop, undo, audit, budget and approval all become per-call vigilance.
+- **The alternative is the composed posture**: the producer runs once, emits a plan as ordinary data, and code compiles that plan into a graph. The agent still decides everything; it decides all of it somewhere the decision can be read, policy-checked, costed and approved before it takes effect.
+- **Determinism is a property of where the decision was made,** not of the framework. The same five agents and tools give you an auditable pipeline or an unpredictable one depending only on *when* control flow is fixed.
+- **Seats are graph nodes; capabilities are tools** — and subagents are tools too. This keeps the graph small, makes new capabilities a toolbox entry rather than an edge change, and puts the permission question on the tool seam where it belongs.
+- **Five axes beat a feature table**: when control flow is decided (A), whether a graph is a value (B), where cross-cutting concerns attach (C), what is knowable before running (D), and whether postures nest (E). **Axis B is the discriminator** — it decides whether the composed posture is reachable at all.
+- **Pydantic AI** ships the cleanest gate of the five: `requires_approval=True` plus `DeferredToolRequests` makes "irreversible acts stop for a recorded yes/no" a library feature, with the approval request as the run's typed output. Its cost is that the loop lives in the model's reasoning — no structural guarantee that a review happens before a render.
+- **Microsoft Agent Framework** has the cleanest suspend: `request_info()` halts the whole workflow and resumes by request id. Its sharp edge is that the executor **re-runs from the top** on resume, so everything above the call must be idempotent — the same footgun as LangGraph replay, in a different place.
+- **No framework ships semantic undo.** All five offer replay or fork, which rewinds the runtime's state and leaves the world untouched — demonstrated by forking LangGraph past a publish and watching the video stay published.
+- **Reversal is three named layers**: sequential undo from an act journal, version walkback from a store snapshot, and the gate where neither applies. Most systems build only the middle one.
+- **The act journal belongs in your domain, not the runtime.** An inverse is semantic — only the tool knows what undoing a trim means. Build it above the framework, and it never becomes a reason to switch.
+- **The invariant that makes it hold**: an act is not applied unless its inverse was constructed first. Enforceable at the tool seam, and exactly the kind of rule that stops being followed if it isn't checked.
+
+## Concept Map {#sec-rt-concept-map}
+
+```{mermaid}
+%%| fig-cap: "How the posture question reorganizes the framework chapters"
+flowchart TD
+    F["Ch 7–9: five frameworks,<br/>forty API surfaces"] --> Q["Which one? — feature tables stall"]
+    Q --> P["The posture question"]
+    P --> SP["SPINE<br/>agent in the loop"]
+    P --> CP["COMPOSED<br/>agent emits a plan"]
+    SP --> C1["per-call undo · guards everywhere<br/>budget by spending · N interrupts"]
+    CP --> C2["inspect · policy-check · cost<br/>ONE approval · one audit hook"]
+    CP --> AXB["Axis B: graph is a value"]
+    AXB --> BR["Burr: GraphBuilder → value"]
+    AXB --> NEST["Axis E: RunnableGraph<br/>a spine INSIDE a composed plan"]
+    P --> AX["Five axes A–E"]
+    AX --> MTX["The matrix"]
+    MTX --> GAP["Every column agrees:<br/>NO semantic undo"]
+    GAP --> J["Act journal — yours, above the runtime"]
+    J --> L1["sequential undo"]
+    J --> L2["version walkback"]
+    J --> L3["the gate"]
+    SP --> RL["Ralph (Ch 11)<br/>the spine, taken to its end"]
+    CP --> RL2["spec = plan · tasks = compiled graph<br/>loop = the spine step inside"]
+    style P fill:#fef3c7,stroke:#92400e,color:#92400e
+    style CP fill:#dcfce7,stroke:#166534,color:#166534
+    style AXB fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style GAP fill:#fce7f3,stroke:#9d174d,color:#9d174d
+    style RL fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+```
