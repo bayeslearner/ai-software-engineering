@@ -2,28 +2,66 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.38">
+<meta name="generator" content="quarto-1.10.18">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="AI-Powered SE Tutorial">
-<meta name="dcterms.date" content="2026-07-07">
+<meta name="dcterms.date" content="2026-08-24">
 
-<title>11&nbsp; The Economic Shock – AI-Powered Software Engineering</title>
+<title>11&nbsp; The Ralph Loop – AI-Powered Software Engineering</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
 */
-code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -35,18 +73,18 @@ ul.task-list li input[type="checkbox"] {
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../chapters/ch12-gas-town.html" rel="next">
-<link href="../chapters/ch10-ralph-loop.html" rel="prev">
+<link href="../chapters/ch12-economics.html" rel="next">
+<link href="../chapters/ch10-choosing-a-runtime.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-3f70bac5631458d474a321d4182f9338.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-3d497cff885f6278d37568d0ef0763f8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../site_libs/quarto-contrib/present-mode-1.0.0/present-mode.js"></script>
 <link href="../site_libs/quarto-contrib/present-mode-1.0.0/present-mode.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
@@ -93,7 +131,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../chapters/ch11-economics.html"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Economic Shock</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../chapters/ch11-ralph-loop.html"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -180,26 +218,32 @@ ul.task-list li input[type="checkbox"] {
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch10-ralph-loop.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span></a>
+  <a href="../chapters/ch10-choosing-a-runtime.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Choosing a Runtime</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch11-economics.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Economic Shock</span></span></a>
+  <a href="../chapters/ch11-ralph-loop.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch12-gas-town.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Scaling Up</span></span></a>
+  <a href="../chapters/ch12-economics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">The Economic Shock</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch13-career.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Career &amp; What's Next</span></span></a>
+  <a href="../chapters/ch13-gas-town.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Scaling Up</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch14-career.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Career &amp; What's Next</span></span></a>
   </div>
 </li>
     </ul>
@@ -212,12 +256,13 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#sec-econ-collapse" id="toc-sec-econ-collapse" class="nav-link active" data-scroll-target="#sec-econ-collapse"><span class="header-section-number">11.1</span> The Price Floor Collapse</a></li>
-  <li><a href="#sec-econ-cheaper" id="toc-sec-econ-cheaper" class="nav-link" data-scroll-target="#sec-econ-cheaper"><span class="header-section-number">11.2</span> What Gets Cheaper</a></li>
-  <li><a href="#sec-econ-expensive" id="toc-sec-econ-expensive" class="nav-link" data-scroll-target="#sec-econ-expensive"><span class="header-section-number">11.3</span> What Doesn’t Get Cheaper</a></li>
-  <li><a href="#sec-econ-orgs" id="toc-sec-econ-orgs" class="nav-link" data-scroll-target="#sec-econ-orgs"><span class="header-section-number">11.4</span> Implications for Organizations</a></li>
-  <li><a href="#sec-econ-takeaways" id="toc-sec-econ-takeaways" class="nav-link" data-scroll-target="#sec-econ-takeaways"><span class="header-section-number">11.5</span> Key Takeaways</a></li>
-  <li><a href="#sec-econ-concept-map" id="toc-sec-econ-concept-map" class="nav-link" data-scroll-target="#sec-econ-concept-map"><span class="header-section-number">11.6</span> Concept Map</a></li>
+  <li><a href="#sec-ralph-name" id="toc-sec-ralph-name" class="nav-link active" data-scroll-target="#sec-ralph-name"><span class="header-section-number">11.1</span> Why “Ralph”?</a></li>
+  <li><a href="#sec-ralph-loop" id="toc-sec-ralph-loop" class="nav-link" data-scroll-target="#sec-ralph-loop"><span class="header-section-number">11.2</span> The Loop</a></li>
+  <li><a href="#sec-ralph-why" id="toc-sec-ralph-why" class="nav-link" data-scroll-target="#sec-ralph-why"><span class="header-section-number">11.3</span> Why the Loop Works</a></li>
+  <li><a href="#sec-ralph-harness" id="toc-sec-ralph-harness" class="nav-link" data-scroll-target="#sec-ralph-harness"><span class="header-section-number">11.4</span> A Minimal Harness</a></li>
+  <li><a href="#sec-ralph-build-own" id="toc-sec-ralph-build-own" class="nav-link" data-scroll-target="#sec-ralph-build-own"><span class="header-section-number">11.5</span> Why Build Your Own</a></li>
+  <li><a href="#sec-ralph-takeaways" id="toc-sec-ralph-takeaways" class="nav-link" data-scroll-target="#sec-ralph-takeaways"><span class="header-section-number">11.6</span> Key Takeaways</a></li>
+  <li><a href="#sec-ralph-concept-map" id="toc-sec-ralph-concept-map" class="nav-link" data-scroll-target="#sec-ralph-concept-map"><span class="header-section-number">11.7</span> Concept Map</a></li>
   </ul>
 </nav>
     </div>
@@ -226,8 +271,8 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Economic Shock</span></h1>
-<p class="subtitle lead">When Code Production Costs Approach Zero</p>
+<h1 class="title"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></h1>
+<p class="subtitle lead">A Simple Autonomous Coding Loop That Changes Everything</p>
 </div>
 
 
@@ -244,7 +289,7 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">July 7, 2026</p>
+      <p class="date">August 24, 2026</p>
     </div>
   </div>
   
@@ -254,7 +299,7 @@ ul.task-list li input[type="checkbox"] {
 <div>
   <div class="abstract">
     <div class="block-title">Abstract</div>
-    <p>A looped coding agent collapses the price floor for raw code production. Manual coding speed and individual throughput become less important competitive advantages. Scarcity shifts from typing code to designing safe, autonomous systems. This chapter examines the economic mechanics of this shift and what it means for how software organizations operate.</p>
+    <p>Ralph is Geoffrey Huntley’s name for a minimal autonomous coding loop: load a spec, select the next task, execute one bounded action, observe the result, repeat. The name is intentionally comedic — evoking Ralph Wiggum’s naive persistence — because the point is that a “dumb” repeatable loop can outperform sophisticated one-shot approaches. This chapter dissects the loop, explains why it works as a feedback system, and provides a minimal harness implementation.</p>
   </div>
 </div>
 
@@ -262,101 +307,176 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="sec-econ-collapse" class="level2" data-number="11.1">
-<h2 data-number="11.1" class="anchored" data-anchor-id="sec-econ-collapse"><span class="header-section-number">11.1</span> The Price Floor Collapse</h2>
-<p>A looped coding agent produces software at a remarkably low effective hourly cost. The math is straightforward: an LLM API call costs cents. A loop that makes hundreds of calls to complete a task that would take a human developer hours costs dollars, not hundreds of dollars. When the per-unit cost of code production drops by one or two orders of magnitude, the economics of the entire industry shift.</p>
-<div class="cell" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class="figure"><p></p>
-<div>
-<pre class="mermaid mermaid-js">flowchart LR
-    subgraph OldWorld
-        direction TB
-        OS["Old Scarcity"] --&gt; TC["Typing Code"]
-        TC --&gt; MT["Manual Throughput"]
-    end
-    subgraph NewWorld
-        direction TB
-        NS["New Scarcity"] --&gt; SD["System Design"]
-        SD --&gt; CE["Context Engineering"]
-        CE --&gt; SA["Safe Autonomy"]
-    end
-    OldWorld --&gt;|"Commoditized by loops"| NewWorld
-    style OS fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
-    style NS fill:#dcfce7,stroke:#166534,color:#166534
-    style SA fill:#dbeafe,stroke:#1e40af,color:#1e40af
-</pre>
-</div>
-<p></p><figcaption> The scarcity shift — what was scarce becomes abundant, what was assumed becomes scarce</figcaption> </figure><p></p>
-</div>
-</div>
-</div>
+<section id="sec-ralph-name" class="level2" data-number="11.1">
+<h2 data-number="11.1" class="anchored" data-anchor-id="sec-ralph-name"><span class="header-section-number">11.1</span> Why “Ralph”?</h2>
+<p>Huntley named his autonomous coding loop “Ralph” for two reasons. First, his visceral reaction to seeing where this technology leads — the name evokes vomiting. Second, a reference to Ralph Wiggum from The Simpsons: simple, naive, persistent, and oddly effective.</p>
+<p>The naming is deliberate framing. Ralph is not elegant. It’s not sophisticated AI. It’s a <strong>stubborn loop</strong> that does one thing at a time, checks its work, and repeats. The point: a dumb, repeatable loop can still outperform a brilliant one-shot approach because it self-corrects.</p>
 </section>
-<section id="sec-econ-cheaper" class="level2" data-number="11.2">
-<h2 data-number="11.2" class="anchored" data-anchor-id="sec-econ-cheaper"><span class="header-section-number">11.2</span> What Gets Cheaper</h2>
-<ul>
-<li><strong>Implementation of well-defined features</strong> — “Add a REST endpoint that returns user profiles filtered by role” is exactly the kind of bounded, testable task a loop excels at</li>
-<li><strong>Bug fixes with clear reproduction steps</strong> — feed the failing test and stack trace into the loop, let it iterate until the test passes</li>
-<li><strong>Boilerplate and glue code</strong> — API integrations, data transformation layers, CRUD operations</li>
-<li><strong>Test writing</strong> — given a function signature and requirements, generating test cases is highly automatable</li>
-<li><strong>Documentation</strong> — generating docs from code is already common; loops can also update docs as code changes</li>
-</ul>
-</section>
-<section id="sec-econ-expensive" class="level2" data-number="11.3">
-<h2 data-number="11.3" class="anchored" data-anchor-id="sec-econ-expensive"><span class="header-section-number">11.3</span> What Doesn’t Get Cheaper</h2>
-<ul>
-<li><strong>Understanding what to build</strong> — requirements gathering, stakeholder alignment, product decisions</li>
-<li><strong>Architectural decisions</strong> — choosing between monolith and microservices, selecting databases, designing data models</li>
-<li><strong>Failure mode analysis</strong> — predicting how systems break under load, under partial failure, under adversarial input</li>
-<li><strong>Observability design</strong> — deciding what to monitor, what alerts matter, what dashboards to build</li>
-<li><strong>Cross-system integration</strong> — understanding how a change in one system affects others</li>
-</ul>
-<p>The pattern: anything that requires <strong>understanding the problem domain</strong> and <strong>anticipating consequences</strong> remains expensive. Anything that requires <strong>translating a known solution into code</strong> gets cheap.</p>
-</section>
-<section id="sec-econ-orgs" class="level2" data-number="11.4">
-<h2 data-number="11.4" class="anchored" data-anchor-id="sec-econ-orgs"><span class="header-section-number">11.4</span> Implications for Organizations</h2>
-<p><strong>Team structure changes.</strong> If one engineer with autonomous loops can produce the code output of several manual developers, teams get smaller. But they need <em>different</em> people — more architects, more SREs, more product thinkers, fewer implementers.</p>
-<p><strong>Hiring criteria shift.</strong> “Can you implement a binary search tree?” becomes less relevant. “Can you design a system where autonomous agents safely modify a production database?” becomes the question that matters.</p>
-<p><strong>Code review becomes a bottleneck.</strong> When agents produce code faster than humans can review it, manual code review may be the wrong control point. The solution isn’t to skip review — it’s to shift quality enforcement to automated gates: pre-commit hooks, property-based tests, snapshot tests, release gates (see Chapter 12).</p>
-<p><strong>Velocity stops being a differentiator.</strong> If everyone has access to the same cheap code production capability, the competitive advantage moves to what you build (product decisions) and how safely you build it (engineering quality), not how fast you type.</p>
-</section>
-<section id="sec-econ-takeaways" class="level2" data-number="11.5">
-<h2 data-number="11.5" class="anchored" data-anchor-id="sec-econ-takeaways"><span class="header-section-number">11.5</span> Key Takeaways</h2>
-<ul>
-<li>Looped coding agents collapse the effective cost of raw code production by 1-2 orders of magnitude</li>
-<li>Implementation of well-defined tasks, bug fixes, boilerplate, and tests get dramatically cheaper</li>
-<li>Problem definition, architecture, failure analysis, and observability design remain expensive</li>
-<li>Organizations need fewer implementers and more architects, SREs, and product thinkers</li>
-<li>The competitive advantage shifts from velocity to product decisions and engineering quality</li>
-</ul>
-</section>
-<section id="sec-econ-concept-map" class="level2" data-number="11.6">
-<h2 data-number="11.6" class="anchored" data-anchor-id="sec-econ-concept-map"><span class="header-section-number">11.6</span> Concept Map</h2>
+<section id="sec-ralph-loop" class="level2" data-number="11.2">
+<h2 data-number="11.2" class="anchored" data-anchor-id="sec-ralph-loop"><span class="header-section-number">11.2</span> The Loop</h2>
+<p>Ralph’s mechanism is five steps, repeated until the specification is satisfied:</p>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
 <p></p><figure class="figure"><p></p>
 <div>
 <pre class="mermaid mermaid-js">flowchart TD
-    A["Cheap Looped Execution"] --&gt; B["Code Production Cost Drops"]
-    B --&gt; C["Implementation Commoditized"]
-    B --&gt; D["Manual Throughput Devalued"]
-    C --&gt; E["New Scarcity"]
-    E --&gt; F["System Design"]
-    E --&gt; G["Problem Definition"]
-    E --&gt; H["Safe Autonomy"]
-    D --&gt; I["Org Structure Changes"]
-    I --&gt; J["Smaller Teams"]
-    I --&gt; K["Different Hiring"]
-    style A fill:#dbeafe,stroke:#1e40af,color:#1e40af
-    style B fill:#fef3c7,stroke:#92400e,color:#92400e
-    style C fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
-    style E fill:#dcfce7,stroke:#166534,color:#166534
-    style I fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    S["Load Spec"] --&gt; T["Select Next Task"]
+    T --&gt; E["Execute One Action"]
+    E --&gt; O["Observe Results"]
+    O --&gt; D{"Done?"}
+    D --&gt;|"No"| T
+    D --&gt;|"Yes"| F["Ship"]
+    style S fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style T fill:#dcfce7,stroke:#166534,color:#166534
+    style E fill:#fef3c7,stroke:#92400e,color:#92400e
+    style O fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style F fill:#dcfce7,stroke:#166534,color:#166534
 </pre>
 </div>
-<p></p><figcaption> Economic impact of autonomous coding loops</figcaption> </figure><p></p>
+<p></p><figcaption> The Ralph loop — a minimal feedback system for autonomous coding</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+<ol type="1">
+<li><strong>Load the specification</strong> — a task list, a requirements document, or a failing test suite. This is what the loop works toward.</li>
+<li><strong>Select the next highest-priority task</strong> — one task only. Not two, not a batch. The single-task constraint is fundamental (see Chapter 3).</li>
+<li><strong>Execute one bounded action</strong> — write code, run a command, modify a file. Bounded means the action has a defined scope and a clear completion state.</li>
+<li><strong>Observe the result</strong> — run tests, check linter output, read error messages. The observation is the feedback signal.</li>
+<li><strong>Re-evaluate</strong> — has the task been completed? If yes, move to the next task. If no, adjust and retry.</li>
+</ol>
+</section>
+<section id="sec-ralph-why" class="level2" data-number="11.3">
+<h2 data-number="11.3" class="anchored" data-anchor-id="sec-ralph-why"><span class="header-section-number">11.3</span> Why the Loop Works</h2>
+<p>The Ralph loop converts coding from a creative act into a <strong>feedback system</strong>. It reduces a large, ambiguous project into three things at any given moment:</p>
+<ul>
+<li>A <strong>current state</strong> (what exists now — code, tests, errors)</li>
+<li>One <strong>next action</strong> (what to do right now)</li>
+<li>A <strong>fresh re-evaluation</strong> (did it work? what changed?)</li>
+</ul>
+<p>This structure eliminates the two biggest failure modes of one-shot code generation: compounding errors and lost context. In a single-shot approach, the model tries to hold the entire problem in memory and produce a complete solution. In the loop, it only needs to hold the current task and the current state.</p>
+<p>The analogy is navigating by GPS versus memorizing directions. The GPS re-calculates after every turn — it doesn’t need to remember the entire route because it re-evaluates at each step.</p>
+</section>
+<section id="sec-ralph-harness" class="level2" data-number="11.4">
+<h2 data-number="11.4" class="anchored" data-anchor-id="sec-ralph-harness"><span class="header-section-number">11.4</span> A Minimal Harness</h2>
+<p>The loop needs a <strong>harness</strong> — the code that orchestrates the cycle. A minimal harness needs only five tools:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Tool</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>read_file</code></td>
+<td>Load existing code and specs</td>
+</tr>
+<tr class="even">
+<td><code>write_file</code></td>
+<td>Make code changes</td>
+</tr>
+<tr class="odd">
+<td><code>search</code> (rg/grep)</td>
+<td>Navigate the codebase quickly</td>
+</tr>
+<tr class="even">
+<td><code>bash</code></td>
+<td>Run tests, linters, build commands</td>
+</tr>
+<tr class="odd">
+<td><code>list_files</code></td>
+<td>Understand project structure</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Inferred</strong> minimal harness pseudocode:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> subprocess</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ralph_loop(spec_path: <span class="bu">str</span>, max_iterations: <span class="bu">int</span> <span class="op">=</span> <span class="dv">50</span>):</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    spec <span class="op">=</span> Path(spec_path).read_text()</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(max_iterations):</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 1. Get current state</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        test_result <span class="op">=</span> subprocess.run(</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>            [<span class="st">"python"</span>, <span class="st">"-m"</span>, <span class="st">"pytest"</span>, <span class="st">"--tb=short"</span>, <span class="st">"-q"</span>],</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>            capture_output<span class="op">=</span><span class="va">True</span>, text<span class="op">=</span><span class="va">True</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        current_state <span class="op">=</span> test_result.stdout <span class="op">+</span> test_result.stderr</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 2. Ask the model: what's the next single task?</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>        task <span class="op">=</span> ask_model(</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"Spec:</span><span class="ch">\n</span><span class="sc">{</span>spec<span class="sc">}</span><span class="ch">\n\n</span><span class="ss">"</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"Current test output:</span><span class="ch">\n</span><span class="sc">{</span>current_state<span class="sc">}</span><span class="ch">\n\n</span><span class="ss">"</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>            <span class="st">"What is the ONE next thing to do? Be specific."</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 3. Execute the task (model writes/modifies files)</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>        result <span class="op">=</span> execute_task(task)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 4. Observe — re-run tests</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>        new_result <span class="op">=</span> subprocess.run(</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>            [<span class="st">"python"</span>, <span class="st">"-m"</span>, <span class="st">"pytest"</span>, <span class="st">"--tb=short"</span>, <span class="st">"-q"</span>],</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>            capture_output<span class="op">=</span><span class="va">True</span>, text<span class="op">=</span><span class="va">True</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 5. Check completion</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="st">"passed"</span> <span class="kw">in</span> new_result.stdout <span class="kw">and</span> <span class="st">"failed"</span> <span class="kw">not</span> <span class="kw">in</span> new_result.stdout:</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f"All tests passing after </span><span class="sc">{</span>i<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss"> iterations."</span>)</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="va">True</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Max iterations (</span><span class="sc">{</span>max_iterations<span class="sc">}</span><span class="ss">) reached."</span>)</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="va">False</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This is not production code — it’s the conceptual skeleton. The real engineering is in the details: how you format the state, how you constrain the model’s actions, how you handle failures. That’s what makes it <em>engineering</em> rather than just <em>development</em>.</p>
+</section>
+<section id="sec-ralph-build-own" class="level2" data-number="11.5">
+<h2 data-number="11.5" class="anchored" data-anchor-id="sec-ralph-build-own"><span class="header-section-number">11.5</span> Why Build Your Own</h2>
+<p>Huntley argues you should build your own harness, not just use someone else’s tool. The reasons:</p>
+<ul>
+<li><strong>Transparency</strong> — you stop treating the tool as magic and understand its failure modes</li>
+<li><strong>Standards</strong> — you encode your own coding standards, conventions, and taste into the loop</li>
+<li><strong>Control</strong> — you decide the stopping criteria, the safety boundaries, the escalation policy</li>
+<li><strong>Leverage</strong> — the harness becomes a force multiplier for your specific workflow, not a generic tool</li>
+</ul>
+<p>The harness is where engineering judgment lives. Two teams with the same LLM but different harnesses will produce radically different results. The model is the engine; the harness is the car.</p>
+</section>
+<section id="sec-ralph-takeaways" class="level2" data-number="11.6">
+<h2 data-number="11.6" class="anchored" data-anchor-id="sec-ralph-takeaways"><span class="header-section-number">11.6</span> Key Takeaways</h2>
+<ul>
+<li>Ralph is a minimal autonomous coding loop: load spec, select task, execute, observe, repeat</li>
+<li>It works because it converts coding from a creative act into a feedback system — the model only needs to hold the current task and current state</li>
+<li>The single-task constraint is fundamental: one task per iteration prevents context dilution and priority blur</li>
+<li>A minimal harness needs only 5 tools: read, write, search, bash, list</li>
+<li>Build your own harness to encode your standards, understand failure modes, and maintain control</li>
+</ul>
+</section>
+<section id="sec-ralph-concept-map" class="level2" data-number="11.7">
+<h2 data-number="11.7" class="anchored" data-anchor-id="sec-ralph-concept-map"><span class="header-section-number">11.7</span> Concept Map</h2>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    A["Specification"] --&gt; B["Task Selection"]
+    B --&gt; C["Bounded Execution"]
+    C --&gt; D["Observation"]
+    D --&gt; E["Re-evaluation"]
+    E --&gt;|"Not done"| B
+    E --&gt;|"Done"| F["Ship"]
+    B --&gt; G["Single-Task Constraint"]
+    C --&gt; H["Minimal Harness"]
+    H --&gt; I["5 Core Tools"]
+    style A fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style B fill:#dcfce7,stroke:#166534,color:#166534
+    style D fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+    style F fill:#dcfce7,stroke:#166534,color:#166534
+    style G fill:#fef3c7,stroke:#92400e,color:#92400e
+    style H fill:#fce7f3,stroke:#9d174d,color:#9d174d
+</pre>
+</div>
+<p></p><figcaption> How Ralph loop concepts connect</figcaption> </figure><p></p>
 </div>
 </div>
 </div>
@@ -767,13 +887,13 @@ ul.task-list li input[type="checkbox"] {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../chapters/ch10-ralph-loop.html" class="pagination-link" aria-label="The Ralph Loop">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span>
+      <a href="../chapters/ch10-choosing-a-runtime.html" class="pagination-link" aria-label="Choosing a Runtime">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Choosing a Runtime</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../chapters/ch12-gas-town.html" class="pagination-link" aria-label="Scaling Up">
-        <span class="nav-page-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Scaling Up</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../chapters/ch12-economics.html" class="pagination-link" aria-label="The Economic Shock">
+        <span class="nav-page-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">The Economic Shock</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

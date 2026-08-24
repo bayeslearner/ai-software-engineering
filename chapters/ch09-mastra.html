@@ -2,22 +2,25 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.38">
+<meta name="generator" content="quarto-1.10.18">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="AI-Powered SE Tutorial">
-<meta name="dcterms.date" content="2026-07-07">
+<meta name="dcterms.date" content="2026-08-24">
 
 <title>9&nbsp; Mastra: TypeScript Agents, End to End – AI-Powered Software Engineering</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
 */
-code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -70,7 +73,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../chapters/ch10-ralph-loop.html" rel="next">
+<link href="../chapters/ch10-choosing-a-runtime.html" rel="next">
 <link href="../chapters/ch08-production-frameworks.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
@@ -78,10 +81,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-3f70bac5631458d474a321d4182f9338.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-3d497cff885f6278d37568d0ef0763f8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../site_libs/quarto-contrib/present-mode-1.0.0/present-mode.js"></script>
 <link href="../site_libs/quarto-contrib/present-mode-1.0.0/present-mode.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
@@ -215,26 +218,32 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch10-ralph-loop.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span></a>
+  <a href="../chapters/ch10-choosing-a-runtime.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Choosing a Runtime</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch11-economics.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Economic Shock</span></span></a>
+  <a href="../chapters/ch11-ralph-loop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch12-gas-town.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Scaling Up</span></span></a>
+  <a href="../chapters/ch12-economics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">The Economic Shock</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch13-career.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Career &amp; What's Next</span></span></a>
+  <a href="../chapters/ch13-gas-town.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Scaling Up</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch14-career.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Career &amp; What's Next</span></span></a>
   </div>
 </li>
     </ul>
@@ -350,7 +359,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">July 7, 2026</p>
+      <p class="date">August 24, 2026</p>
     </div>
   </div>
   
@@ -1095,7 +1104,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Chapter 10 introduces the Ralph loop — an autonomous coding loop that runs until a spec is satisfied. But even autonomous loops need escape hatches: a test fails in a way that suggests a design mistake (not a code mistake), a deployment requires manual approval, a cost budget is exhausted. Mastra’s suspension primitive is the mechanism for these escape hatches. The loop runs autonomously until it can’t, suspends with context, and a human picks up where the machine left off. This is the “human-in-the-loop” pattern from Chapter 4, implemented as a workflow primitive.</p>
+<p>Chapter 11 introduces the Ralph loop — an autonomous coding loop that runs until a spec is satisfied. But even autonomous loops need escape hatches: a test fails in a way that suggests a design mistake (not a code mistake), a deployment requires manual approval, a cost budget is exhausted. Mastra’s suspension primitive is the mechanism for these escape hatches. The loop runs autonomously until it can’t, suspends with context, and a human picks up where the machine left off. This is the “human-in-the-loop” pattern from Chapter 4, implemented as a workflow primitive.</p>
 </div>
 </div>
 </section>
@@ -1580,7 +1589,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>When an autonomous loop runs 200 iterations (<a href="ch10-ralph-loop.html#sec-ralph-loop" class="quarto-xref"><span>Section 10.2</span></a>), the observability stack is the difference between “it failed somewhere” and “iteration 47, step 3, the search tool returned stale data and the LLM made a wrong decision based on it.” Mastra’s hierarchical tracing gives you that granularity. The economics chapter (Chapter 11) covers how to use these metrics for cost tracking.</p>
+<p>When an autonomous loop runs 200 iterations (<a href="ch11-ralph-loop.html#sec-ralph-loop" class="quarto-xref"><span>Section 11.2</span></a>), the observability stack is the difference between “it failed somewhere” and “iteration 47, step 3, the search tool returned stale data and the LLM made a wrong decision based on it.” Mastra’s hierarchical tracing gives you that granularity. The economics chapter (Chapter 12) covers how to use these metrics for cost tracking.</p>
 </div>
 </div>
 </section>
@@ -1945,7 +1954,7 @@ Note
 </section>
 <section id="sec-mastra-forward" class="level2" data-number="9.16">
 <h2 data-number="9.16" class="anchored" data-anchor-id="sec-mastra-forward"><span class="header-section-number">9.16</span> Forward Link: From Mastra to the Ralph Loop</h2>
-<p>Chapter 10 introduces the Ralph loop — the minimal autonomous coding loop that drives the rest of the book. Mastra’s primitives map directly onto the loop’s requirements:</p>
+<p>Chapter 11 introduces the Ralph loop — the minimal autonomous coding loop that drives the rest of the book. Mastra’s primitives map directly onto the loop’s requirements:</p>
 <ul>
 <li><strong>The loop needs tools.</strong> Mastra’s <code>createTool()</code> with Zod schemas defines the tool set — <code>read_file</code>, <code>write_file</code>, <code>run_command</code>, <code>search</code> — with type-safe input validation.</li>
 <li><strong>The loop needs memory.</strong> Working memory stores the spec, the current task, and accumulated context. Semantic recall finds relevant past decisions across long-running sessions.</li>
@@ -1953,6 +1962,19 @@ Note
 <li><strong>The loop needs observability.</strong> When iteration 47 of 200 goes wrong, hierarchical tracing tells you exactly which tool call produced the bad result.</li>
 </ul>
 <p>If you’re building a Ralph loop in TypeScript, Mastra is the framework that provides all four requirements from a single dependency.</p>
+<div class="callout callout-style-default callout-note callout-titled" title="One stop before Ralph">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>One stop before Ralph
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Chapter 10 closes the framework survey by turning it into a decision. It asks a question none of Chapters 7–9 asked — <em>when does your system decide its control flow?</em> — introduces two more Python runtimes (<strong>Pydantic AI</strong> and <strong>Microsoft Agent Framework</strong>), and shows why every framework in this book, Mastra included, ships replay while none of them ships <strong>undo</strong>. Mastra’s Studio time-travel is on exactly the same footing as LangGraph’s fork: it rewinds the runtime, not the world.</p>
+</div>
+</div>
 </section>
 <section id="sec-mastra-takeaways" class="level2" data-number="9.17">
 <h2 data-number="9.17" class="anchored" data-anchor-id="sec-mastra-takeaways"><span class="header-section-number">9.17</span> Key Takeaways</h2>
@@ -1986,12 +2008,12 @@ Note
     MS --&gt; MCP["MCP&lt;br/&gt;Client + Server"]
     MS --&gt; OBS["Observability&lt;br/&gt;OTel traces"]
     MS --&gt; STU["Studio&lt;br/&gt;Visual dev"]
-    TOOLS --&gt; RL["Ralph Loop (Ch 10)&lt;br/&gt;Autonomous coding"]
+    TOOLS --&gt; RL["Ralph Loop (Ch 11)&lt;br/&gt;Autonomous coding"]
     WF --&gt; RL
     MEM --&gt; RL
     MCP --&gt; RL
-    OBS --&gt; EC["Economics (Ch 11)&lt;br/&gt;Cost tracking"]
-    MS --&gt; GT["Gas Town (Ch 12)&lt;br/&gt;Multi-agent fleet"]
+    OBS --&gt; EC["Economics (Ch 12)&lt;br/&gt;Cost tracking"]
+    MS --&gt; GT["Gas Town (Ch 13)&lt;br/&gt;Multi-agent fleet"]
     BU --&gt; RL
     AG --&gt; GT
     MA --&gt; RL
@@ -2427,8 +2449,8 @@ Note
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../chapters/ch10-ralph-loop.html" class="pagination-link" aria-label="The Ralph Loop">
-        <span class="nav-page-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../chapters/ch10-choosing-a-runtime.html" class="pagination-link" aria-label="Choosing a Runtime">
+        <span class="nav-page-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Choosing a Runtime</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

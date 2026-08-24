@@ -2,22 +2,25 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.38">
+<meta name="generator" content="quarto-1.10.18">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="AI-Powered SE Tutorial">
-<meta name="dcterms.date" content="2026-07-07">
+<meta name="dcterms.date" content="2026-08-24">
 
 <title>7&nbsp; Building Agents from Scratch — Then Shipping Them – AI-Powered Software Engineering</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
 */
-code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -78,10 +81,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-3f70bac5631458d474a321d4182f9338.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-3d497cff885f6278d37568d0ef0763f8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../site_libs/quarto-contrib/present-mode-1.0.0/present-mode.js"></script>
 <link href="../site_libs/quarto-contrib/present-mode-1.0.0/present-mode.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
@@ -215,26 +218,32 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch10-ralph-loop.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span></a>
+  <a href="../chapters/ch10-choosing-a-runtime.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Choosing a Runtime</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch11-economics.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Economic Shock</span></span></a>
+  <a href="../chapters/ch11-ralph-loop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch12-gas-town.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Scaling Up</span></span></a>
+  <a href="../chapters/ch12-economics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">The Economic Shock</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch13-career.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Career &amp; What's Next</span></span></a>
+  <a href="../chapters/ch13-gas-town.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Scaling Up</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch14-career.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Career &amp; What's Next</span></span></a>
   </div>
 </li>
     </ul>
@@ -326,7 +335,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">July 7, 2026</p>
+      <p class="date">August 24, 2026</p>
     </div>
   </div>
   
@@ -431,18 +440,36 @@ Note
 </tbody>
 </table>
 <p>The critical design constraint: <strong><code>exec()</code> cannot access the shared store.</strong> This separation means <code>exec()</code> is pure computation — idempotent, retriable, testable in isolation.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pocketflow <span class="im">import</span> Node, Flow</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Summarize(Node):</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"document"</span>]          <span class="co"># Read from store</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, text):</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> call_llm(<span class="ss">f"Summarize: </span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">"</span>)  <span class="co"># Pure computation</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"summary"</span>] <span class="op">=</span> exec_res       <span class="co"># Write to store</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"default"</span>                   <span class="co"># Next action (edge label)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-1"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-1-1"><a href="#annotated-cell-1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pocketflow <span class="im">import</span> Node, Flow</span>
+<span id="annotated-cell-1-2"><a href="#annotated-cell-1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-3"><a href="#annotated-cell-1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Summarize(Node):</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-1-4" class="code-annotation-target"><a href="#annotated-cell-1-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<span id="annotated-cell-1-5"><a href="#annotated-cell-1-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"document"</span>]          <span class="co"># Read from store</span></span>
+<span id="annotated-cell-1-6"><a href="#annotated-cell-1-6" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-1-7" class="code-annotation-target"><a href="#annotated-cell-1-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, text):</span>
+<span id="annotated-cell-1-8"><a href="#annotated-cell-1-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> call_llm(<span class="ss">f"Summarize: </span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">"</span>)  <span class="co"># Pure computation</span></span>
+<span id="annotated-cell-1-9"><a href="#annotated-cell-1-9" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-1-10" class="code-annotation-target"><a href="#annotated-cell-1-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<span id="annotated-cell-1-11"><a href="#annotated-cell-1-11" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"summary"</span>] <span class="op">=</span> exec_res       <span class="co"># Write to store</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-1-12" class="code-annotation-target"><a href="#annotated-cell-1-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"default"</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-1" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-1" data-code-lines="4" data-code-annotation="1"><strong><code>prep</code> is the read phase</strong> — it pulls just what this node needs out of the shared store and hands it on; <code>exec</code> never touches <code>shared</code> directly.</span>
+</dd>
+<dt data-target-cell="annotated-cell-1" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-1" data-code-lines="7" data-code-annotation="2"><strong><code>exec</code> is the pure-compute phase</strong> — it sees only <code>prep</code>’s return value, so the LLM call is isolated and safe to retry or test without side effects.</span>
+</dd>
+<dt data-target-cell="annotated-cell-1" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-1" data-code-lines="10" data-code-annotation="3"><strong><code>post</code> is the write phase</strong> — given the original <code>shared</code>, the prep result, and the exec result, it writes outputs back and chooses what happens next.</span>
+</dd>
+<dt data-target-cell="annotated-cell-1" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-1" data-code-lines="12" data-code-annotation="4"><strong>The return value is the edge label</strong> — <code>"default"</code> names which outgoing transition to follow; returning a different string (e.g.&nbsp;<code>"search"</code>) is how a node steers the flow.</span>
+</dd>
+</dl>
 <div class="callout callout-style-default callout-tip callout-titled" title="Why exec() can't touch the shared store">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -475,12 +502,12 @@ Note
 <section id="connecting-nodes-into-flows" class="level3" data-number="7.2.2">
 <h3 data-number="7.2.2" class="anchored" data-anchor-id="connecting-nodes-into-flows"><span class="header-section-number">7.2.2</span> Connecting nodes into flows</h3>
 <p>Nodes connect with <code>&gt;&gt;</code> (default edge) or <code>- "action" &gt;&gt;</code> (named edge):</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>node_a <span class="op">&gt;&gt;</span> node_b                    <span class="co"># default transition</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>node_a <span class="op">-</span> <span class="st">"error"</span> <span class="op">&gt;&gt;</span> error_handler   <span class="co"># named transition</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>node_a <span class="op">-</span> <span class="st">"retry"</span> <span class="op">&gt;&gt;</span> node_a          <span class="co"># self-loop</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>node_a <span class="op">&gt;&gt;</span> node_b                    <span class="co"># default transition</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>node_a <span class="op">-</span> <span class="st">"error"</span> <span class="op">&gt;&gt;</span> error_handler   <span class="co"># named transition</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>node_a <span class="op">-</span> <span class="st">"retry"</span> <span class="op">&gt;&gt;</span> node_a          <span class="co"># self-loop</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>A <code>Flow</code> starts at a designated node and follows edges until there’s nowhere to go:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>flow <span class="op">=</span> Flow(start<span class="op">=</span>node_a)</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>flow.run({<span class="st">"document"</span>: <span class="st">"..."</span>, <span class="st">"summary"</span>: <span class="va">None</span>})</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>flow <span class="op">=</span> Flow(start<span class="op">=</span>node_a)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>flow.run({<span class="st">"document"</span>: <span class="st">"..."</span>, <span class="st">"summary"</span>: <span class="va">None</span>})</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="callout callout-style-default callout-tip callout-titled" title="How >> works — operator overloading">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -552,15 +579,15 @@ Note
 <span data-code-cell="annotated-cell-5" data-code-lines="9" data-code-annotation="3"><strong>Writes</strong> the draft for the next node to consume.</span>
 </dd>
 </dl>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ReviewDraft(Node):</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"draft"</span>]</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, draft):</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> call_llm(<span class="ss">f"Review this draft. List 3 improvements:</span><span class="ch">\n</span><span class="sc">{</span>draft<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"review"</span>] <span class="op">=</span> exec_res</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ReviewDraft(Node):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> prep(<span class="va">self</span>, shared):</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> shared[<span class="st">"draft"</span>]</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">exec</span>(<span class="va">self</span>, draft):</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> call_llm(<span class="ss">f"Review this draft. List 3 improvements:</span><span class="ch">\n</span><span class="sc">{</span>draft<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post(<span class="va">self</span>, shared, prep_res, exec_res):</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"review"</span>] <span class="op">=</span> exec_res</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Now wire them into a sequential flow:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-7"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-7-1"><a href="#annotated-cell-7-1" aria-hidden="true" tabindex="-1"></a>outline <span class="op">=</span> GenerateOutline()</span>
 <span id="annotated-cell-7-2"><a href="#annotated-cell-7-2" aria-hidden="true" tabindex="-1"></a>write <span class="op">=</span> WriteDraft()</span>
@@ -1510,39 +1537,57 @@ Note
 </section>
 <section id="three-typed-actions" class="level3" data-number="7.10.2">
 <h3 data-number="7.10.2" class="anchored" data-anchor-id="three-typed-actions"><span class="header-section-number">7.10.2</span> Three typed actions</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> yaml</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core.action <span class="im">import</span> action</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="at">@action.pydantic</span>(reads<span class="op">=</span>[<span class="st">"query"</span>, <span class="st">"context"</span>],</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>                 writes<span class="op">=</span>[<span class="st">"next_action"</span>, <span class="st">"search_term"</span>])</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> decide(state: QAState, llm) <span class="op">-&gt;</span> QAState:</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    prompt <span class="op">=</span> <span class="ss">f"""Question: </span><span class="sc">{</span>state<span class="sc">.</span>query<span class="sc">}</span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="ss">Previous searches: </span><span class="sc">{</span>state<span class="sc">.</span>context <span class="kw">or</span> <span class="st">"none"</span><span class="sc">}</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="ss">Reply in YAML:</span></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="ss">```yaml</span></span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="ss">action: search | answer</span></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="ss">search_term: &lt;if action is search&gt;</span></span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="ss">```"""</span></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    raw <span class="op">=</span> llm.complete(prompt)</span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    parsed <span class="op">=</span> yaml.safe_load(raw.split(<span class="st">"```yaml"</span>)[<span class="dv">1</span>].split(<span class="st">"```"</span>)[<span class="dv">0</span>])</span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    state.next_action <span class="op">=</span> parsed[<span class="st">"action"</span>]</span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    state.search_term <span class="op">=</span> parsed.get(<span class="st">"search_term"</span>)</span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="at">@action.pydantic</span>(reads<span class="op">=</span>[<span class="st">"search_term"</span>, <span class="st">"context"</span>], writes<span class="op">=</span>[<span class="st">"context"</span>])</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> search(state: QAState, web) <span class="op">-&gt;</span> QAState:</span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> web.search(state.search_term)</span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    state.context <span class="op">=</span> state.context <span class="op">+</span> [{<span class="st">"term"</span>: state.search_term,</span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>                                       <span class="st">"result"</span>: result}]</span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="at">@action.pydantic</span>(reads<span class="op">=</span>[<span class="st">"query"</span>, <span class="st">"context"</span>], writes<span class="op">=</span>[<span class="st">"answer"</span>])</span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> answer(state: QAState, llm) <span class="op">-&gt;</span> QAState:</span>
-<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    state.answer <span class="op">=</span> llm.complete(</span>
-<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Question: </span><span class="sc">{</span>state<span class="sc">.</span>query<span class="sc">}</span><span class="ch">\n</span><span class="ss">Context: </span><span class="sc">{</span>state<span class="sc">.</span>context<span class="sc">}</span><span class="ch">\n</span><span class="ss">Answer:"</span></span>
-<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-23"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><span id="annotated-cell-23-1"><a href="#annotated-cell-23-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> yaml</span>
+<span id="annotated-cell-23-2"><a href="#annotated-cell-23-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core.action <span class="im">import</span> action</span>
+<span id="annotated-cell-23-3"><a href="#annotated-cell-23-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-23-4"><a href="#annotated-cell-23-4" aria-hidden="true" tabindex="-1"></a><span class="at">@action.pydantic</span>(reads<span class="op">=</span>[<span class="st">"query"</span>, <span class="st">"context"</span>],</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-23" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-23-5" class="code-annotation-target"><a href="#annotated-cell-23-5" aria-hidden="true" tabindex="-1"></a>                 writes<span class="op">=</span>[<span class="st">"next_action"</span>, <span class="st">"search_term"</span>])</span>
+<span id="annotated-cell-23-6"><a href="#annotated-cell-23-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> decide(state: QAState, llm) <span class="op">-&gt;</span> QAState:</span>
+<span id="annotated-cell-23-7"><a href="#annotated-cell-23-7" aria-hidden="true" tabindex="-1"></a>    prompt <span class="op">=</span> <span class="ss">f"""Question: </span><span class="sc">{</span>state<span class="sc">.</span>query<span class="sc">}</span></span>
+<span id="annotated-cell-23-8"><a href="#annotated-cell-23-8" aria-hidden="true" tabindex="-1"></a><span class="ss">Previous searches: </span><span class="sc">{</span>state<span class="sc">.</span>context <span class="kw">or</span> <span class="st">"none"</span><span class="sc">}</span></span>
+<span id="annotated-cell-23-9"><a href="#annotated-cell-23-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-23-10"><a href="#annotated-cell-23-10" aria-hidden="true" tabindex="-1"></a><span class="ss">Reply in YAML:</span></span>
+<span id="annotated-cell-23-11"><a href="#annotated-cell-23-11" aria-hidden="true" tabindex="-1"></a><span class="ss">```yaml</span></span>
+<span id="annotated-cell-23-12"><a href="#annotated-cell-23-12" aria-hidden="true" tabindex="-1"></a><span class="ss">action: search | answer</span></span>
+<span id="annotated-cell-23-13"><a href="#annotated-cell-23-13" aria-hidden="true" tabindex="-1"></a><span class="ss">search_term: &lt;if action is search&gt;</span></span>
+<span id="annotated-cell-23-14"><a href="#annotated-cell-23-14" aria-hidden="true" tabindex="-1"></a><span class="ss">```"""</span></span>
+<span id="annotated-cell-23-15"><a href="#annotated-cell-23-15" aria-hidden="true" tabindex="-1"></a>    raw <span class="op">=</span> llm.complete(prompt)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-23" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-23-16" class="code-annotation-target"><a href="#annotated-cell-23-16" aria-hidden="true" tabindex="-1"></a>    parsed <span class="op">=</span> yaml.safe_load(raw.split(<span class="st">"```yaml"</span>)[<span class="dv">1</span>].split(<span class="st">"```"</span>)[<span class="dv">0</span>])</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-23" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-23-17" class="code-annotation-target"><a href="#annotated-cell-23-17" aria-hidden="true" tabindex="-1"></a>    state.next_action <span class="op">=</span> parsed[<span class="st">"action"</span>]</span>
+<span id="annotated-cell-23-18"><a href="#annotated-cell-23-18" aria-hidden="true" tabindex="-1"></a>    state.search_term <span class="op">=</span> parsed.get(<span class="st">"search_term"</span>)</span>
+<span id="annotated-cell-23-19"><a href="#annotated-cell-23-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span>
+<span id="annotated-cell-23-20"><a href="#annotated-cell-23-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-23-21"><a href="#annotated-cell-23-21" aria-hidden="true" tabindex="-1"></a><span class="at">@action.pydantic</span>(reads<span class="op">=</span>[<span class="st">"search_term"</span>, <span class="st">"context"</span>], writes<span class="op">=</span>[<span class="st">"context"</span>])</span>
+<span id="annotated-cell-23-22"><a href="#annotated-cell-23-22" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> search(state: QAState, web) <span class="op">-&gt;</span> QAState:</span>
+<span id="annotated-cell-23-23"><a href="#annotated-cell-23-23" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> web.search(state.search_term)</span>
+<span id="annotated-cell-23-24"><a href="#annotated-cell-23-24" aria-hidden="true" tabindex="-1"></a>    state.context <span class="op">=</span> state.context <span class="op">+</span> [{<span class="st">"term"</span>: state.search_term,</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-23" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-23-25" class="code-annotation-target"><a href="#annotated-cell-23-25" aria-hidden="true" tabindex="-1"></a>                                       <span class="st">"result"</span>: result}]</span>
+<span id="annotated-cell-23-26"><a href="#annotated-cell-23-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span>
+<span id="annotated-cell-23-27"><a href="#annotated-cell-23-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-23-28"><a href="#annotated-cell-23-28" aria-hidden="true" tabindex="-1"></a><span class="at">@action.pydantic</span>(reads<span class="op">=</span>[<span class="st">"query"</span>, <span class="st">"context"</span>], writes<span class="op">=</span>[<span class="st">"answer"</span>])</span>
+<span id="annotated-cell-23-29"><a href="#annotated-cell-23-29" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> answer(state: QAState, llm) <span class="op">-&gt;</span> QAState:</span>
+<span id="annotated-cell-23-30"><a href="#annotated-cell-23-30" aria-hidden="true" tabindex="-1"></a>    state.answer <span class="op">=</span> llm.complete(</span>
+<span id="annotated-cell-23-31"><a href="#annotated-cell-23-31" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Question: </span><span class="sc">{</span>state<span class="sc">.</span>query<span class="sc">}</span><span class="ch">\n</span><span class="ss">Context: </span><span class="sc">{</span>state<span class="sc">.</span>context<span class="sc">}</span><span class="ch">\n</span><span class="ss">Answer:"</span></span>
+<span id="annotated-cell-23-32"><a href="#annotated-cell-23-32" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="annotated-cell-23-33"><a href="#annotated-cell-23-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-23" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-23" data-code-lines="5" data-code-annotation="1"><strong>The decorator <em>is</em> the contract</strong> — <code>reads</code>/<code>writes</code> declare exactly which state fields this action may touch, so Burr can validate the whole graph before a single LLM call runs.</span>
+</dd>
+<dt data-target-cell="annotated-cell-23" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-23" data-code-lines="16" data-code-annotation="2"><strong>Pull the YAML back out of the model’s reply</strong> — the prompt asked for a fenced <code>```yaml</code> block, so this splits on the fences to grab just the payload before parsing it.</span>
+</dd>
+<dt data-target-cell="annotated-cell-23" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-23" data-code-lines="17" data-code-annotation="3"><strong>Routing fields drive the FSM</strong> — <code>decide</code> writes <code>next_action</code>; the transitions read it to choose the next edge, which is how this one action steers the loop.</span>
+</dd>
+<dt data-target-cell="annotated-cell-23" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-23" data-code-lines="25" data-code-annotation="4"><strong>Append, don’t mutate</strong> — building a <em>new</em> <code>context</code> list (rather than <code>.append</code>) keeps each step an immutable snapshot, which is what makes Burr’s replay and fork-from-state work.</span>
+</dd>
+</dl>
 <p>Each action declares the exact fields it touches. The framework can now check, before any LLM call, that <code>search</code> never writes to <code>query</code>.</p>
 </section>
 <section id="transitions-and-persistence" class="level3" data-number="7.10.3">
@@ -1719,10 +1764,24 @@ Note
 </dd>
 </dl>
 <p>Consume it with the <code>stream_result</code> variant of <code>run</code> (the third sibling alongside <code>run</code> and <code>iterate</code> mentioned in <a href="#sec-prod-burr" class="quarto-xref"><span>Section 7.9</span></a> — §7.9.1):</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>action, container <span class="op">=</span> app.stream_result(halt_after<span class="op">=</span>[<span class="st">"generate"</span>], inputs<span class="op">=</span>{<span class="st">"query"</span>: q})</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> partial <span class="kw">in</span> container:        <span class="co"># tokens as they arrive</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(partial[<span class="st">"response"</span>], end<span class="op">=</span><span class="st">""</span>, flush<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>_, _, state <span class="op">=</span> container.get()    <span class="co"># final, committed state once the stream closes</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-27"><pre class="sourceCode python code-annotation-code code-with-copy code-annotated"><code class="sourceCode python"><a class="code-annotation-anchor" data-target-cell="annotated-cell-27" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-27-1" class="code-annotation-target"><a href="#annotated-cell-27-1" aria-hidden="true" tabindex="-1"></a>action, container <span class="op">=</span> app.stream_result(halt_after<span class="op">=</span>[<span class="st">"generate"</span>], inputs<span class="op">=</span>{<span class="st">"query"</span>: q})</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-27" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-27-2" class="code-annotation-target"><a href="#annotated-cell-27-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> partial <span class="kw">in</span> container:</span>
+<span id="annotated-cell-27-3"><a href="#annotated-cell-27-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(partial[<span class="st">"response"</span>], end<span class="op">=</span><span class="st">""</span>, flush<span class="op">=</span><span class="va">True</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-27" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-27-4" class="code-annotation-target"><a href="#annotated-cell-27-4" aria-hidden="true" tabindex="-1"></a>_, _, state <span class="op">=</span> container.get()</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-27" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-27" data-code-lines="1" data-code-annotation="1"><strong><code>stream_result</code> hands back a <em>container</em>, not a finished result</strong> — execution is paused mid-action so you can pull output as it’s produced.</span>
+</dd>
+<dt data-target-cell="annotated-cell-27" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-27" data-code-lines="2" data-code-annotation="2"><strong>Each <code>partial</code> is an incremental chunk</strong> — iterating the container yields tokens as the model emits them, which is what lets you print a live, streaming response.</span>
+</dd>
+<dt data-target-cell="annotated-cell-27" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-27" data-code-lines="4" data-code-annotation="3"><strong><code>container.get()</code> returns the committed state once the stream closes</strong> — only after streaming finishes do you get the final, persisted typed state; the streamed text and the durable snapshot stay separate.</span>
+</dd>
+</dl>
 </section>
 <section id="sec-prod-burr-hitl" class="level3" data-number="7.11.3">
 <h3 data-number="7.11.3" class="anchored" data-anchor-id="sec-prod-burr-hitl"><span class="header-section-number">7.11.3</span> Human-in-the-loop: halt, inspect, resume</h3>
@@ -1893,9 +1952,22 @@ Note
 <p>Two connections worth flagging now:</p>
 <ul>
 <li><strong>Burr’s <code>@action.pydantic</code> is what makes a Ralph harness inspectable.</strong> When the loop runs for 200 iterations and one of them edits the wrong file, you want to know which action wrote which field. Typed reads/writes are not optional at that scale.</li>
-<li><strong>The Evaluator-Optimizer pattern is the Ralph loop in disguise.</strong> Generate a candidate change; evaluate against the spec/tests; iterate. <a href="ch10-ralph-loop.html#sec-ralph-loop" class="quarto-xref"><span>Section 10.2</span></a> will show that the “spec → execute → test → re-evaluate” loop is structurally the same pattern, just with code edits as the action space.</li>
+<li><strong>The Evaluator-Optimizer pattern is the Ralph loop in disguise.</strong> Generate a candidate change; evaluate against the spec/tests; iterate. <a href="ch11-ralph-loop.html#sec-ralph-loop" class="quarto-xref"><span>Section 11.2</span></a> will show that the “spec → execute → test → re-evaluate” loop is structurally the same pattern, just with code edits as the action space.</li>
 </ul>
-<p>The book’s path is: this chapter picks the state machine, Chapter 8 covers more production options, the Ralph loop in Chapter 10 wraps the loop around it, and Chapters 12–13 scale the loop into a fleet and a career.</p>
+<p>The book’s path is: this chapter picks the state machine, Chapters 8–9 cover more production options, <strong>Chapter 10 turns the survey into a decision</strong> — two postures, five axes, and two more runtimes (Pydantic AI, Microsoft Agent Framework) — the Ralph loop in Chapter 11 wraps the loop around it, and Chapters 13–14 scale the loop into a fleet and a career.</p>
+<div class="callout callout-style-default callout-tip callout-titled" title="The property of Burr that Chapter 10 turns into a design">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>The property of Burr that Chapter 10 turns into a design
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>GraphBuilder().build()</code> returns a <strong>value</strong>. That sounds like an implementation detail and is actually the discriminating feature of the whole field: because a graph is a value, code can <em>compose one at runtime from a plan the model emitted</em> — which is what makes a plan inspectable, policy-checkable and costable before anything runs. <a href="ch10-choosing-a-runtime.html#sec-rt-composed" class="quarto-xref"><span>Section 10.6</span></a> builds exactly that.</p>
+</div>
+</div>
 </section>
 <section id="sec-pf-takeaways" class="level2" data-number="7.14">
 <h2 data-number="7.14" class="anchored" data-anchor-id="sec-pf-takeaways"><span class="header-section-number">7.14</span> Key Takeaways</h2>
@@ -1936,7 +2008,7 @@ Note
     B --&gt; UI["Burr UI (debugger)"]
     B --&gt; FS["Fork-from-state"]
     B --&gt; H["Hamilton (RAG pipelines)"]
-    B --&gt; RL["Ralph loop (Ch 10)"]
+    B --&gt; RL["Ralph loop (Ch 11)"]
     PR --&gt; CH8["Agno + mcp-agent (Ch 8)"]
     PR --&gt; CH9["Mastra (Ch 9)"]
     style GS fill:#fef3c7,stroke:#92400e,color:#92400e

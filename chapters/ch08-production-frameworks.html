@@ -2,22 +2,25 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.38">
+<meta name="generator" content="quarto-1.10.18">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="AI-Powered SE Tutorial">
-<meta name="dcterms.date" content="2026-07-07">
+<meta name="dcterms.date" content="2026-08-24">
 
 <title>8&nbsp; Production Agent Platforms for Python – AI-Powered Software Engineering</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
 */
-code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -78,10 +81,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-3f70bac5631458d474a321d4182f9338.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-3d497cff885f6278d37568d0ef0763f8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../site_libs/quarto-contrib/present-mode-1.0.0/present-mode.js"></script>
 <link href="../site_libs/quarto-contrib/present-mode-1.0.0/present-mode.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
@@ -215,26 +218,32 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch10-ralph-loop.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span></a>
+  <a href="../chapters/ch10-choosing-a-runtime.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Choosing a Runtime</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch11-economics.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Economic Shock</span></span></a>
+  <a href="../chapters/ch11-ralph-loop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch12-gas-town.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Scaling Up</span></span></a>
+  <a href="../chapters/ch12-economics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">The Economic Shock</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../chapters/ch13-career.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Career &amp; What's Next</span></span></a>
+  <a href="../chapters/ch13-gas-town.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Scaling Up</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch14-career.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Career &amp; What's Next</span></span></a>
   </div>
 </li>
     </ul>
@@ -301,7 +310,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">July 7, 2026</p>
+      <p class="date">August 24, 2026</p>
     </div>
   </div>
   
@@ -1277,7 +1286,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The Evaluator-Optimizer pattern is structurally the same as the Ralph loop you’ll meet in Chapter 10: generate a candidate, evaluate against criteria, iterate. Ralph applies this shape to code editing — produce a change, run tests, iterate. The pattern is the same; the action space is different.</p>
+<p>The Evaluator-Optimizer pattern is structurally the same as the Ralph loop you’ll meet in Chapter 11: generate a candidate, evaluate against criteria, iterate. Ralph applies this shape to code editing — produce a change, run tests, iterate. The pattern is the same; the action space is different.</p>
 </div>
 </div>
 </section>
@@ -1800,14 +1809,27 @@ Note
 </section>
 <section id="sec-prod-ralph" class="level2" data-number="8.6">
 <h2 data-number="8.6" class="anchored" data-anchor-id="sec-prod-ralph"><span class="header-section-number">8.6</span> Forward Link: From Agent Platforms to the Ralph Loop</h2>
-<p>Chapter 10 introduces Ralph — Geoffrey Huntley’s minimal autonomous coding loop: load spec, select task, execute, observe, repeat. Ralph and the frameworks in this chapter are different layers of the same stack. Ralph is the <em>loop shape</em>; the frameworks are the <em>state machine the loop runs on</em>.</p>
+<p>Chapter 11 introduces Ralph — Geoffrey Huntley’s minimal autonomous coding loop: load spec, select task, execute, observe, repeat. Ralph and the frameworks in this chapter are different layers of the same stack. Ralph is the <em>loop shape</em>; the frameworks are the <em>state machine the loop runs on</em>.</p>
 <p>Three connections worth flagging now:</p>
 <ul>
-<li><strong>mcp-agent’s Evaluator-Optimizer pattern is the Ralph loop in disguise.</strong> Generate a candidate change; evaluate against the spec/tests; iterate. Chapter 10 will show that the “spec -&gt; execute -&gt; test -&gt; re-evaluate” loop is structurally the same pattern, just with code edits as the action space.</li>
-<li><strong>Agno’s <code>Team</code> is what scales Ralph to Gas Town.</strong> Chapter 12 covers multi-agent orchestration; if you adopted Agno here, the Team primitive is what you’ll lean on then.</li>
+<li><strong>mcp-agent’s Evaluator-Optimizer pattern is the Ralph loop in disguise.</strong> Generate a candidate change; evaluate against the spec/tests; iterate. Chapter 11 will show that the “spec -&gt; execute -&gt; test -&gt; re-evaluate” loop is structurally the same pattern, just with code edits as the action space.</li>
+<li><strong>Agno’s <code>Team</code> is what scales Ralph to Gas Town.</strong> Chapter 13 covers multi-agent orchestration; if you adopted Agno here, the Team primitive is what you’ll lean on then.</li>
 <li><strong>Burr’s <code>@action.pydantic</code> (Chapter 7) is what makes a Ralph harness inspectable.</strong> When the loop runs for 200 iterations and one of them edits the wrong file, you want to know which action wrote which field. Typed reads/writes are not optional at that scale.</li>
 </ul>
-<p>The book’s path is therefore: Chapter 7 picks the state machine, this chapter picks the platform, Chapter 10 wraps the loop around it, and Chapter 12 scales the loop into a fleet.</p>
+<p>The book’s path is therefore: Chapter 7 picks the state machine, this chapter picks the platform, <strong>Chapter 10 picks the posture</strong>, Chapter 11 wraps the loop around it, and Chapter 13 scales the loop into a fleet.</p>
+<div class="callout callout-style-default callout-note callout-titled" title="Still can't choose? That's the next chapter's job">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Still can’t choose? That’s the next chapter’s job
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Feature tables — including the one in <a href="#sec-prod-matrix" class="quarto-xref"><span>Section 8.5</span></a> — stall when the requirement is “this thing takes irreversible actions and I need to explain afterwards what it did.” <a href="ch10-choosing-a-runtime.html#sec-rt-axes" class="quarto-xref"><span>Section 10.4</span></a> reframes the choice around <em>when control flow is decided</em> rather than which features ship, scores all five candidates (adding <strong>Pydantic AI</strong> and <strong>Microsoft Agent Framework</strong>) on five axes, and names the one capability none of them provides.</p>
+</div>
+</div>
 </section>
 <section id="sec-prod-takeaways" class="level2" data-number="8.7">
 <h2 data-number="8.7" class="anchored" data-anchor-id="sec-prod-takeaways"><span class="header-section-number">8.7</span> Key Takeaways</h2>
@@ -1841,8 +1863,8 @@ Note
     MA --&gt; PL["Parallel pattern"]
     MA --&gt; EO["Evaluator-Optimizer"]
     MA --&gt; TP["Temporal durability"]
-    EO --&gt; RL["Ralph loop (Ch 10)"]
-    TM --&gt; GT["Gas Town (Ch 12)"]
+    EO --&gt; RL["Ralph loop (Ch 11)"]
+    TM --&gt; GT["Gas Town (Ch 13)"]
     style P fill:#fef3c7,stroke:#92400e,color:#92400e
     style AG fill:#dcfce7,stroke:#166534,color:#166534
     style MA fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8

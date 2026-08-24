@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="AI-Powered SE Tutorial">
+<meta name="dcterms.date" content="2026-08-24">
+
+<title>10&nbsp; Choosing a Runtime – AI-Powered Software Engineering</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../chapters/ch11-ralph-loop.html" rel="next">
+<link href="../chapters/ch09-mastra.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-3d497cff885f6278d37568d0ef0763f8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="../site_libs/quarto-contrib/present-mode-1.0.0/present-mode.js"></script>
+<link href="../site_libs/quarto-contrib/present-mode-1.0.0/present-mode.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<meta name="mermaid-theme" content="default">
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../chapters/ch10-choosing-a-runtime.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Choosing a Runtime</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">AI-Powered Software Engineering</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch01-core-thesis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">The Core Thesis</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch02-react-loop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">The ReAct Loop</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch03-sessions-memory.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Sessions, Context, and Memory</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch04-extensions-workflows.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Extensions and Workflows</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch05-agent-sdk.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Building with the Agent SDK</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch06-build-agent.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Build a Claude Code Clone</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch07-pocketflow.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Building Agents from Scratch — Then Shipping Them</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch08-production-frameworks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Production Agent Platforms for Python</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch09-mastra.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Mastra: TypeScript Agents, End to End</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch10-choosing-a-runtime.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Choosing a Runtime</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch11-ralph-loop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch12-economics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">The Economic Shock</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch13-gas-town.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Scaling Up</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../chapters/ch14-career.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Career &amp; What's Next</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#sec-rt-question" id="toc-sec-rt-question" class="nav-link active" data-scroll-target="#sec-rt-question"><span class="header-section-number">10.1</span> The Question the Framework Chapters Skipped</a></li>
+  <li><a href="#sec-rt-reframe" id="toc-sec-rt-reframe" class="nav-link" data-scroll-target="#sec-rt-reframe"><span class="header-section-number">10.2</span> The Reframe: The Spine Is Not the Shape</a></li>
+  <li><a href="#sec-rt-seats" id="toc-sec-rt-seats" class="nav-link" data-scroll-target="#sec-rt-seats"><span class="header-section-number">10.3</span> Seats Are Nodes; Capabilities Are Tools</a></li>
+  <li><a href="#sec-rt-axes" id="toc-sec-rt-axes" class="nav-link" data-scroll-target="#sec-rt-axes"><span class="header-section-number">10.4</span> The Five Axes</a></li>
+  <li><a href="#sec-rt-shapes" id="toc-sec-rt-shapes" class="nav-link" data-scroll-target="#sec-rt-shapes"><span class="header-section-number">10.5</span> The Five API Shapes</a>
+  <ul class="collapse">
+  <li><a href="#sec-rt-burr" id="toc-sec-rt-burr" class="nav-link" data-scroll-target="#sec-rt-burr"><span class="header-section-number">10.5.1</span> Burr — a graph is a value you build</a></li>
+  <li><a href="#sec-rt-langgraph" id="toc-sec-rt-langgraph" class="nav-link" data-scroll-target="#sec-rt-langgraph"><span class="header-section-number">10.5.2</span> LangGraph — Pregel supersteps, channels, checkpoints</a></li>
+  <li><a href="#sec-rt-pydantic-ai" id="toc-sec-rt-pydantic-ai" class="nav-link" data-scroll-target="#sec-rt-pydantic-ai"><span class="header-section-number">10.5.3</span> Pydantic AI — typed agents, delegation as a tool call</a></li>
+  <li><a href="#sec-rt-maf" id="toc-sec-rt-maf" class="nav-link" data-scroll-target="#sec-rt-maf"><span class="header-section-number">10.5.4</span> Microsoft Agent Framework — executors on typed edges</a></li>
+  <li><a href="#sec-rt-agno" id="toc-sec-rt-agno" class="nav-link" data-scroll-target="#sec-rt-agno"><span class="header-section-number">10.5.5</span> Agno — declared steps and loops, plus a control plane</a></li>
+  </ul></li>
+  <li><a href="#sec-rt-composed" id="toc-sec-rt-composed" class="nav-link" data-scroll-target="#sec-rt-composed"><span class="header-section-number">10.6</span> The Composed Posture, End to End</a></li>
+  <li><a href="#sec-rt-matrix" id="toc-sec-rt-matrix" class="nav-link" data-scroll-target="#sec-rt-matrix"><span class="header-section-number">10.7</span> The Matrix</a></li>
+  <li><a href="#sec-rt-undo" id="toc-sec-rt-undo" class="nav-link" data-scroll-target="#sec-rt-undo"><span class="header-section-number">10.8</span> The Undo Gap</a>
+  <ul class="collapse">
+  <li><a href="#sec-rt-undo-layers" id="toc-sec-rt-undo-layers" class="nav-link" data-scroll-target="#sec-rt-undo-layers"><span class="header-section-number">10.8.1</span> Three layers, and they answer different questions</a></li>
+  <li><a href="#sec-rt-undo-domain" id="toc-sec-rt-undo-domain" class="nav-link" data-scroll-target="#sec-rt-undo-domain"><span class="header-section-number">10.8.2</span> Why this belongs in your domain, not the runtime</a></li>
+  </ul></li>
+  <li><a href="#sec-rt-conclusion" id="toc-sec-rt-conclusion" class="nav-link" data-scroll-target="#sec-rt-conclusion"><span class="header-section-number">10.9</span> What the Evaluation Concluded</a></li>
+  <li><a href="#sec-rt-forward" id="toc-sec-rt-forward" class="nav-link" data-scroll-target="#sec-rt-forward"><span class="header-section-number">10.10</span> Forward Link: Ralph Is the Improvised Posture</a></li>
+  <li><a href="#sec-rt-takeaways" id="toc-sec-rt-takeaways" class="nav-link" data-scroll-target="#sec-rt-takeaways"><span class="header-section-number">10.11</span> Key Takeaways</a></li>
+  <li><a href="#sec-rt-concept-map" id="toc-sec-rt-concept-map" class="nav-link" data-scroll-target="#sec-rt-concept-map"><span class="header-section-number">10.12</span> Concept Map</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Choosing a Runtime</span></h1>
+<p class="subtitle lead">Two Postures, Five Axes, and the One Thing None of Them Ships</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>AI-Powered SE Tutorial </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">August 24, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>Chapters 7–9 toured five frameworks one at a time and answered “how does this one work?” This chapter answers the question that actually blocks a project: <strong>which one, and why?</strong> It is built from a real evaluation — five candidate runtimes (Burr, LangGraph, Agno, Microsoft Agent Framework, Pydantic AI) sketched against a single end-to-end production shape, two of them executed against a real venv. The finding that reorganizes everything: a worker–reviewer loop is not <em>the shape</em> of an agent system, it is one <strong>posture</strong> — the most expensive one. The alternative is a producer that sits <em>outside</em> the graph and <strong>composes</strong> one, emitting a plan as ordinary data that can be inspected, policy-checked, costed and approved before a byte moves. That distinction, not a feature checklist, is what separates the frameworks. This chapter introduces two runtimes the book hasn’t covered — <strong>Pydantic AI</strong> and <strong>Microsoft Agent Framework</strong> — scores all five on five axes, and closes on the capability every one of them is missing: semantic undo.</p>
+  </div>
+</div>
+
+
+</header>
+
+
+<section id="sec-rt-question" class="level2" data-number="10.1">
+<h2 data-number="10.1" class="anchored" data-anchor-id="sec-rt-question"><span class="header-section-number">10.1</span> The Question the Framework Chapters Skipped</h2>
+<p>By the end of Chapter 9 you have seen five agent runtimes and roughly forty API surfaces. What you do not have is a way to choose. The comparison tables in <a href="ch07-pocketflow.html#sec-prod-burr-vs-langgraph" class="quarto-xref"><span>Section 7.12</span></a> and <a href="ch08-production-frameworks.html#sec-prod-matrix" class="quarto-xref"><span>Section 8.5</span></a> are honest but they are <em>feature</em> tables — they line up capabilities and let you match rows to needs. That works when your requirements are already a list of features. It fails when your requirement is “this thing publishes to a real channel and I need to be able to explain, afterwards, what it did and why.”</p>
+<p>This chapter comes from a live evaluation on exactly that kind of system: <strong>StudioBay</strong>, an agentic video-production pipeline where a request arrives, a producer plans an episode, a worker and a reviewer argue until the cut is good, a deterministic render runs, and nothing reaches YouTube without a recorded yes. Five runtimes were sketched against that one shape. Two were executed against the project venv with assertions; three were written from current documentation and marked as unverified in detail.</p>
+<div class="callout callout-style-default callout-note callout-titled" title="What was run, and what wasn't">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>What was run, and what wasn’t
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Executed, assertions passed:</strong> Burr 0.42.0, LangGraph 1.2.11. <strong>Written from current published docs, not executed:</strong> Agno, Microsoft Agent Framework, Pydantic AI — accurate in shape, unverified in detail. Where this chapter shows terminal output, that output is real. Where it shows only code, say so. A comparison that claims a green run it did not get is worse than no comparison.</p>
+</div>
+</div>
+<p>The first version of that evaluation asked: <em>which framework can hold both a pinned pipeline and a worker–reviewer loop?</em> That turned out to be the wrong question — or at least a late one. Answering it properly required backing up to something more basic.</p>
+</section>
+<section id="sec-rt-reframe" class="level2" data-number="10.2">
+<h2 data-number="10.2" class="anchored" data-anchor-id="sec-rt-reframe"><span class="header-section-number">10.2</span> The Reframe: The Spine Is Not the Shape</h2>
+<p>In a worker–reviewer <strong>spine</strong>, the agent sits <em>inside</em> the loop, deciding each tool call as it goes. That is genuinely what you want when the work isn’t knowable up front. It also means nothing about the run is known before it happens.</p>
+<p>Follow that through and the costs are structural, not stylistic:</p>
+<ul>
+<li><strong>Undo has to be defensive, per call.</strong> You cannot pre-compute the inverse of something you don’t know will be called.</li>
+<li><strong>Guards have to be everywhere the agent might reach.</strong> The agent’s involvement is unpredictable, so the permission checks must be too.</li>
+<li><strong>Budget is discovered by spending it.</strong> There is no plan to cost.</li>
+<li><strong>Approval becomes N interrupts</strong> scattered through the run, rather than one decision.</li>
+</ul>
+<p>Now the other posture. The producer sits <em>outside</em> the graph and <strong>composes</strong> one: it runs once, emits a plan as ordinary data, and code turns that plan into an executable graph. The agent still decided everything — it just decided it all at once, somewhere the decision can be read before it takes effect.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    subgraph S["SPINE — agent inside the loop"]
+        direction TB
+        W["worker"] &lt;--&gt; R["reviewer"]
+        W -.-&gt; T["tools · subagents"]
+        SN["every call decided now&lt;br/&gt;nothing knowable ahead"]
+    end
+    subgraph C["COMPOSED — agent outside, emits a plan"]
+        direction TB
+        P["producer"] --&gt; PL["plan (data)"]
+        PL --&gt; I["inspect · policy-check · cost"]
+        I --&gt; A["approve — ONE decision"]
+        A --&gt; G["compile → graph"]
+        G --&gt; X["run deterministically"]
+    end
+    style S fill:#fef3c7,stroke:#92400e,color:#92400e
+    style C fill:#dcfce7,stroke:#166534,color:#166534
+    style A fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style SN fill:#fef3c7,stroke:#92400e,color:#92400e
+</pre>
+</div>
+<p></p><figcaption> Two postures. Same agents, same tools, same models — different moment of decision.</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-important callout-titled" title="The point">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>The point
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Determinism is not a property of the framework. It is a property of where the decision was made.</strong></p>
+<p>Same agents, same tools, same models in both diagrams. What differs is <em>when</em> control flow gets decided — and therefore whether anything can be inspected, approved, costed or reversed before it lands.</p>
+</div>
+</div>
+<p>Here is the trade-off in full. Neither column is the answer.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Spine</strong> (agent in the loop)</th>
+<th><strong>Composed</strong> (agent emits a plan)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>What runs next</td>
+<td>Decided per tool call</td>
+<td>Decided once, up front</td>
+</tr>
+<tr class="even">
+<td>Inspect before run</td>
+<td>Impossible</td>
+<td>The plan is data</td>
+</tr>
+<tr class="odd">
+<td>Approve before run</td>
+<td>Per call — N interrupts</td>
+<td>One approval of the whole</td>
+</tr>
+<tr class="even">
+<td>Undo</td>
+<td>Per-call defensive</td>
+<td>Attached when the plan is made</td>
+</tr>
+<tr class="odd">
+<td>Cross-cutting concerns</td>
+<td>Every branch, by hand</td>
+<td>One hook, by construction</td>
+</tr>
+<tr class="even">
+<td>Budget / cost</td>
+<td>Discovered as you go</td>
+<td>Computable from the plan</td>
+</tr>
+<tr class="odd">
+<td>Adapts mid-run</td>
+<td>Yes — that is the point</td>
+<td>No, unless it replans</td>
+</tr>
+<tr class="even">
+<td>Failure mode</td>
+<td>Wanders, burns budget</td>
+<td>Plan is wrong, wholesale</td>
+</tr>
+</tbody>
+</table>
+<p>Real productions <strong>nest</strong> the two: a producer composes a plan, one step of which is itself a spine because that part genuinely isn’t knowable. Which makes the framework question concrete — <em>can it express both, and can one contain the other?</em></p>
+</section>
+<section id="sec-rt-seats" class="level2" data-number="10.3">
+<h2 data-number="10.3" class="anchored" data-anchor-id="sec-rt-seats"><span class="header-section-number">10.3</span> Seats Are Nodes; Capabilities Are Tools</h2>
+<p>Before the axes, one modelling correction that changed the evaluation’s conclusions — and which you will make yourself if nobody warns you.</p>
+<p>The first draft of the StudioBay graph drew <code>mix_audio</code> and <code>render_video</code> as nodes beside the agents, and called that half of the graph “the deterministic end.” That reads well and models badly. They are <strong>tools the worker reaches for during its turn</strong>, not stages after the argument.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    RQ["request"] --&gt; PP["producer_plans&lt;br/&gt;[LLM]"]
+    PP --&gt; WE["worker_edits"]
+    WE --&gt; RJ["reviewer_judges&lt;br/&gt;[LLM]"]
+    RJ --&gt;|"verdict = reject&lt;br/&gt;(with feedback)"| WE
+    RJ --&gt;|"verdict = accept"| PG["publish_gate&lt;br/&gt;[GATE] irreversible"]
+    WE -.-&gt;|calls| TB["the worker's toolbox&lt;br/&gt;place_clip · trim_clip · set_narration&lt;br/&gt;mix_audio · render_video&lt;br/&gt;+ subagents"]
+    style PP fill:#fef3c7,stroke:#92400e,color:#92400e
+    style RJ fill:#fef3c7,stroke:#92400e,color:#92400e
+    style TB fill:#dcfce7,stroke:#166534,color:#166534
+    style PG fill:#fce7f3,stroke:#9d174d,color:#9d174d
+</pre>
+</div>
+<p></p><figcaption> Four nodes, not six. Rendering happens during the worker’s turn — on both passes.</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+<p>Three consequences, all of which matter more than they sound:</p>
+<ol type="1">
+<li><strong>Determinism is a property of a tool, not a region of the graph.</strong> <code>render_video</code> is deterministic whether a state machine calls it or an agent does. So the “deterministic vs.&nbsp;autonomous” spectrum is really about <em>who decides which tools run in what order</em> — which is exactly the posture axis.</li>
+<li><strong>The graph stays small while the toolbox grows.</strong> Adding <code>silence_cut</code> or <code>voice_clone</code> touches no edges at all.</li>
+<li><strong>The permission surface is the toolbox, not the topology.</strong> “Who may publish” is a question for the tool seam, not for which node has an inbound edge.</li>
+</ol>
+<p>And the corollary that catches most people: <strong>subagents are tools too.</strong> A track editor and a system agent aren’t peers in a mesh; they’re invocations the worker makes, out of the same box as <code>trim_clip</code>. One dispatch path, guards and audit registered once — which only stays true if capabilities live in the toolbox instead of being promoted into graph nodes.</p>
+</section>
+<section id="sec-rt-axes" class="level2" data-number="10.4">
+<h2 data-number="10.4" class="anchored" data-anchor-id="sec-rt-axes"><span class="header-section-number">10.4</span> The Five Axes</h2>
+<p>Five questions worth asking <em>before</em> “which framework.” Each is independent, each has real downstream consequences, and a runtime can be strong on one and absent on another.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Axis</th>
+<th>Question</th>
+<th>The spectrum</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>A · Posture</strong></td>
+<td>When is control flow decided?</td>
+<td>authored ─ composed ─ improvised</td>
+</tr>
+<tr class="even">
+<td><strong>B · Graph as value</strong></td>
+<td>Can code <em>build</em> a graph at runtime from data and pass it around?</td>
+<td>value ··· declaration fixed at import</td>
+</tr>
+<tr class="odd">
+<td><strong>C · Cross-cutting seam</strong></td>
+<td>Where do audit, undo, budget, retry, redaction attach?</td>
+<td>one seam ··· per call site</td>
+</tr>
+<tr class="even">
+<td><strong>D · Knowable ahead</strong></td>
+<td>Which steps, what cost, which are irreversible, does policy permit?</td>
+<td>the whole plan ··· the next call, maybe</td>
+</tr>
+<tr class="odd">
+<td><strong>E · Nesting</strong></td>
+<td>Can a composed plan contain a spine, in <em>one</em> mechanism?</td>
+<td>graph-as-node ··· two separate runtimes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Axis A</strong> is the posture axis, and it governs the other four. <strong>Axis B</strong> is the discriminator: if a graph is not a value, the composed posture is unreachable and you are left with the spine plus wishful thinking. <strong>Axis C</strong> is the difference between registering audit once and remembering to write it at the fifteenth call site. <strong>Axis D</strong> in the spine posture has an honest answer of <em>nothing</em>. <strong>Axis E</strong> decides whether nesting the postures requires a second vocabulary that will drift from the first.</p>
+<div class="callout callout-style-default callout-tip callout-titled" title="Why undo lands on these axes">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Why undo lands on these axes
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>An inverse must be constructed <em>before</em> its act is applied. Under the composed posture the plan is known, so inverses attach when the plan is built (axis D) and one journal covers everything (axis C). Under the spine, the inverse has to be produced at each call site by whoever wrote that tool — which is exactly the invariant that erodes. <a href="#sec-rt-undo" class="quarto-xref"><span>Section 10.8</span></a> develops this in full.</p>
+</div>
+</div>
+</section>
+<section id="sec-rt-shapes" class="level2" data-number="10.5">
+<h2 data-number="10.5" class="anchored" data-anchor-id="sec-rt-shapes"><span class="header-section-number">10.5</span> The Five API Shapes</h2>
+<p>What each framework’s vocabulary actually <em>is</em>, small enough to hold in your head. Burr and Agno are covered in depth in Chapters 7 and 8; the treatment here is the shape and the axis reading. Pydantic AI and Microsoft Agent Framework are new to the book and get the fuller pass.</p>
+<section id="sec-rt-burr" class="level3" data-number="10.5.1">
+<h3 data-number="10.5.1" class="anchored" data-anchor-id="sec-rt-burr"><span class="header-section-number">10.5.1</span> Burr — a graph is a value you build</h3>
+<p><em>Executed. See <a href="ch07-pocketflow.html#sec-prod-burr" class="quarto-xref"><span>Section 7.9</span></a> for the full API.</em></p>
+<p>The vocabulary: <code>@action</code> (a function declaring what state it reads and writes), immutable <code>State</code>, <code>(from, to, condition)</code> transition triples, <code>GraphBuilder</code> (builds a <code>Graph</code> <strong>value</strong>, separately from the app), lifecycle hooks (the cross-cutting seam), and <code>halt_before</code> (the gate).</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> burr.core <span class="im">import</span> action, State, ApplicationBuilder, when, default</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">@action</span>(reads<span class="op">=</span>[<span class="st">"draft"</span>], writes<span class="op">=</span>[<span class="st">"verdict"</span>])</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> reviewer(state: State) <span class="op">-&gt;</span> State:</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    ok <span class="op">=</span> state[<span class="st">"draft"</span>][<span class="st">"duration"</span>] <span class="op">&lt;=</span> <span class="dv">250</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state.update(verdict<span class="op">=</span><span class="st">"accept"</span> <span class="cf">if</span> ok <span class="cf">else</span> <span class="st">"reject"</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (ApplicationBuilder()</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    .with_actions(worker, reviewer, publish_gate)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    .with_transitions(</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"worker"</span>, <span class="st">"reviewer"</span>, default),</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"reviewer"</span>, <span class="st">"worker"</span>, when(verdict<span class="op">=</span><span class="st">"reject"</span>)),    <span class="co"># the loop</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"reviewer"</span>, <span class="st">"publish_gate"</span>, when(verdict<span class="op">=</span><span class="st">"accept"</span>)))</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    .with_entrypoint(<span class="st">"worker"</span>).with_state(passes<span class="op">=</span><span class="dv">0</span>).build())</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>app.run(halt_before<span class="op">=</span>[<span class="st">"publish_gate"</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Running the full StudioBay spine in Burr produced this — and note what is <em>not</em> encoded anywhere in the graph:</p>
+<pre class="text"><code>$ python sketch_burr.py
+halted before : publish_gate
+worker passes : 2  (2 == the reviewer sent it back once)
+llm turns     : 3  (producer 1 + reviewer 2)
+rendered      : {'path': '/nas/ep01.mp4', 'seconds': 240.0, 'mix': -14.0}
+  pass 1 tools : ['place_clip','place_clip','set_narration','mix_audio','render_video']
+  pass 2 tools : ['trim_clip','set_narration','mix_audio','render_video']
+determinism   : render(timeline) == render(timeline) -&gt; 240.0s
+sketch_burr.py: all assertions passed</code></pre>
+<p>Nothing says “review twice.” The reviewer rejected a 300s cut, the worker trimmed to 240s, the second review accepted — the loop ran because <em>state said so</em>. Both passes called the same deterministic render tools.</p>
+<div class="callout callout-style-default callout-important callout-titled" title="A correction to a claim this book made earlier">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>A correction to a claim this book made earlier
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>“Burr = deterministic workflow” is wrong, and it is worth unlearning explicitly. Burr is a <strong>state machine</strong>; determinism is a property of what you put in the actions, not of Burr. The same primitive expresses a pinned pipeline <em>and</em> a worker–reviewer argument, because “which agent goes next” is a conditional transition over state. Burr sits across the whole spectrum rather than at one end of it.</p>
+</div>
+</div>
+<p>The property that matters most is <strong>axis B</strong>: <code>GraphBuilder().build()</code> returns a value, so “compose a graph from a plan” is a <code>for</code> loop, not metaprogramming. <a href="#sec-rt-composed" class="quarto-xref"><span>Section 10.6</span></a> builds exactly that. Nesting (axis E) comes from <code>RunnableGraph</code>, which makes a graph usable as a node — so a composed plan can contain a spine step in one mechanism.</p>
+</section>
+<section id="sec-rt-langgraph" class="level3" data-number="10.5.2">
+<h3 data-number="10.5.2" class="anchored" data-anchor-id="sec-rt-langgraph"><span class="header-section-number">10.5.2</span> LangGraph — Pregel supersteps, channels, checkpoints</h3>
+<p><em>Executed. See <a href="ch07-pocketflow.html#sec-prod-burr-vs-langgraph" class="quarto-xref"><span>Section 7.12</span></a> for the head-to-head with Burr.</em></p>
+<p>The vocabulary: <code>StateGraph</code> (typed state where each key is a channel with a merge rule), <code>Annotated</code> (the <strong>reducer</strong> — how concurrent writes to one key combine), <code>add_conditional_edges</code>, <code>Send</code> (dynamic fan-out), <code>Command</code> (update + goto + delegate-to-parent in one return value), <code>interrupt</code> / <code>Command(resume=)</code>, and a <code>checkpointer</code> that persists every superstep.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Production(TypedDict, total<span class="op">=</span><span class="va">False</span>):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    passes: <span class="bu">int</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    results: Annotated[<span class="bu">list</span>, operator.add]   <span class="co"># reducer: concurrent writes append</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> route(state) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="st">"worker"</span> <span class="cf">if</span> state[<span class="st">"verdict"</span>] <span class="op">==</span> <span class="st">"reject"</span> <span class="cf">else</span> <span class="st">"publish"</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> StateGraph(Production)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>g.add_node(<span class="st">"worker"</span>, worker)<span class="op">;</span> g.add_node(<span class="st">"reviewer"</span>, reviewer)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>g.add_conditional_edges(<span class="st">"reviewer"</span>, route, [<span class="st">"worker"</span>, <span class="st">"publish"</span>])</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> g.<span class="bu">compile</span>(checkpointer<span class="op">=</span>InMemorySaver())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Its distinctive move is <code>Send</code>, for fan-out decided at runtime:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fan_out(state) <span class="op">-&gt;</span> <span class="bu">list</span>[Send]:</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [Send(<span class="st">"ingest"</span>, {<span class="st">"src"</span>: s}) <span class="cf">for</span> s <span class="kw">in</span> state[<span class="st">"sources"</span>]]</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>g.set_conditional_entry_point(fan_out, path_map<span class="op">=</span>[<span class="st">"ingest"</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>N</code> is unknown until the state is read. Note carefully what this is <strong>not</strong>: the node set is still fixed at compile time. <code>Send</code> varies <em>how many copies</em> run, not <em>what the graph contains</em>. That is real dynamism, but it is a partial credit on axis B, not a pass.</p>
+<p>Time travel is the strongest reversal story of the five:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>history <span class="op">=</span> <span class="bu">list</span>(app.get_state_history(cfg))</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>before <span class="op">=</span> [s <span class="cf">for</span> s <span class="kw">in</span> history <span class="cf">if</span> s.<span class="bu">next</span> <span class="op">==</span> (<span class="st">"publish"</span>,)][<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>app.invoke(<span class="va">None</span>, before.config)                <span class="co"># fork; original branch preserved</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>app.invoke(Command(resume<span class="op">=</span><span class="st">"deny"</span>), cfg)        <span class="co"># same gate, other answer</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre class="text"><code>$ python sketch_langgraph.py
+checkpoints   : 8
+rewind to     : next=('publish',) passes=2
+fork          : re-entered the gate, interrupt re-fired
+denied branch : published={}  (gate said no)
+checkpoints   : 10  (original branch still there)</code></pre>
+<p>Eight checkpoints became ten. Both branches survive — the one that published and the one that declined.</p>
+<div class="callout callout-style-default callout-warning callout-titled" title="Read this before trusting it as undo">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>Read this before trusting it as undo
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Forking rewinds the graph, not the world.</strong> The sketch forked <em>past a publish</em>; the video stayed published. No checkpoint reaches out and retracts it.</p>
+<p>Also: replay <strong>re-executes</strong> nodes after the checkpoint, so every node must be safe to run twice — a real constraint when a node shells out to <code>ffmpeg</code>.</p>
+</div>
+</div>
+</section>
+<section id="sec-rt-pydantic-ai" class="level3" data-number="10.5.3">
+<h3 data-number="10.5.3" class="anchored" data-anchor-id="sec-rt-pydantic-ai"><span class="header-section-number">10.5.3</span> Pydantic AI — typed agents, delegation as a tool call</h3>
+<p><em>From current docs. New to this book.</em></p>
+<p>Pydantic AI is the FastAPI-shaped entry in this field: model + instructions + <code>deps_type</code> + <code>output_type</code>, with tools that are ordinary typed Python functions and a <code>RunContext</code> that carries deps and usage.</p>
+<p>A common first impression is “really it’s like Burr.” That is half right, and the wrong half is the important one. <code>pydantic_graph</code> is genuinely Burr-shaped — typed nodes returning the next node, with state persistence. But the <em>idiomatic production shape is not the graph.</em> It is an agent with typed tools, where <strong>multi-agent means one agent calling another inside a tool</strong>.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Deps:</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    store: <span class="bu">object</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    journal: <span class="bu">object</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>reviewer <span class="op">=</span> Agent(<span class="st">"openai:gpt-5.2"</span>, name<span class="op">=</span><span class="st">"reviewer"</span>, deps_type<span class="op">=</span>Deps, output_type<span class="op">=</span><span class="bu">str</span>,</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>                 instructions<span class="op">=</span><span class="st">"Judge the draft against the plan. Be specific when rejecting."</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>producer <span class="op">=</span> Agent(<span class="st">"openai:gpt-5.2"</span>, name<span class="op">=</span><span class="st">"producer"</span>, deps_type<span class="op">=</span>Deps,</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>                 output_type<span class="op">=</span>[<span class="bu">str</span>, DeferredToolRequests],   <span class="co"># &lt;- required for the gate</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>                 instructions<span class="op">=</span><span class="st">"Plan and compose the episode. Iterate until the "</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>                              <span class="st">"reviewer accepts, then render and publish."</span>)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="at">@producer.tool</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> review_draft(ctx: RunContext[Deps], draft: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    r <span class="op">=</span> <span class="cf">await</span> reviewer.run(<span class="ss">f"Review: </span><span class="sc">{</span>draft<span class="sc">}</span><span class="ss">"</span>, deps<span class="op">=</span>ctx.deps, usage<span class="op">=</span>ctx.usage)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> r.output          <span class="co"># "reject: runs long" — the producer loops on its own</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="at">@producer.tool_plain</span>(requires_approval<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> publish(path: <span class="bu">str</span>, channel: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Irreversible. The framework will not run this without an approval."""</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f"published </span><span class="sc">{</span>path<span class="sc">}</span><span class="ss"> to </span><span class="sc">{</span>channel<span class="sc">}</span><span class="ss">"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The gate is the cleanest of the five, and it is worth dwelling on: the approval request arrives as the run’s <strong>typed output</strong>, not as a callback you register.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> <span class="cf">await</span> producer.run(<span class="st">"make the episode"</span>, deps<span class="op">=</span>deps)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="bu">isinstance</span>(result.output, DeferredToolRequests):</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    results <span class="op">=</span> DeferredToolResults()</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> call <span class="kw">in</span> result.output.approvals:</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># the audit row is written HERE — before any effect</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        results.approvals[call.tool_call_id] <span class="op">=</span> (</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>            <span class="va">True</span> <span class="cf">if</span> operator_approves(call) <span class="cf">else</span> ToolDenied(<span class="st">"operator declined"</span>))</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> <span class="cf">await</span> producer.run(message_history<span class="op">=</span>result.all_messages(),</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>                                deferred_tool_results<span class="op">=</span>results, deps<span class="op">=</span>deps)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>That is the rule “<em>irreversible acts stop for a recorded yes/no</em>” shipped as a library feature. Two details the shape alone won’t tell you: the agent must declare <code>DeferredToolRequests</code> in its <code>output_type</code> or the pause never surfaces; and for <em>conditional</em> approval you raise <code>ApprovalRequired</code> from inside the tool based on <code>ctx.tool_call_approved</code>, rather than flagging the whole tool.</p>
+<p><strong>On the axes.</strong> Strongest at the improvised end of axis A and weakest almost everywhere else. Observe what is <em>missing</em> compared to Burr, LangGraph and MAF: <strong>there is no <code>worker → reviewer</code> edge.</strong> The loop lives in the model’s reasoning, so nothing structurally forces a review before render (axis D: you know nothing ahead). Durability means adopting Temporal, DBOS or a similar backend — real infrastructure the others don’t need. <code>pydantic_graph</code> reaches the composed posture, but then you are writing a Burr-shaped machine in a second vocabulary inside the same project.</p>
+</section>
+<section id="sec-rt-maf" class="level3" data-number="10.5.4">
+<h3 data-number="10.5.4" class="anchored" data-anchor-id="sec-rt-maf"><span class="header-section-number">10.5.4</span> Microsoft Agent Framework — executors on typed edges</h3>
+<p><em>From current docs. New to this book.</em></p>
+<p>MAF’s model is executors + typed edges: a node receives a typed message and sends typed messages on. Closer to Burr and LangGraph than to Agno — you wire the graph. Its distinguishing feature is that <strong>human-in-the-loop is a genuine suspend</strong>, not a flag on a step.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="at">@executor</span>(<span class="bu">id</span><span class="op">=</span><span class="st">"reviewer_judges"</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> reviewer_judges(draft: Draft, ctx) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    verdict <span class="op">=</span> <span class="cf">await</span> ctx.request_info(                    <span class="co"># suspends the whole workflow</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>        ReviewRequest(prompt<span class="op">=</span><span class="st">"Accept this cut?"</span>, draft<span class="op">=</span>draft), response_type<span class="op">=</span><span class="bu">str</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">await</span> ctx.send_message(</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>        draft, target_id<span class="op">=</span><span class="st">"worker_edits"</span> <span class="cf">if</span> verdict <span class="op">==</span> <span class="st">"reject"</span> <span class="cf">else</span> <span class="st">"render"</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>workflow <span class="op">=</span> (WorkflowBuilder(start_executor<span class="op">=</span>producer_plans)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    .add_edge(producer_plans, worker_edits)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    .add_edge(worker_edits, reviewer_judges)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    .add_edge(reviewer_judges, worker_edits)             <span class="co"># the reject loop</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    .add_edge(reviewer_judges, render)</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    .add_edge(render, publish)).build()</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="co"># resumed by answering the request id:</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>workflow.run(stream<span class="op">=</span><span class="va">True</span>, responses<span class="op">=</span>{request_id: <span class="st">"reject"</span>})</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>On first execution <code>request_info()</code> raises an internal interrupt that the framework catches, emits a <code>RequestInfoEvent</code>, and hands the caller a pending request. Resuming with <code>run(responses={request_id: value})</code> makes the call return that value.</p>
+<div class="callout callout-style-default callout-warning callout-titled" title="The sharp edge — and it is sharp">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>The sharp edge — and it is sharp
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>On resume <strong>the executor runs again from the top</strong>, and <code>request_info</code> returns the supplied value the second time through. Everything above that call must be idempotent.</p>
+<p>Easy to miss, expensive when the line above it started a render. This is MAF’s version of LangGraph’s re-execution constraint, and it bites in the same place: effectful steps.</p>
+</div>
+</div>
+<p><strong>On the axes.</strong> Cleanest suspend/resume semantics of the five, and typed edges are a real strength — the message type <em>is</em> the contract between executors. But resume is <strong>from head</strong>: checkpointing is keyed to a session with run-forward-or-resume-from-head semantics, with no arbitrary fork, so walkback is yours to build. The Python side is the younger half of a .NET-first framework. And in a stack that already has LangGraph underneath a deep-agent brain, adopting MAF means a second graph vocabulary beside the first.</p>
+</section>
+<section id="sec-rt-agno" class="level3" data-number="10.5.5">
+<h3 data-number="10.5.5" class="anchored" data-anchor-id="sec-rt-agno"><span class="header-section-number">10.5.5</span> Agno — declared steps and loops, plus a control plane</h3>
+<p><em>From current docs. See <a href="ch08-production-frameworks.html#sec-prod-agno" class="quarto-xref"><span>Section 8.2</span></a> for the full platform tour.</em></p>
+<p>Agno’s distinguishing move in this comparison: <strong>the review loop is a component you declare, not a graph you wire.</strong> Per-iteration review, reject-with-feedback and resumption arrive without drawing a single edge.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>workflow <span class="op">=</span> Workflow(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">"produce_episode"</span>, db<span class="op">=</span>SqliteDb(db_file<span class="op">=</span><span class="st">"wf.db"</span>),   <span class="co"># db required for HITL</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    steps<span class="op">=</span>[</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>        Step(name<span class="op">=</span><span class="st">"plan"</span>, agent<span class="op">=</span>producer),</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        Loop(name<span class="op">=</span><span class="st">"edit_review"</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>             steps<span class="op">=</span>[Step(agent<span class="op">=</span>worker), Step(agent<span class="op">=</span>reviewer)],</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>             max_iterations<span class="op">=</span><span class="dv">5</span>, forward_iteration_output<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>             human_review<span class="op">=</span>HumanReview(requires_iteration_review<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>                                      on_reject<span class="op">=</span>OnReject.retry)),</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        Step(name<span class="op">=</span><span class="st">"render"</span>, executor<span class="op">=</span>render_fn),</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        Step(name<span class="op">=</span><span class="st">"publish"</span>, agent<span class="op">=</span>producer,</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>             human_review<span class="op">=</span>HumanReview(requires_confirmation<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>                                      on_reject<span class="op">=</span>OnReject.skip)),</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    ])</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>run <span class="op">=</span> workflow.run(<span class="st">"episode on the scheduler"</span>)</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> run.is_paused:</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> req <span class="kw">in</span> run.steps_requiring_output_review:</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>        req.confirm()                     <span class="co"># or req.reject(feedback="runs long")</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    run <span class="op">=</span> workflow.continue_run(run)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>On the axes.</strong> Fastest route to a working reviewer loop with human review at every iteration, and the only candidate shipping a control plane (sessions, RBAC, tracing) in the box. But the control flow is <em>Agno’s vocabulary</em>: a <code>Loop</code> is a loop. Burr routes to any action on any predicate; here you get the shapes that ship (axis A constrained, axis B closed — the composed posture has no natural expression). No fork-from-arbitrary-checkpoint, so walkback is yours regardless.</p>
+</section>
+</section>
+<section id="sec-rt-composed" class="level2" data-number="10.6">
+<h2 data-number="10.6" class="anchored" data-anchor-id="sec-rt-composed"><span class="header-section-number">10.6</span> The Composed Posture, End to End</h2>
+<p>This is the section that justifies the chapter. Everything above describes postures; this one <em>runs</em> the composed posture, and every number in the output is real.</p>
+<p><strong>Step 1 — the producer emits a plan. Data, not control flow.</strong> In production this is one LLM call returning JSON that a Pydantic model validates. The plan is a versioned artifact: you can store it, diff two of them, show it to an operator, and refuse to run one that fails a policy check. None of that is possible when the plan lives in an agent’s head.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> producer_plans(request: <span class="bu">str</span>, sources: <span class="bu">list</span>[<span class="bu">str</span>]) <span class="op">-&gt;</span> <span class="bu">dict</span>[<span class="bu">str</span>, Any]:</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""[LLM in real life] Decide the whole shape up front."""</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">"request"</span>: request,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"steps"</span>: [{<span class="st">"tool"</span>: <span class="st">"ingest"</span>, <span class="st">"args"</span>: {<span class="st">"src"</span>: s}, <span class="st">"reversible"</span>: <span class="va">True</span>}</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>                  <span class="cf">for</span> s <span class="kw">in</span> sources]</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> [</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"tool"</span>: <span class="st">"assemble"</span>, <span class="st">"args"</span>: {<span class="st">"style"</span>: <span class="st">"lesson"</span>},  <span class="st">"reversible"</span>: <span class="va">True</span>},</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"tool"</span>: <span class="st">"narrate"</span>,  <span class="st">"args"</span>: {<span class="st">"voice"</span>: <span class="st">"cloned-a"</span>}, <span class="st">"reversible"</span>: <span class="va">True</span>},</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"tool"</span>: <span class="st">"render"</span>,   <span class="st">"args"</span>: {<span class="st">"preset"</span>: <span class="st">"1080p"</span>},  <span class="st">"reversible"</span>: <span class="va">True</span>},</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"tool"</span>: <span class="st">"publish"</span>,  <span class="st">"args"</span>: {<span class="st">"channel"</span>: <span class="st">"youtube"</span>}, <span class="st">"reversible"</span>: <span class="va">False</span>},</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>        ],</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    }</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Step 2 — refuse the plan before it runs.</strong> This check is <em>impossible</em> in the spine posture: there, you learn about the publish when the agent is already calling it.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> policy_check(plan: <span class="bu">dict</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">str</span>]:</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    problems <span class="op">=</span> []</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, s <span class="kw">in</span> <span class="bu">enumerate</span>(plan[<span class="st">"steps"</span>]):</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> s[<span class="st">"reversible"</span>] <span class="kw">and</span> i <span class="op">!=</span> <span class="bu">len</span>(plan[<span class="st">"steps"</span>]) <span class="op">-</span> <span class="dv">1</span>:</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>            problems.append(<span class="ss">f"irreversible </span><span class="sc">{</span>s[<span class="st">'tool'</span>]<span class="sc">}</span><span class="ss"> is not the last step"</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> s[<span class="st">"tool"</span>] <span class="kw">not</span> <span class="kw">in</span> TOOLBOX:</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>            problems.append(<span class="ss">f"unknown tool </span><span class="sc">{</span>s[<span class="st">'tool'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> problems</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Step 3 — compile the plan into a graph. This is the whole trick.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> step_action(step: <span class="bu">dict</span>, world: <span class="bu">dict</span>):</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""One plan step becomes one Burr action."""</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">@action</span>(reads<span class="op">=</span>[<span class="st">"done"</span>], writes<span class="op">=</span>[<span class="st">"done"</span>])</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _run(state: State) <span class="op">-&gt;</span> State:</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        JOURNAL.do(world, make_act(step))          <span class="co"># inverse attached at plan time</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> state.update(done<span class="op">=</span>state.get(<span class="st">"done"</span>, []) <span class="op">+</span> [step[<span class="st">"tool"</span>]])</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> _run</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compile_plan(plan: <span class="bu">dict</span>, world: <span class="bu">dict</span>):</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Plan (data) -&gt; Graph (value)."""</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    steps <span class="op">=</span> plan[<span class="st">"steps"</span>]</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    named <span class="op">=</span> {<span class="ss">f"s</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">_</span><span class="sc">{</span>s[<span class="st">'tool'</span>]<span class="sc">}</span><span class="ss">"</span>: step_action(s, world) <span class="cf">for</span> i, s <span class="kw">in</span> <span class="bu">enumerate</span>(steps)}</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    names <span class="op">=</span> <span class="bu">list</span>(named)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    gb <span class="op">=</span> GraphBuilder().with_actions(<span class="op">**</span>named)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> a, b <span class="kw">in</span> <span class="bu">zip</span>(names, names[<span class="dv">1</span>:]):             <span class="co"># the plan IS the topology</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>        gb <span class="op">=</span> gb.with_transitions((a, b, default))</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> gb.build(), names</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>with_actions(**named)</code> takes the node name from the keyword, so the plan’s own step order names the graph. Nothing here is metaprogramming — a Burr graph is an ordinary value you build with an ordinary loop. <strong>This is axis B cashing out.</strong></p>
+<p><strong>Step 4 — attach cross-cutting concerns once.</strong> In the spine posture, “audit every tool call” means remembering to do it in every branch the agent might take. Here the steps are known before anything runs, so a hook covers all of them <em>by construction</em>.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> AuditHook(PreRunStepHook, PostRunStepHook):</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>): <span class="va">self</span>.trail: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> []</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> pre_run_step(<span class="va">self</span>, <span class="op">*</span>, state, action, <span class="op">**</span>kw):  <span class="va">self</span>.trail.append(<span class="ss">f"-&gt; </span><span class="sc">{</span>action<span class="sc">.</span>name<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> post_run_step(<span class="va">self</span>, <span class="op">*</span>, state, action, result, exception, <span class="op">**</span>kw):</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.trail.append(<span class="ss">f"&lt;- </span><span class="sc">{</span>action<span class="sc">.</span>name<span class="sc">}{</span><span class="st">' FAILED'</span> <span class="cf">if</span> exception <span class="cf">else</span> <span class="st">''</span><span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Step 5 — run it, halting before the irreversible step, which is knowable <em>from the plan</em>.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>graph, names <span class="op">=</span> compile_plan(plan, world)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> (ApplicationBuilder().with_graph(graph).with_entrypoint(names[<span class="dv">0</span>])</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>       .with_state(done<span class="op">=</span>[]).with_hooks(audit)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>       .with_identifiers(app_id<span class="op">=</span><span class="st">"composed-1"</span>).build())</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>last_reversible <span class="op">=</span> names[<span class="bu">len</span>(plan[<span class="st">"steps"</span>]) <span class="op">-</span> <span class="dv">1</span>]</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>act, _, state <span class="op">=</span> app.run(halt_before<span class="op">=</span>[last_reversible])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre class="text"><code>$ python sketch_composed.py
+policy check  : clean
+graph nodes   : 6 (one per plan step, built at runtime)
+executed      : ['ingest','ingest','assemble','narrate','render']
+halted before : s5_publish  (the publish — known before we started)
+audit trail   : 10 entries from ONE hook
+undo 5 acts   : ['render','narrate','assemble','ingest','ingest']
+world after   : {'sources': []}  (back to the start)</code></pre>
+<p>The plan was policy-checked before a byte moved, one hook audited every step (5 steps × pre + post = 10 entries), the run halted at a gate identified <em>in advance from the plan</em>, and the whole thing reversed in order. <strong>None of that needed the agent to cooperate.</strong></p>
+<div class="callout callout-style-default callout-tip callout-titled" title="This is not an argument against agents">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>This is not an argument against agents
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The agent still decided everything — the sources, the style, the voice, the preset, the channel. It decided all of it in one call, somewhere the decision could be read. The composed posture doesn’t remove the model from the loop; it moves the model’s decision <em>earlier</em>, to where a human, a policy engine, and a cost estimator can all see it.</p>
+</div>
+</div>
+</section>
+<section id="sec-rt-matrix" class="level2" data-number="10.7">
+<h2 data-number="10.7" class="anchored" data-anchor-id="sec-rt-matrix"><span class="header-section-number">10.7</span> The Matrix</h2>
+<p>Five runtimes against five axes. <code>✓</code> = yes, <code>~</code> = partial, <code>✗</code> = no.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Axis</th>
+<th>Burr</th>
+<th>LangGraph</th>
+<th>Pydantic AI</th>
+<th>Agno</th>
+<th>MAF</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>A · postures reachable</strong></td>
+<td>✓ authored, composed, improvised</td>
+<td>✓ authored, improvised; composed via <code>Send</code></td>
+<td>~ improvised natively; composed only via a 2nd API</td>
+<td>~ authored + declared loops</td>
+<td>✓ authored, improvised</td>
+</tr>
+<tr class="even">
+<td><strong>B · graph is a value</strong></td>
+<td>✓ <code>GraphBuilder</code> → value</td>
+<td>~ nodes fixed at compile; <code>Send</code> varies count</td>
+<td>✗ no graph in the main idiom</td>
+<td>✗ steps declared, not built</td>
+<td>~ builder, but edges declared</td>
+</tr>
+<tr class="odd">
+<td><strong>C · one seam for cross-cutting</strong></td>
+<td>✓ lifecycle hooks</td>
+<td>~ callbacks; per-node config</td>
+<td>✓ tool layer + capabilities</td>
+<td>~ per-step config</td>
+<td>~ middleware</td>
+</tr>
+<tr class="even">
+<td><strong>D · knowable before running</strong></td>
+<td>✓ whole plan, if composed</td>
+<td>~ topology yes, path no</td>
+<td>✗ nothing — model decides</td>
+<td>~ step list, not iterations</td>
+<td>~ topology yes, path no</td>
+</tr>
+<tr class="odd">
+<td><strong>E · postures nest</strong></td>
+<td>✓ <code>RunnableGraph</code> as node</td>
+<td>✓ compiled graph as node</td>
+<td>~ agent-in-tool only</td>
+<td>~ teams inside steps</td>
+<td>~ sub-workflows</td>
+</tr>
+<tr class="even">
+<td><strong>— semantic undo</strong></td>
+<td>✗</td>
+<td>✗</td>
+<td>✗</td>
+<td>✗</td>
+<td>✗</td>
+</tr>
+</tbody>
+</table>
+<p>And the operational view — the same five scored on what a system with irreversible acts actually needs:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Capability</th>
+<th>Burr</th>
+<th>LangGraph</th>
+<th>Agno</th>
+<th>MAF</th>
+<th>Pydantic AI</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Pinned pipeline</td>
+<td>✓ native</td>
+<td>✓ native</td>
+<td>~ steps</td>
+<td>✓ native</td>
+<td>~ via graph</td>
+</tr>
+<tr class="even">
+<td>Agent collaboration</td>
+<td>✓ transitions</td>
+<td>✓ edges</td>
+<td>✓ teams</td>
+<td>✓ edges</td>
+<td>✓ delegation</td>
+</tr>
+<tr class="odd">
+<td>Both in one mechanism</td>
+<td>✓ proven</td>
+<td>✓ proven</td>
+<td>~ loop only</td>
+<td>✓</td>
+<td>✗ two idioms</td>
+</tr>
+<tr class="even">
+<td>Structural review guarantee</td>
+<td>✓ edge</td>
+<td>✓ edge</td>
+<td>✓ component</td>
+<td>✓ edge</td>
+<td>✗ model’s choice</td>
+</tr>
+<tr class="odd">
+<td>Gate on irreversible act</td>
+<td>✓ <code>halt_before</code></td>
+<td>✓ <code>interrupt</code></td>
+<td>✓ <code>HumanReview</code></td>
+<td>✓ <code>request_info</code></td>
+<td>✓ best of five</td>
+</tr>
+<tr class="even">
+<td>Fork from any past point</td>
+<td>✓ <code>sequence_id</code></td>
+<td>✓ best of five</td>
+<td>✗</td>
+<td>~ from head</td>
+<td>~ replay</td>
+</tr>
+<tr class="odd">
+<td><strong>Semantic undo</strong></td>
+<td><strong>✗</strong></td>
+<td><strong>✗</strong></td>
+<td><strong>✗</strong></td>
+<td><strong>✗</strong></td>
+<td><strong>✗</strong></td>
+</tr>
+<tr class="even">
+<td>Safe to resume effectful steps</td>
+<td>✓ no re-exec</td>
+<td>~ re-executes</td>
+<td>✓</td>
+<td>~ re-executes</td>
+<td>✓ durable</td>
+</tr>
+<tr class="odd">
+<td>New infrastructure required</td>
+<td>✓ none</td>
+<td>✓ none</td>
+<td>~ AgentOS</td>
+<td>✓ none</td>
+<td>✗ Temporal/DBOS</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Axis B is the discriminator.</strong> It decides whether the composed posture is available at all — and every other axis improves when it is.</p>
+<p>The one row where every column agrees is <strong>semantic undo</strong>. That is the next section, and it is why the choice of runtime does not hinge on it.</p>
+</section>
+<section id="sec-rt-undo" class="level2" data-number="10.8">
+<h2 data-number="10.8" class="anchored" data-anchor-id="sec-rt-undo"><span class="header-section-number">10.8</span> The Undo Gap</h2>
+<p>Every framework here calls its replay feature something that sounds like undo. <strong>None of them means it.</strong> Replay restores the runtime’s memory of the world, not the world. The LangGraph fork in <a href="#sec-rt-langgraph" class="quarto-xref"><span>Section 10.5.2</span></a> is the proof: it rewound the graph past a publish, and the video stayed published.</p>
+<p>For a system whose acts land on a timeline and a channel, that difference is the whole game. The idea none of the five ships:</p>
+<blockquote class="blockquote">
+<p><strong>Every act produces its own inverse at the moment it is applied.</strong> Record the pairs in order, and undo is walking the record backwards.</p>
+</blockquote>
+<p>And the rule that makes it trustworthy is a <strong>refusal</strong>: an act is not applied unless its inverse was constructed first. If we can’t say how to undo it, we don’t do it — which forces irreversible acts to declare themselves rather than hide among the reversible ones.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Act:</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    name: <span class="bu">str</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">apply</span>: Callable[[<span class="bu">dict</span>], <span class="va">None</span>]</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    invert: Callable[[<span class="bu">dict</span>], <span class="va">None</span>] <span class="op">|</span> <span class="va">None</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    describes: <span class="bu">str</span> <span class="op">=</span> <span class="st">""</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    reversible: <span class="bu">bool</span> <span class="op">=</span> <span class="va">True</span>      <span class="co"># publish/delete/spend: no honest inverse</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Journal:</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    entries: <span class="bu">list</span>[Act] <span class="op">=</span> field(default_factory<span class="op">=</span><span class="bu">list</span>)</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    snapshots: <span class="bu">dict</span>[<span class="bu">str</span>, <span class="bu">dict</span>] <span class="op">=</span> field(default_factory<span class="op">=</span><span class="bu">dict</span>)</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> do(<span class="va">self</span>, state: <span class="bu">dict</span>, act: Act) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""Apply an act. The inverse must exist BEFORE the act runs."""</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> act.reversible <span class="kw">and</span> act.invert <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>            <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="ss">f"</span><span class="sc">{</span>act<span class="sc">.</span>name<span class="sc">}</span><span class="ss">: no inverse — refusing to apply"</span>)</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>        act.<span class="bu">apply</span>(state)</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.entries.append(act)</span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> undo(<span class="va">self</span>, state: <span class="bu">dict</span>, n: <span class="bu">int</span> <span class="op">=</span> <span class="dv">1</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">str</span>]:</span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>        undone <span class="op">=</span> []</span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> <span class="va">self</span>.entries: <span class="cf">break</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>            act <span class="op">=</span> <span class="va">self</span>.entries[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> act.reversible:</span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>                <span class="co"># Stop rather than lie. This is where walkback takes over.</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>                <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="ss">f"</span><span class="sc">{</span>act<span class="sc">.</span>name<span class="sc">}</span><span class="ss"> is irreversible — sequential undo "</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>                                 <span class="ss">f"cannot pass it. Use walkback to a snapshot."</span>)</span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>            act.invert(state)<span class="op">;</span> <span class="va">self</span>.entries.pop()<span class="op">;</span> undone.append(act.name)</span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> undone</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The capture-before-mutate discipline is the whole implementation:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> trim_clip(track: <span class="bu">str</span>, idx: <span class="bu">int</span>, new_end: <span class="bu">float</span>) <span class="op">-&gt;</span> Act:</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    saved <span class="op">=</span> {}</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="bu">apply</span>(s):</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>        saved[<span class="st">"end"</span>] <span class="op">=</span> s[<span class="st">"timeline"</span>][track][idx][<span class="st">"end"</span>]   <span class="co"># capture BEFORE mutating</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>        s[<span class="st">"timeline"</span>][track][idx][<span class="st">"end"</span>] <span class="op">=</span> new_end</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> invert(s):</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>        s[<span class="st">"timeline"</span>][track][idx][<span class="st">"end"</span>] <span class="op">=</span> saved[<span class="st">"end"</span>]</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> Act(<span class="st">"trim_clip"</span>, <span class="bu">apply</span>, invert)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> publish(target: <span class="bu">str</span>) <span class="op">-&gt;</span> Act:</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># no honest inverse exists — an unpublish is not a rerun</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> Act(<span class="st">"publish"</span>, <span class="bu">apply</span>, invert<span class="op">=</span><span class="va">None</span>, reversible<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre class="text"><code>$ python journal.py
+journal.py: all assertions passed
+  sequential undo reverted 2 acts exactly
+  irreversible act refused to be undone (gate, not undo)
+  walkback restored the whole state past the irreversible act</code></pre>
+<section id="sec-rt-undo-layers" class="level3" data-number="10.8.1">
+<h3 data-number="10.8.1" class="anchored" data-anchor-id="sec-rt-undo-layers"><span class="header-section-number">10.8.1</span> Three layers, and they answer different questions</h3>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    Q["something went wrong"] --&gt; A{"how far back?"}
+    A --&gt;|"the last few acts"| SU["Sequential undo&lt;br/&gt;act journal, inverses in reverse order&lt;br/&gt;exact · cheap · ordered"]
+    A --&gt;|"the whole project, to Tuesday"| WB["Version walkback&lt;br/&gt;copy-on-write snapshot restore&lt;br/&gt;coarse · always available"]
+    A --&gt;|"the world already moved"| GT["The gate&lt;br/&gt;not recovery at all —&lt;br/&gt;a refusal to proceed without a recorded yes"]
+    style SU fill:#dcfce7,stroke:#166534,color:#166534
+    style WB fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style GT fill:#fce7f3,stroke:#9d174d,color:#9d174d
+</pre>
+</div>
+<p></p><figcaption> Reversal is three named mechanisms, not one — and most systems only implement the middle one.</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+<ul>
+<li><strong>Sequential undo</strong> — “take back the last two things.” Handles the overwhelming majority of what an operator actually wants, and is the layer they touch daily.</li>
+<li><strong>Version walkback</strong> — “put the project back how it was on Tuesday.” Coarse, always available, discards the journal past it. The last resort, not the first tool reached for.</li>
+<li><strong>The gate</strong> — for acts where neither works. Not a recovery mechanism; a refusal.</li>
+</ul>
+</section>
+<section id="sec-rt-undo-domain" class="level3" data-number="10.8.2">
+<h3 data-number="10.8.2" class="anchored" data-anchor-id="sec-rt-undo-domain"><span class="header-section-number">10.8.2</span> Why this belongs in your domain, not the runtime</h3>
+<p>An inverse is <strong>semantic</strong>. Only the editing tool knows that undoing a trim means restoring the previous out-point, and that undoing a publish means nothing at all. A checkpointer cannot know that — it sees bytes of state, not meaning.</p>
+<p>Which settles where it lives: <strong>the journal is yours, it sits above whichever runtime you pick, and it works identically under all five.</strong> That is the point. It never becomes a reason to switch frameworks.</p>
+<div class="callout callout-style-default callout-note callout-titled" title="The open question worth settling before you scaffold">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>The open question worth settling before you scaffold
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Where does the journal sit relative to your store? An inverse referencing rows that a later act already changed is <strong>stale</strong>. The clean version is that acts journal against a snapshot id, and undo is valid only while no conflicting act has landed since — which is optimistic concurrency, made tractable by a single-writer lease. Composed plans help here too: the plan’s step order <em>is</em> the conflict order.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-rt-conclusion" class="level2" data-number="10.9">
+<h2 data-number="10.9" class="anchored" data-anchor-id="sec-rt-conclusion"><span class="header-section-number">10.9</span> What the Evaluation Concluded</h2>
+<p>For StudioBay specifically, with a stack that already had LangGraph underneath a deep-agent brain:</p>
+<blockquote class="blockquote">
+<p><strong>Burr for the graph layer, and the composed posture as the default.</strong></p>
+</blockquote>
+<p>Not because Burr wins a feature count — it doesn’t, on several rows above. Because a graph being a value (axis B) is what makes the producer-composes-a-plan posture expressible at all, and that posture is what turns undo, audit, cost and approval from per-call vigilance into <strong>properties of a plan</strong>. LangGraph stays where it already is: inside the agent brain, for the improvised steps. Pydantic AI’s <code>requires_approval</code> pattern gets <strong>stolen for the tool seam</strong> without adopting the runtime — the infrastructure cost of Temporal buys durability that Burr’s persister already provides.</p>
+<p>Your conclusion will differ, because your rows differ. What transfers is the <strong>method</strong>:</p>
+<ol type="1">
+<li><strong>Write down one end-to-end shape</strong> your system must express, with both a loose span and a pinned span in it. One shape, all candidates — so the differences belong to the frameworks and not to the examples.</li>
+<li><strong>Sketch it in each candidate.</strong> Install the two or three you’re serious about and <em>run</em> them. Mark the rest as read-not-run, and say so in the write-up.</li>
+<li><strong>Score on the axes, not the feature list.</strong> Start with axis B — it determines whether half the design space is even reachable.</li>
+<li><strong>Identify what none of them ships.</strong> In this evaluation it was semantic undo. Build that above the runtime, so it survives changing your mind.</li>
+<li><strong>Let the sketches correct your model.</strong> The seats-are-nodes correction in <a href="#sec-rt-seats" class="quarto-xref"><span>Section 10.3</span></a> came from writing the graph wrong first. Prose would never have caught it.</li>
+</ol>
+<div class="callout callout-style-default callout-tip callout-titled" title="Composing rather than choosing">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Composing rather than choosing
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The pairings that actually work follow from the postures. <strong>Burr + a deep-agent brain</strong>: composed plan on the outside, a spine step in the middle where the work isn’t knowable — one mechanism, via <code>RunnableGraph</code>. <strong>Burr + mcp-agent</strong> (<a href="ch08-production-frameworks.html#sec-prod-mcp-agent" class="quarto-xref"><span>Section 8.3</span></a>): fork-from-state for the outer loop, <code>AugmentedLLM</code> patterns inside the actions. What <em>doesn’t</em> compose well is two graph vocabularies in one project — MAF beside LangGraph, or <code>pydantic_graph</code> beside Burr. They will drift.</p>
+</div>
+</div>
+</section>
+<section id="sec-rt-forward" class="level2" data-number="10.10">
+<h2 data-number="10.10" class="anchored" data-anchor-id="sec-rt-forward"><span class="header-section-number">10.10</span> Forward Link: Ralph Is the Improvised Posture</h2>
+<p>The next chapter introduces Ralph — load a spec, pick the next task, execute it, observe, repeat. Read it through this chapter’s lens and something clicks: <strong>Ralph is the spine posture, taken to its logical end.</strong> The agent is inside the loop, every edit is a runtime decision, and nothing about iteration 137 is knowable at iteration 1.</p>
+<p>That is not a criticism. It is why Ralph works on problems where the plan cannot be written in advance. But it explains, precisely, why Ralph harnesses need what they need:</p>
+<ul>
+<li><strong>Ralph’s cost is discovered by spending it</strong> (axis D), which is why Chapter 12’s economics chapter exists at all and why budget caps are a harness feature rather than a plan property.</li>
+<li><strong>Ralph’s undo is per-call defensive</strong> (axis C), which is why the harness runs in a git worktree with a commit per iteration — git <em>is</em> the act journal, and <code>git revert</code> is the inverse that the tool didn’t build for itself.</li>
+<li><strong>Ralph’s approval is N interrupts</strong> (axis A), which is why “run it unattended overnight” is a genuinely different risk posture from “run one task,” and why the gate belongs on the tool seam (who may push, who may deploy) rather than on the loop.</li>
+<li><strong>Ralph plus a composed outer plan is the mature shape.</strong> A spec is a plan; a task list is a compiled graph; the loop is the spine step inside it. Chapter 13’s fleet is that structure with the fan-out made explicit.</li>
+</ul>
+<p>The book’s path is therefore: Chapter 7 picks the state machine, Chapters 8–9 survey the platforms, <strong>this chapter picks the posture</strong>, Chapter 11 wraps the loop around it, and Chapters 13–14 scale the loop into a fleet and a career.</p>
+</section>
+<section id="sec-rt-takeaways" class="level2" data-number="10.11">
+<h2 data-number="10.11" class="anchored" data-anchor-id="sec-rt-takeaways"><span class="header-section-number">10.11</span> Key Takeaways</h2>
+<ul>
+<li><strong>A worker–reviewer spine is a posture, not the shape of agent systems</strong> — and it is the most expensive one. With the agent inside the loop, undo, audit, budget and approval all become per-call vigilance.</li>
+<li><strong>The alternative is the composed posture</strong>: the producer runs once, emits a plan as ordinary data, and code compiles that plan into a graph. The agent still decides everything; it decides all of it somewhere the decision can be read, policy-checked, costed and approved before it takes effect.</li>
+<li><strong>Determinism is a property of where the decision was made,</strong> not of the framework. The same five agents and tools give you an auditable pipeline or an unpredictable one depending only on <em>when</em> control flow is fixed.</li>
+<li><strong>Seats are graph nodes; capabilities are tools</strong> — and subagents are tools too. This keeps the graph small, makes new capabilities a toolbox entry rather than an edge change, and puts the permission question on the tool seam where it belongs.</li>
+<li><strong>Five axes beat a feature table</strong>: when control flow is decided (A), whether a graph is a value (B), where cross-cutting concerns attach (C), what is knowable before running (D), and whether postures nest (E). <strong>Axis B is the discriminator</strong> — it decides whether the composed posture is reachable at all.</li>
+<li><strong>Pydantic AI</strong> ships the cleanest gate of the five: <code>requires_approval=True</code> plus <code>DeferredToolRequests</code> makes “irreversible acts stop for a recorded yes/no” a library feature, with the approval request as the run’s typed output. Its cost is that the loop lives in the model’s reasoning — no structural guarantee that a review happens before a render.</li>
+<li><strong>Microsoft Agent Framework</strong> has the cleanest suspend: <code>request_info()</code> halts the whole workflow and resumes by request id. Its sharp edge is that the executor <strong>re-runs from the top</strong> on resume, so everything above the call must be idempotent — the same footgun as LangGraph replay, in a different place.</li>
+<li><strong>No framework ships semantic undo.</strong> All five offer replay or fork, which rewinds the runtime’s state and leaves the world untouched — demonstrated by forking LangGraph past a publish and watching the video stay published.</li>
+<li><strong>Reversal is three named layers</strong>: sequential undo from an act journal, version walkback from a store snapshot, and the gate where neither applies. Most systems build only the middle one.</li>
+<li><strong>The act journal belongs in your domain, not the runtime.</strong> An inverse is semantic — only the tool knows what undoing a trim means. Build it above the framework, and it never becomes a reason to switch.</li>
+<li><strong>The invariant that makes it hold</strong>: an act is not applied unless its inverse was constructed first. Enforceable at the tool seam, and exactly the kind of rule that stops being followed if it isn’t checked.</li>
+</ul>
+</section>
+<section id="sec-rt-concept-map" class="level2" data-number="10.12">
+<h2 data-number="10.12" class="anchored" data-anchor-id="sec-rt-concept-map"><span class="header-section-number">10.12</span> Concept Map</h2>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    F["Ch 7–9: five frameworks,&lt;br/&gt;forty API surfaces"] --&gt; Q["Which one? — feature tables stall"]
+    Q --&gt; P["The posture question"]
+    P --&gt; SP["SPINE&lt;br/&gt;agent in the loop"]
+    P --&gt; CP["COMPOSED&lt;br/&gt;agent emits a plan"]
+    SP --&gt; C1["per-call undo · guards everywhere&lt;br/&gt;budget by spending · N interrupts"]
+    CP --&gt; C2["inspect · policy-check · cost&lt;br/&gt;ONE approval · one audit hook"]
+    CP --&gt; AXB["Axis B: graph is a value"]
+    AXB --&gt; BR["Burr: GraphBuilder → value"]
+    AXB --&gt; NEST["Axis E: RunnableGraph&lt;br/&gt;a spine INSIDE a composed plan"]
+    P --&gt; AX["Five axes A–E"]
+    AX --&gt; MTX["The matrix"]
+    MTX --&gt; GAP["Every column agrees:&lt;br/&gt;NO semantic undo"]
+    GAP --&gt; J["Act journal — yours, above the runtime"]
+    J --&gt; L1["sequential undo"]
+    J --&gt; L2["version walkback"]
+    J --&gt; L3["the gate"]
+    SP --&gt; RL["Ralph (Ch 11)&lt;br/&gt;the spine, taken to its end"]
+    CP --&gt; RL2["spec = plan · tasks = compiled graph&lt;br/&gt;loop = the spine step inside"]
+    style P fill:#fef3c7,stroke:#92400e,color:#92400e
+    style CP fill:#dcfce7,stroke:#166534,color:#166534
+    style AXB fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    style GAP fill:#fce7f3,stroke:#9d174d,color:#9d174d
+    style RL fill:#f3e8ff,stroke:#6b21a8,color:#6b21a8
+</pre>
+</div>
+<p></p><figcaption> How the posture question reorganizes the framework chapters</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../chapters/ch09-mastra.html" class="pagination-link" aria-label="Mastra: TypeScript Agents, End to End">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Mastra: TypeScript Agents, End to End</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../chapters/ch11-ralph-loop.html" class="pagination-link" aria-label="The Ralph Loop">
+        <span class="nav-page-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">The Ralph Loop</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
