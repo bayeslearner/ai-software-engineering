@@ -14,7 +14,7 @@ By the end of Chapter 9 you have seen five agent runtimes and roughly forty API 
 This chapter comes from a live evaluation on exactly that kind of system: **StudioBay**, an agentic video-production pipeline where a request arrives, a producer plans an episode, a worker and a reviewer argue until the cut is good, a deterministic render runs, and nothing reaches YouTube without a recorded yes. Five runtimes were sketched against that one shape. Two were executed against the project venv with assertions; three were written from current documentation and marked as unverified in detail.
 
 ::: {.callout-note title="What was run, and what wasn't"}
-**Executed, assertions passed:** Burr 0.42.0, LangGraph 1.2.11. **Written from current published docs, not executed:** Agno, Microsoft Agent Framework, Pydantic AI — accurate in shape, unverified in detail. Where this chapter shows terminal output, that output is real. Where it shows only code, say so. A comparison that claims a green run it did not get is worse than no comparison.
+**Executed, assertions passed:** Burr 0.42.0, LangGraph 1.2.11, Agno 3.0.0 (structural checks — workflow control flow, HITL pause and resume, persistence — run without model calls). **Written from current published docs, not executed:** Microsoft Agent Framework, Pydantic AI — accurate in shape, unverified in detail. Where this chapter shows terminal output, that output is real. Where it shows only code, say so. A comparison that claims a green run it did not get is worse than no comparison.
 :::
 
 The first version of that evaluation asked: *which framework can hold both a pinned pipeline and a worker–reviewer loop?* That turned out to be the wrong question — or at least a late one. Answering it properly required backing up to something more basic.
@@ -319,7 +319,7 @@ Easy to miss, expensive when the line above it started a render. This is MAF's v
 
 ### Agno — declared steps and loops, plus a control plane {#sec-rt-agno}
 
-*From current docs. See @sec-prod-agno for the full platform tour.*
+*Signatures verified against agno 3.0.0; the pause/resume flow below was executed. See @sec-prod-agno for the full platform tour.*
 
 Agno's distinguishing move in this comparison: **the review loop is a component you declare, not a graph you wire.** Per-iteration review, reject-with-feedback and resumption arrive without drawing a single edge.
 
@@ -346,7 +346,7 @@ while run.is_paused:
     run = workflow.continue_run(run)
 ```
 
-**On the axes.** Fastest route to a working reviewer loop with human review at every iteration, and the only candidate shipping a control plane (sessions, RBAC, tracing) in the box. But the control flow is *Agno's vocabulary*: a `Loop` is a loop. Burr routes to any action on any predicate; here you get the shapes that ship (axis A constrained, axis B closed — the composed posture has no natural expression). No fork-from-arbitrary-checkpoint, so walkback is yours regardless.
+**On the axes.** Fastest route to a working reviewer loop with human review at every iteration, and the only candidate shipping a control plane (sessions, RBAC, tracing) in the box. But the control flow is *Agno's vocabulary*: a `Loop` is a loop. Burr routes to any action on any predicate; here you get the shapes that ship (axis A constrained, axis B closed — the composed posture has no natural expression). Forking exists at the agent level — `checkpoint=`, `continue_run(fork=True, continue_from=<index>)`, `fork_session()` — but what it forks is a message history, not a typed state you can read, diff, or policy-check before resuming.
 
 ## The Composed Posture, End to End {#sec-rt-composed}
 
@@ -468,7 +468,7 @@ And the operational view — the same five scored on what a system with irrevers
 | Both in one mechanism | ✓ proven | ✓ proven | ~ loop only | ✓ | ✗ two idioms |
 | Structural review guarantee | ✓ edge | ✓ edge | ✓ component | ✓ edge | ✗ model's choice |
 | Gate on irreversible act | ✓ `halt_before` | ✓ `interrupt` | ✓ `HumanReview` | ✓ `request_info` | ✓ best of five |
-| Fork from any past point | ✓ `sequence_id` | ✓ best of five | ✗ | ~ from head | ~ replay |
+| Fork from any past point | ✓ `sequence_id` | ✓ best of five | ~ message index, untyped | ~ from head | ~ replay |
 | **Semantic undo** | **✗** | **✗** | **✗** | **✗** | **✗** |
 | Safe to resume effectful steps | ✓ no re-exec | ~ re-executes | ✓ | ~ re-executes | ✓ durable |
 | New infrastructure required | ✓ none | ✓ none | ~ AgentOS | ✓ none | ✗ Temporal/DBOS |

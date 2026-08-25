@@ -38,25 +38,40 @@ Chapter 7 covers **Burr + Pydantic** — the typed-FSM-with-replay pick. If your
 
 ## Agno: Batteries-Included Agent Platform {#sec-prod-agno}
 
-[Agno](https://docs.agno.com/) positions itself as an "agent operating system" — the AgentOS framing isn't marketing, it's an honest signal about scope. Where Burr gives you a state-machine library and asks you to assemble the rest, Agno ships the rest. MCP tooling, RAG with a `Knowledge` primitive, multi-agent `Team`s, ten storage backends for sessions and memory, OpenTelemetry, scheduling, RBAC, and chat interfaces for Slack and Telegram are all in the box.
+[Agno](https://docs.agno.com/) positions itself as an "agent operating system" — the AgentOS framing isn't marketing, it's an honest signal about scope. Where Burr gives you a state-machine library and asks you to assemble the rest, Agno ships the rest. MCP tooling, RAG with a `Knowledge` primitive, multi-agent `Team`s, fifteen storage backends for sessions and memory, OpenTelemetry, scheduling, RBAC, and chat interfaces for Slack and Telegram are all in the box.
 
 The decision to use Agno is therefore less "is the state machine model right?" and more "do I want a framework with opinions about every layer, or do I want to assemble those layers myself?"
+
+::: {.callout-important title="Version: this section is agno 3.0.0"}
+Agno breaks public API across major versions. Every signature and every code block below was checked against **agno 3.0.0** by introspection, and the runnable ones were executed. Code written for 1.x or 2.x fails at import or at the first keyword argument — @sec-prod-agno-migrate has the symptom-to-fix table.
+
+Install: `pip install "agno[mcp]" anthropic sqlalchemy`. The extras matter. `sqlalchemy` backs `SqliteDb`/`PostgresDb`, `fastapi`+`uvicorn` back `AgentOS`, and the `[mcp]` extra pins `mcp<2` — installing bare `mcp` gets you 2.0.0, where `McpError` was renamed `MCPError`, and Agno reports that as ``ImportError: `mcp` not installed`` even though it is. Do not chase that as a missing package.
+:::
 
 ### The four primitives {#sec-prod-agno-primitives}
 
 ```python
 from agno.agent import Agent
 from agno.team import Team
-from agno.workflow.workflow import Workflow
+from agno.workflow import Workflow
 from agno.knowledge import Knowledge
 ```
 
-- **`Agent`** — a single autonomous unit with tools, instructions, and a model. The smallest piece. Agents can hold memory, knowledge, and MCP tools.
-- **`Team`** — a coordinated set of agents that collaborate on a task. Native multi-agent orchestration: you describe the team, Agno handles the routing between members.
-- **`Workflow`** — step-based execution with conditional logic, loops, and parallel branches. Closer to a workflow engine than a graph library — you define `Step`s and `Condition`s, and the framework sequences them.
+- **`Agent`** — a single autonomous unit with tools, instructions, and a model. The smallest piece. Agents can hold memory, knowledge, skills, and MCP tools.
+- **`Team`** — a coordinated set of agents that collaborate on a task. A leader model routes between members.
+- **`Workflow`** — step-based execution with conditional logic, loops, parallel branches, and routers. You define `Step`s; your Python sequences them.
 - **`Knowledge`** — a searchable corpus that any agent can query. Agno calls it "Agentic RAG": retrieval is exposed as a tool the model calls, not a preprocessing step you hand-orchestrate.
 
-The four primitives compose: a Team contains Agents, each Agent can hold Knowledge, and a Workflow can orchestrate Teams and Agents through Steps.
+What separates them is who decides control flow:
+
+| Primitive | Who decides what runs next | Use when |
+|---|---|---|
+| `Agent` | the model, one turn at a time | a single capability with tools |
+| `Team` | a leader **model** picks members | routing needs judgment |
+| `Workflow` | your **Python** picks steps | the pipeline shape is known at design time |
+| `Knowledge` | the model decides *when* to search | retrieval belongs in the loop, not before it |
+
+They nest: a `Team` holds `Agent`s and other `Team`s, an `Agent` holds `Knowledge`, and a `Workflow` step executes an `Agent`, a `Team`, a nested `Workflow`, or a plain Python callable.
 
 #### Agent: the building block
 
@@ -73,12 +88,23 @@ agent = Agent(                                                          # <1>
     markdown=True,
 )
 
-response = agent.run("What is context engineering?")                    # <3>
-print(response.content)
+output = agent.run("What is context engineering?")                      # <3>
+print(output.content)
 ```
-1. **`Agent` is the unit of work.** Name, model, instructions, and tools are all constructor parameters — no subclassing required.
-2. **Model is a first-class parameter.** Agno supports Claude, GPT, Gemini, Llama, and others. Swap `Claude(...)` for `OpenAIResponses(...)` to switch providers.
-3. **`agent.run(...)` returns a structured response.** For streaming, use `agent.print_response(...)` or `agent.arun(...)` for async.
+1. **`Agent` is the unit of work.** Every parameter is keyword-only — name, model, instructions, and tools are all constructor arguments, and there is no subclassing.
+2. **Model is a first-class parameter.** Agno ships 48 provider modules under `agno.models.*`. Swap `Claude(...)` for `OpenAIResponses(...)` to switch. Pin the `id`: `Claude()` alone defaults to `claude-sonnet-4-5-20250929` in 3.0.0 and that default moves between releases.
+3. **`agent.run(input)` returns a `RunOutput`.** The first argument is positional and named `input` — 1.x called it `message`, and `run(message=...)` now raises `TypeError`.
+
+Four call shapes, differing only in async and printing:
+
+| Call | Returns | Use |
+|---|---|---|
+| `agent.run(...)` | `RunOutput` | programmatic, sync |
+| `agent.arun(...)` | awaitable `RunOutput` | programmatic, async — also takes `background=True` |
+| `agent.print_response(...)` | `None` | terminal demo, renders markdown |
+| `agent.aprint_response(...)` | `None` | terminal demo, async |
+
+`RunOutput` carries more than `content`: `messages`, `metrics`, `tools`, `citations`, `references`, `reasoning_content`, `status`, `session_state`, `requirements` (pending human approvals), and the replay lineage fields `run_id`, `parent_run_id`, `forked_from_run_id`, `forked_from_message_index`, `last_checkpoint_at_message_index`.
 
 Add tools and the agent becomes capable:
 
@@ -95,17 +121,35 @@ analyst = Agent(
         WebSearchTools(),
         YFinanceTools(stock_price=True, company_info=True),
     ],
-    instructions=[
+    instructions=[                                                      # <2>
         "You are a financial analyst.",
         "Always cite your data sources.",
         "Use tables for numerical comparisons.",
     ],
+    fallback_models=[Claude(id="claude-haiku-4-5-20251001")],           # <3>
+    retries=2,
+    exponential_backoff=True,
     markdown=True,
 )
 
 analyst.print_response("Compare AAPL and MSFT performance this quarter.")
 ```
-1. **Tools are plug-and-play.** Agno ships dozens of built-in tool classes (web search, file I/O, SQL, finance, Hacker News, etc.). Each exposes functions the model can call. MCP tools use the same interface — see @sec-prod-agno-mcp.
+1. **Tools are plug-and-play.** Agno ships 141 toolkit modules under `agno.tools.*` — web search, GitHub, Jira, Slack, SQL, DuckDB, pandas, shell, Docker, finance, arXiv, PubMed, and so on. MCP tools use the same interface — see @sec-prod-agno-mcp.
+2. **`instructions` accepts a list.** Rendered as bullet lines. The idiomatic form for multi-rule agents; a plain `str` and a `Callable` also work.
+3. **Failover and retry are parameters, not wrappers.** `fallback_models` covers a provider outage; `retries` / `delay_between_retries` / `exponential_backoff` cover transient errors. Writing a retry decorator around `run()` duplicates code that already exists.
+
+Writing your own tool is a decorated function, and the decorator is also where human approval lives:
+
+```python
+from agno.tools import tool
+
+@tool(requires_confirmation=True)                                       # <1>
+def deploy(env: str) -> str:
+    """Deploy the current build to an environment."""                   # <2>
+    return f"deployed {env}"
+```
+1. **`requires_confirmation=True` pauses the run** before the call executes and surfaces the pending call to your code. This is the tool-granularity approval gate; @sec-prod-agno-hitl covers the step-granularity one.
+2. **The docstring is the tool description sent to the model.** Write it for the model. A vague docstring is a tool the model calls at the wrong time.
 
 #### Knowledge: agentic RAG {#sec-prod-agno-knowledge}
 
@@ -131,9 +175,13 @@ knowledge.insert_many(                                                  # <3>
     urls=["https://example.com/api-reference.pdf"],
 )
 ```
-1. **`Knowledge` wraps a vector DB.** Supported backends: PgVector, LanceDB, Qdrant, Pinecone, Weaviate, ChromaDB, and others.
-2. **`SearchType.hybrid`** combines keyword and semantic search. Also available: `vector` (pure embedding similarity) and `keyword` (BM25). Import from `agno.vectordb.search` — that's the canonical location, though some backends re-export it.
-3. **`insert_many()`** ingests sources — markdown files, PDFs, URLs — into the vector DB. The keyword overload takes `paths=` and `urls=` lists separately. For a single item, use `insert(path=...)` or `insert(url=...)`.
+1. **`Knowledge` wraps a vector DB.** Twenty backends live under `agno.vectordb.*`: PgVector, LanceDB, Qdrant, Pinecone, Weaviate, Chroma, Milvus, MongoDB, OpenSearch, Redis, Cassandra, Couchbase, ClickHouse, and adapters for LangChain and LlamaIndex retrievers.
+2. **`SearchType.hybrid`** combines keyword and semantic search. Also available: `vector` (pure embedding similarity) and `keyword` (BM25). Import from `agno.vectordb.search`.
+3. **`insert_many()`** ingests sources — markdown files, PDFs, URLs — into the vector DB. The keyword overload takes `paths=` and `urls=` lists separately; a list of content dicts also works as the first positional argument. For a single item, use `insert(path=...)` or `insert(url=...)`.
+
+Watch the defaults across those two methods: `insert` defaults `skip_if_exists=False` (re-ingest), `insert_many` defaults `skip_if_exists=True` (skip). Both have async twins, `ainsert` and `ainsert_many`.
+
+Before adding a parsing dependency, check the built-in readers — `knowledge.pdf_reader`, `.markdown_reader`, `.csv_reader`, `.docx_reader`, `.excel_reader`, `.pptx_reader`, `.json_reader`, `.website_reader`, `.youtube_reader`, `.firecrawl_reader`. Remote sources ship too: `S3Content`, `GCSContent`, `SharePointContent`, `GitHubContent`, `AzureBlobContent` from `agno.knowledge.remote_content`.
 
 Attach it to an agent:
 
@@ -145,15 +193,15 @@ support_agent = Agent(
     name="support",
     model=Claude(id="claude-sonnet-4-6"),
     knowledge=knowledge,                                                # <1>
-    search_knowledge=True,                                              # <2>
     instructions="Answer questions using the product documentation. "
                  "Always search knowledge before answering.",
 )
 
 support_agent.print_response("How do I configure SSO?")
 ```
-1. **Attach knowledge to the agent.** The agent now has a `search_knowledge` tool.
-2. **`search_knowledge=True`** makes the search tool available. The agent decides *when* to call it — that's the "agentic" part. The model sees the tool description and chooses to search before answering, rather than you writing a retrieval pipeline.
+1. **Attaching knowledge is the whole setup.** The agent now has a `search_knowledge` tool, because `search_knowledge` defaults to `True` on `Agent`. You pass `search_knowledge=False` to turn retrieval *off*, not `True` to turn it on — a common cargo-culted line that does nothing.
+
+The model decides *when* to call the search tool. That is the "agentic" part: you are not writing a retrieve-then-generate pipeline. If you want one, retrieve yourself and pass the text in through `dependencies=`.
 
 Knowledge also supports **agentic filters** — metadata-based filtering where the model decides which filters to apply:
 
@@ -174,17 +222,15 @@ agent = Agent(
 )
 ```
 1. **`metadata=` is a keyword arg** applied to all items in that call, not a per-item dict. To attach different metadata to different files, make separate `insert_many` calls (one per metadata group), as shown.
-2. **Agentic filters** let the model add `WHERE` clauses to the vector search based on the user's question. "How do I configure SSO for the enterprise tier?" automatically filters on `product=enterprise`.
+2. **Agentic filters** let the model add `WHERE` clauses to the vector search based on the user's question. "How do I configure SSO for the enterprise tier?" automatically filters on `product=enterprise`. For fixed filters, set `knowledge_filters={...}` on the agent or pass it per call to `run()`; both accept a dict or a list of `FilterExpr` from `agno.filters`.
 
 #### Workflow: step-based orchestration {#sec-prod-agno-workflow}
 
-When you need sequential stages with conditional branching, `Workflow` provides a step engine:
+When you need sequential stages with conditional branching, `Workflow` provides a step engine. All step types are exported from `agno.workflow` directly in 3.0:
 
 ```python
-from agno.workflow.workflow import Workflow
-from agno.workflow.step import Step
-from agno.workflow.condition import Condition
-from agno.workflow.types import StepInput
+from agno.workflow import Workflow, Step, Steps, Condition, Loop, Parallel, Router
+from agno.workflow.types import StepInput, StepOutput
 
 researcher = Agent(name="Researcher", instructions="Research the topic.",
                    tools=[WebSearchTools()])
@@ -193,7 +239,7 @@ writer = Agent(name="Writer", instructions="Write the final article.")
 
 def needs_fact_checking(step_input: StepInput) -> bool:                 # <1>
     """Check if the research output contains claims needing verification."""
-    return "claim" in step_input.content.lower()
+    return "claim" in str(step_input.previous_step_content).lower()
 
 workflow = Workflow(
     name="Article Pipeline",
@@ -210,13 +256,92 @@ workflow = Workflow(
 
 workflow.print_response("Write an article about MCP adoption trends.")
 ```
-1. **Conditions are Python callables.** The evaluator receives the previous step's output and returns a boolean. If `True`, the condition's steps run; otherwise, they're skipped.
-2. **Steps wrap agents.** Each step runs its agent on the accumulated context from prior steps.
-3. **`Condition` gates a branch.** This is the workflow's conditional logic — richer patterns (loops, parallel branches) compose from the same primitives.
+1. **Conditions are Python callables.** The evaluator receives a `StepInput` and returns a boolean. `previous_step_content` holds the prior step's output; `previous_step_outputs` is a dict keyed by step name, which is how you reach back past the immediately preceding step.
+2. **Steps wrap an executor.** Exactly one of `agent=`, `team=`, `workflow=`, or `executor=` per step.
+3. **`Condition` gates a branch**, with an optional `else_steps=`.
 4. **Steps execute sequentially.** The writer sees the output of the researcher (and fact checker, if it ran).
 
+The five composite step types:
+
+| Type | Key parameters | What it does |
+|---|---|---|
+| `Condition(steps, evaluator, else_steps=None)` | `evaluator` is a callable, awaitable, `bool`, or `str` | branch |
+| `Loop(steps, max_iterations=3, end_condition=None)` | `end_condition: Callable[[List[StepOutput]], bool]` | bounded repeat |
+| `Parallel(*steps)` | steps as varargs, **not** a list | fan-out / fan-in |
+| `Router(choices, selector)` | `selector: Callable[[StepInput], List[step]]` | pick a branch |
+| `Steps(...)` | — | a named sub-sequence |
+
+The escape hatch worth knowing about is `executor=`: a plain callable `(StepInput) -> StepOutput`, needing no model at all.
+
+```python
+def render(step_input: StepInput) -> StepOutput:
+    path = ffmpeg_render(step_input.previous_step_content)
+    return StepOutput(content=path, stop=False)                         # <1>
+
+Step(name="render", executor=render)
+```
+1. **`StepOutput.stop=True` halts the whole workflow** from inside a step. `success=False` plus `error=` marks a failure without stopping, which pairs with `Step(skip_on_failure=True)`.
+
+Deterministic work belongs here. A step with a plain function cannot drift, cannot burn tokens, and cannot be talked out of its behavior by a prompt.
+
 ::: {.callout-tip title="Workflow vs. Team"}
-Workflow gives you *deterministic* step-by-step execution with conditional branches. Team gives you *model-driven* coordination where the leader agent decides which members to delegate to and how to synthesize their responses. Use Workflow when the pipeline shape is known at design time; use Team when the routing decision requires judgment.
+Workflow gives you *deterministic* step-by-step execution with conditional branches. Team gives you *model-driven* coordination where the leader agent decides which members to delegate to and how to synthesize their responses. Use Workflow when the pipeline shape is known at design time; use Team when the routing decision requires judgment. They compose — a `Workflow` step can execute a whole `Team`.
+:::
+
+### Human review: pausing on the irreversible act {#sec-prod-agno-hitl}
+
+Any step can carry a `HumanReview`, and the run pauses rather than proceeding:
+
+```python
+from agno.db.sqlite import SqliteDb
+from agno.workflow import Workflow, Step
+from agno.workflow.types import HumanReview, StepInput, StepOutput
+
+db = SqliteDb(db_file="publish.db")                                     # <1>
+
+workflow = Workflow(
+    name="publish",
+    db=db,
+    steps=[
+        Step(name="draft",
+             executor=lambda si: StepOutput(content=f"draft: {si.input}")),
+        Step(name="publish",
+             executor=lambda si: StepOutput(
+                 content=f"PUBLISHED {si.previous_step_content}"),
+             human_review=HumanReview(                                  # <2>
+                 requires_confirmation=True,
+                 confirmation_message="Ship it?",
+                 on_reject="skip",
+                 timeout=3600,
+                 on_timeout="cancel",
+             )),
+    ],
+)
+
+run = workflow.run(input="episode 12")
+print(run.is_paused, run.pause_kind, run.paused_step_name)              # <3>
+
+for req in run.steps_requiring_confirmation:                            # <4>
+    req.confirm()                          # or req.reject(feedback="runs long")
+
+run = workflow.continue_run(run)                                        # <5>
+print(run.content)
+```
+1. **A `db` is required for HITL.** The pause has to survive the process; with no `db` there is nowhere to park it.
+2. **`HumanReview` is a per-step parameter**, not a separate node. Its full surface: `requires_confirmation`, `requires_user_input` (with a `user_input_schema`), `requires_output_review`, `requires_iteration_review` (fires once per `Loop` pass), plus `on_reject` (`skip` / `cancel` / `else` / `retry`), `on_error` (`fail` / `skip` / `pause`), `max_retries`, `timeout`, and `on_timeout` (`cancel` / `skip` / `approve`).
+3. **The paused run tells you where it stopped** — `is_paused`, `pause_kind`, `paused_step_name`, `paused_step_index`.
+4. **Pending approvals are objects with methods.** `confirm()`, `reject(feedback=...)`, `set_user_input(...)`, `select(...)`, `edit(...)`. The run exposes them by kind: `steps_requiring_confirmation`, `steps_requiring_output_review`, `steps_requiring_user_input`, `steps_requiring_route`.
+5. **`continue_run(run)` resumes** from the pause. Already-executed steps do not re-run.
+
+That example is executable and its output is real:
+
+```
+True PauseKind.STEP publish
+PUBLISHED draft: episode 12
+```
+
+::: {.callout-note title="Two granularities of approval"}
+`@tool(requires_confirmation=True)` gates a single tool call inside an agent's turn. `HumanReview` on a `Step` gates a whole stage of a workflow. `Toolkit(requires_confirmation_tools=[...])` does the tool-level version for a whole toolkit. Reach for one of the three before building an approvals table — `AgentOS` already provisions one.
 :::
 
 ### MCP integration via MCPTools {#sec-prod-agno-mcp}
@@ -231,61 +356,71 @@ from agno.tools.mcp import MCPTools
 
 async def main():
     mcp_tools = MCPTools(                                               # <1>
-        command="npx -y @modelcontextprotocol/server-brave-search",
+        "npx -y @modelcontextprotocol/server-brave-search",
         env={"BRAVE_API_KEY": "${BRAVE_API_KEY}"},
         timeout_seconds=30,
+        include_tools=["brave_web_search"],                             # <2>
+        tool_name_prefix="brave",
     )
-    await mcp_tools.connect()                                           # <2>
+    await mcp_tools.connect()                                           # <3>
 
     agent = Agent(
         name="search_agent",
         model=Claude(id="claude-sonnet-4-6"),
-        tools=[mcp_tools],                                              # <3>
+        tools=[mcp_tools],                                              # <4>
         instructions="Use web search to answer questions with citations.",
     )
 
     await agent.aprint_response("What are the latest MCP spec changes?")
-    await mcp_tools.close()                                             # <4>
+    await mcp_tools.close()                                             # <5>
 
 asyncio.run(main())
 ```
-1. **`MCPTools` wraps a single MCP server.** Specify the server command, args, env vars, and timeout.
-2. **`connect()` starts the server process.** Agno handles the lifecycle — process supervision, stdio/streamable-HTTP transport, and graceful shutdown.
-3. **MCP tools drop into the same `tools=[]` list.** The agent doesn't distinguish between native tools and MCP tools.
-4. **`close()` tears down the server.** In AgentOS mode (@sec-prod-agno-agentos), lifecycle is automatic.
+1. **`MCPTools` wraps a single MCP server.** `command` is the first positional parameter; `env`, `timeout_seconds`, and transport settings follow as keywords.
+2. **`include_tools` / `exclude_tools` allowlist the surface**, and `tool_name_prefix` avoids name collisions when two servers export a `search`. A twelve-tool server dumped whole into an agent's context is a common and avoidable cost.
+3. **`connect()` starts the server process.** Agno handles the lifecycle — process supervision, stdio or streamable-HTTP transport, and graceful shutdown.
+4. **MCP tools drop into the same `tools=[]` list.** The agent doesn't distinguish between native tools and MCP tools.
+5. **`close()` tears down the server.** In AgentOS mode (@sec-prod-agno-agentos), lifecycle is automatic.
 
-For multiple MCP servers, use `MultiMCPTools` with partial failure tolerance:
-
-```python
-from agno.tools.mcp import MultiMCPTools
-
-mcp_tools = MultiMCPTools(
-    [
-        "npx -y @modelcontextprotocol/server-brave-search",
-        "npx -y @modelcontextprotocol/server-filesystem /tmp",
-    ],
-    env={"BRAVE_API_KEY": "${BRAVE_API_KEY}"},
-    allow_partial_failure=True,                                         # <1>
-)
-```
-1. **`allow_partial_failure=True`** lets the agent run even if one server fails to start. Essential for production where MCP servers may be flaky.
-
-For remote MCP servers (streamable HTTP), the connection is simpler:
+For remote MCP servers (streamable HTTP), the connection is simpler — no process management, just a URL:
 
 ```python
 mcp_tools = MCPTools(
-    transport="streamable-http",                                        # <1>
+    transport="streamable-http",
     url="https://docs.agno.com/mcp",
+    header_provider=lambda: {"Authorization": f"Bearer {current_token()}"},  # <1>
 )
 ```
-1. **Streamable HTTP transport** connects to remote MCP servers. No process management needed — just a URL.
+1. **`header_provider` is called per run**, which is how you attach a rotating token to a remote server.
 
-### Memory and session storage {#sec-prod-agno-memory}
+::: {.callout-warning title="`MultiMCPTools` is gone in 3.0"}
+Agno 2.x had a `MultiMCPTools([...], allow_partial_failure=True)` class for fanning out across several servers. It was removed in 3.0 — `agno.tools.mcp` now exports exactly `MCPTools`, `SSEClientParams`, and `StreamableHTTPClientParams`. Pass several `MCPTools` instances and own the failure policy yourself:
 
-Agno separates two kinds of persistence:
+```python
+servers = [
+    MCPTools("npx -y @modelcontextprotocol/server-brave-search"),
+    MCPTools("npx -y @modelcontextprotocol/server-filesystem /tmp"),
+]
+live = []
+for server in servers:
+    try:
+        await server.connect()
+        live.append(server)
+    except Exception as exc:
+        log.warning("MCP server unavailable: %s", exc)   # was allow_partial_failure
 
-- **Session storage** — chat history within a conversation. The `db` parameter on Agent or Team determines where sessions live.
-- **Memory** — persistent user facts and preferences that survive across sessions. Managed by `MemoryManager`, which uses the model to extract structured memory entries from conversations.
+agent = Agent(model=Claude(id="claude-sonnet-4-6"), tools=live)
+```
+
+Six lines, and now the degraded state is logged instead of silent — which is what you wanted in production anyway.
+:::
+
+### Memory, sessions, and replay {#sec-prod-agno-memory}
+
+Agno separates two kinds of persistence, both configured through one `db` parameter:
+
+- **Session storage** — messages and runs within a conversation.
+- **Memory** — persistent user facts and preferences that survive across sessions, extracted by a model from the conversation.
 
 #### Session storage backends
 
@@ -305,15 +440,17 @@ agent = Agent(
 
 # Production
 agent = Agent(
-    db=PostgresDb(db_url="postgresql+psycopg://..."),                    # <4>
+    db=PostgresDb(db_url="postgresql+psycopg://..."),                   # <4>
     add_history_to_context=True,
     num_history_runs=6,
 )
 ```
 1. **SQLite for development.** Zero config, single file.
 2. **`add_history_to_context=True`** automatically includes previous messages in the prompt.
-3. **`num_history_runs=6`** limits how many prior turns are included — a context window budget control.
-4. **Postgres for production.** Same API, different backend. Also supported: MySQL, MongoDB, Redis, DynamoDB, Firestore, and Singlestore.
+3. **`num_history_runs=6`** limits how many prior turns are included — a context window budget control. `num_history_messages` and `max_tool_calls_from_history` are the finer knobs.
+4. **Postgres for production.** Same API, different backend. Fifteen backends live under `agno.db.*`: SQLite, Postgres (sync and async), MySQL, MongoDB, Redis, Valkey, DynamoDB, Firestore, ClickHouse, SingleStore, SurrealDB, JSON files, GCS-backed JSON, and in-memory.
+
+Every `*Db` also takes per-table name overrides — `SqliteDb` alone exposes twenty-five of them (`session_table`, `runs_table`, `memory_table`, `metrics_table`, `eval_table`, `traces_table`, `spans_table`, `learnings_table`, `schedules_table`, `approvals_table`, and the MCP OAuth set). Sharing one database across several systems needs a naming convention, not a wrapper class.
 
 #### Persistent user memory
 
@@ -335,23 +472,79 @@ agent = Agent(
 agent.run("My name is Sarah and I prefer dark mode.", user_id="sarah")
 
 # Later conversation (possibly a different session)
-response = agent.run("What are my preferences?", user_id="sarah")       # <3>
-# Response: "You prefer dark mode."
+output = agent.run("What are my preferences?", user_id="sarah")         # <3>
+# "You prefer dark mode."
 ```
 1. **`enable_agentic_memory=True`** gives the agent tools to create, update, and delete user memories.
 2. **`update_memory_on_run=True`** automatically extracts memories from each conversation turn.
 3. **Memories persist across sessions.** The agent retrieves Sarah's preferences from the database, not from the current conversation history.
 
-Shared memory across agents is straightforward — point multiple agents at the same database:
+Shared memory across agents is not an API — it is the same database:
 
 ```python
 agent_1 = Agent(db=db, update_memory_on_run=True)
 agent_2 = Agent(db=db, update_memory_on_run=True)
 
 agent_1.run("My name is John Doe", user_id="john")
-agent_2.run("What is my name?", user_id="john")                        # <1>
+agent_2.run("What is my name?", user_id="john")                         # <1>
 ```
-1. **Agent 2 can read Agent 1's memories.** Both agents share the same database, so memories created by one are visible to the other.
+1. **Agent 2 reads Agent 1's memories.** Both point at the same `db`, and `user_id` is the scope key.
+
+Beyond a single session, `search_past_sessions=True` with `num_past_sessions_to_search` does semantic recall across a user's prior conversations, and `enable_session_summaries=True` keeps a rolling summary instead of raw turns.
+
+#### Learning: memory with structure {#sec-prod-agno-learning}
+
+New in 3.0, `LearningMachine` is a curation layer above raw memory with six independently switchable stores:
+
+```python
+from agno.learn import LearningMachine
+
+agent = Agent(
+    db=db,
+    learning=LearningMachine(
+        db=db,
+        user_profile=True,        # stable facts about the person
+        user_memory=True,         # episodic preferences
+        session_context=True,     # what this session is about
+        entity_memory=True,       # facts about things mentioned
+        learned_knowledge=True,   # generalizations promoted into Knowledge
+        decision_log=True,        # why the agent chose what it chose
+        max_updates_per_run=10,
+    ),
+    add_learnings_to_context=True,
+)
+```
+
+Each store also takes a config object instead of `True` (`UserProfileConfig`, `EntityMemoryConfig`, and so on), and `LearningMode` controls when writes happen: `always`, `agentic`, `propose`, or `hitl`. `decision_log` is the one to reach for first — it is the "why did the agent do that" audit trail people otherwise build by hand.
+
+#### Replay and forking {#sec-prod-agno-replay}
+
+Older comparisons of Agno — including earlier printings of this book — said it had session storage but no state-snapshot replay, and pointed at Burr for debugging a run that branched wrong. Agno 3.0 closed that gap:
+
+```python
+agent = Agent(db=db, checkpoint="runs")                                 # <1>
+
+output = agent.run("Draft the launch post.", session_id="s-1")
+
+branched = agent.continue_run(                                          # <2>
+    run_id=output.run_id,
+    continue_from=4,                                                    # <3>
+    fork=True,
+    additional_instructions="Try a shorter, punchier opening.",
+)
+
+alt_session = agent.fork_session(source_session_id="s-1")               # <4>
+```
+1. **`checkpoint` sets snapshot granularity** — `"runs"`, `"tool-batch"`, or `"tools"`.
+2. **`continue_run` resumes, redoes, or branches** an earlier run. `regenerate=True` redoes from the last checkpoint; `replace_original` controls whether the original is overwritten.
+3. **`continue_from` takes a message index**, or `"end"` / `"last_user"`.
+4. **`fork_session` deep-copies a whole session** into a new one with fresh `session_id` and fresh `run_id`s, leaving the source untouched.
+
+`RunOutput` records the lineage in `forked_from_run_id`, `forked_from_message_index`, `forked_from_session_id`, and `regenerated_from`. The remaining difference from Burr is not *whether* you can fork but *what you fork into*: Burr hands you an explicit typed `State` and an explicit transition graph, so a forked run is inspectable as data. Agno's forked run is a message history. For debugging a prompt, the message history is enough; for debugging a state machine, it is not.
+
+::: {.callout-note title="`continue_run` is undocumented in 3.0.0"}
+The method carries no docstring. The parameter list above is from the signature, which is the contract; edge-case behavior — what `replace_original=None` resolves to, how `fork` and `regenerate` interact — should be checked against `agno/agent/_run.py` rather than guessed at.
+:::
 
 ### Multi-agent Teams {#sec-prod-agno-teams}
 
@@ -360,7 +553,7 @@ Agno's `Team` primitive handles multi-agent coordination. The key design choice 
 ```python
 from agno.agent import Agent
 from agno.models.anthropic import Claude
-from agno.team.team import Team
+from agno.team import Team
 from agno.team.mode import TeamMode
 
 researcher = Agent(
@@ -376,7 +569,7 @@ researcher = Agent(
 
 writer = Agent(
     name="Writer",
-    role="Content writer who crafts polished, engaging text",           # <2>
+    role="Content writer who crafts polished, engaging text",            # <2>
     model=Claude(id="claude-sonnet-4-6"),
     instructions=[
         "You are a skilled content writer.",
@@ -386,17 +579,17 @@ writer = Agent(
 )
 
 team = Team(
+    [researcher, writer],                                               # <3>
     name="Research & Writing Team",
-    mode=TeamMode.coordinate,                                           # <3>
-    model=Claude(id="claude-sonnet-4-6"),                               # <4>
-    members=[researcher, writer],
+    mode=TeamMode.coordinate,                                           # <4>
+    model=Claude(id="claude-sonnet-4-6"),                               # <5>
     instructions=[
         "You lead a research and writing team.",
         "For informational requests, ask the Researcher first,",
         "then ask the Writer to polish the findings.",
         "Synthesize everything into a cohesive response.",
     ],
-    show_members_responses=True,                                        # <5>
+    show_members_responses=True,                                        # <6>
     markdown=True,
 )
 
@@ -405,20 +598,32 @@ team.print_response(
     stream=True,
 )
 ```
-1. **`role` describes the agent to the team leader.** The leader uses this to decide which member to delegate to.
+1. **`role` describes the agent to the team leader.** The leader uses this to decide which member to delegate to. A member with no `role` is nearly invisible to delegation — the most common reason a team quietly ignores an agent you added.
 2. **Each member is a full Agent** with its own model, tools, and instructions.
-3. **`TeamMode.coordinate`** is the default. The leader analyzes the request, selects members, crafts tasks for each, and synthesizes their responses. Also available: `route` (pick one member), `broadcast` (send the same task to all members simultaneously), and `tasks` (autonomous breakdown with a shared task list).
-4. **The team leader has its own model.** This is the model that makes the delegation decisions.
-5. **`show_members_responses=True`** includes each member's individual response in the output — useful for debugging and transparency.
+3. **`members` is the first positional parameter and it is required.** `Team` breaks the all-keyword pattern that `Agent` follows. It also accepts a callable returning a member list, for membership resolved at run time.
+4. **`TeamMode.coordinate`** is the default. Also available: `route`, `broadcast`, and `tasks`.
+5. **The team leader has its own model.** This is the model that makes the delegation decisions.
+6. **`show_members_responses=True`** includes each member's individual response in the output — useful for debugging and transparency.
+
+The four modes:
+
+| Mode | What the leader does |
+|---|---|
+| `coordinate` | analyzes, picks members, writes each member's task, synthesizes the answers. The default. |
+| `route` | picks exactly one member and hands off |
+| `broadcast` | sends the same task to every member simultaneously |
+| `tasks` | breaks the work down autonomously against a shared task list |
+
+Members can themselves be `Team`s, so hierarchies nest with no extra machinery. Other parameters worth knowing: `respond_directly` (member output goes straight to the user with no leader synthesis), `determine_input_for_members` (default `True` — the leader rewrites each member's input), `max_iterations=10`, and `add_team_history_to_members`.
 
 #### A worked Team example: research pipeline
 
-Here's a more realistic team that combines MCP tools, knowledge, and memory:
+Here's a more realistic team that combines MCP tools, persistence, and memory:
 
 ```python
 from agno.agent import Agent
 from agno.models.anthropic import Claude
-from agno.team.team import Team
+from agno.team import Team
 from agno.team.mode import TeamMode
 from agno.tools.mcp import MCPTools
 from agno.db.postgres import PostgresDb
@@ -429,7 +634,7 @@ web_researcher = Agent(
     name="Web Researcher",
     role="Searches the web for current information",
     model=Claude(id="claude-sonnet-4-6"),
-    tools=[MCPTools(command="npx -y @modelcontextprotocol/server-brave-search",
+    tools=[MCPTools("npx -y @modelcontextprotocol/server-brave-search",
                     env={"BRAVE_API_KEY": "${BRAVE_API_KEY}"})],
     instructions="Search for current, authoritative sources. Cite URLs.",
 )
@@ -438,7 +643,7 @@ code_analyst = Agent(
     name="Code Analyst",
     role="Analyzes code repositories and technical documentation",
     model=Claude(id="claude-sonnet-4-6"),
-    tools=[MCPTools(command="npx -y @modelcontextprotocol/server-filesystem /tmp")],
+    tools=[MCPTools("npx -y @modelcontextprotocol/server-filesystem /tmp")],
     instructions="Analyze code structure, dependencies, and patterns.",
 )
 
@@ -450,10 +655,10 @@ report_writer = Agent(
 )
 
 research_team = Team(
+    [web_researcher, code_analyst, report_writer],
     name="Technical Research Team",
     mode=TeamMode.coordinate,
     model=Claude(id="claude-sonnet-4-6"),
-    members=[web_researcher, code_analyst, report_writer],
     db=db,                                                              # <1>
     enable_agentic_memory=True,                                         # <2>
     instructions=[
@@ -474,6 +679,47 @@ research_team.print_response(
 2. **Team-level memory.** The team remembers facts about users across sessions — the same memory API as individual agents.
 3. **`user_id` scopes memories.** Different users get different memory stores.
 
+### Skills: SKILL.md folders as capability packs {#sec-prod-agno-skills}
+
+New in 3.0, and directly compatible with the `SKILL.md` layout Claude Code uses (@sec-skills):
+
+```python
+from agno.skills import Skills, LocalSkills
+
+skills = Skills(loaders=[LocalSkills(path="./skills", validate=True)])   # <1>
+agent = Agent(model=Claude(id="claude-sonnet-4-6"), skills=skills)      # <2>
+```
+1. **A loader points at a directory of skill folders.** Each folder holds a `SKILL.md` with YAML frontmatter (`name`, `description`, optional `license`, `compatibility`, `allowed_tools`, arbitrary `metadata`) plus optional `scripts/` and `references/`.
+2. **The agent gets three tools** — `get_skill_instructions`, `get_skill_reference`, `get_skill_script` — plus a `<skills_system>` block in its prompt naming what's available.
+
+The design point is the same as Chapter 4's: only the skill *names and descriptions* sit in context, and the body loads on demand when the model asks for it. `Skills` exposes `get_skill_names()`, `get_skill(name)`, `get_all_skills()`, `get_tools()`, `get_system_prompt_snippet()`, and `reload()`. Parse and validation failures raise typed errors — `SkillParseError`, `SkillValidationError`.
+
+This is worth pausing on: a skill folder written for Claude Code loads into an Agno agent unmodified. The prompt-pack format is becoming portable across runtimes.
+
+### Guardrails and evals as hooks {#sec-prod-agno-guardrails}
+
+```python
+from agno.guardrails import (
+    PIIDetectionGuardrail, PromptInjectionGuardrail, OpenAIModerationGuardrail,
+)
+
+agent = Agent(
+    model=Claude(id="claude-sonnet-4-6"),
+    pre_hooks=[                                                         # <1>
+        PIIDetectionGuardrail(
+            mask_pii=True,
+            custom_patterns={"employee_id": r"EMP-\d{6}"},              # <2>
+        ),
+        PromptInjectionGuardrail(),
+    ],
+    post_hooks=[...],
+)
+```
+1. **`pre_hooks` and `post_hooks` accept `Callable`, `BaseGuardrail`, or `BaseEval`** — validation, moderation, and scoring share one slot. Subclass `BaseGuardrail` for custom checks instead of wrapping `run()`.
+2. **The shipped detectors are configurable**, with per-category switches (`enable_ssn_check`, `enable_credit_card_check`, `enable_email_check`, `enable_phone_check`) and custom regex.
+
+Evals live at `agno.eval` — `accuracy`, `performance`, `reliability`, and `agent_as_judge`, all under `BaseEval` — and results persist to the db's `eval_table`. An eval in `post_hooks` scores production traffic; the same class in a test scores a fixture set.
+
 ### AgentOS: serving agents as APIs {#sec-prod-agno-agentos}
 
 Agno's `AgentOS` wraps agents, teams, and workflows into a deployable application:
@@ -482,31 +728,49 @@ Agno's `AgentOS` wraps agents, teams, and workflows into a deployable applicatio
 from agno.os import AgentOS
 
 agent_os = AgentOS(
+    name="research-system",
     description="Production research system",
     agents=[support_agent],
     teams=[research_team],
     workflows=[article_pipeline],
+    db=db,
     tracing=True,                                                       # <1>
 )
 
 app = agent_os.get_app()                                                # <2>
 
 if __name__ == "__main__":
-    agent_os.serve(app="main:app")                                      # <3>
+    agent_os.serve(app="main:app", port=7777, reload=True)              # <3>
 ```
 1. **`tracing=True`** enables OpenTelemetry tracing across all agents, teams, and workflows.
-2. **`get_app()` returns a FastAPI app.** You get REST endpoints for every agent and team automatically.
-3. **`serve()` runs the app.** The agents are now callable via HTTP.
+2. **`get_app()` returns a `fastapi.FastAPI`.** You get REST endpoints for every agent and team automatically.
+3. **`serve()` is a uvicorn wrapper.** Pass the import string (`"main:app"`), not the object, when `reload=True` — same rule as uvicorn itself.
 
-The inverse is also possible — an AgentOS instance can expose its agents as MCP tools:
+The constructor is where the platform claim gets concrete. Each of these parameters replaces a subsystem teams routinely build:
+
+| Parameter | What you no longer write |
+|---|---|
+| `mcp_server=True` | your agents become MCP tools other clients can call |
+| `a2a_interface=True` | an agent-to-agent protocol endpoint |
+| `interfaces=[...]` | Slack, Telegram, WhatsApp, AGUI front-ends (`agno.os.interfaces.*`) |
+| `authorization=True`, `authorization_config`, `mcp_auth` | auth, scopes, and service accounts |
+| `scheduler=True`, `scheduler_poll_interval` | cron-style scheduled runs |
+| `queue=QueueConfig(...)` | a background job queue |
+| `event_stream=...` | run-event fan-out to subscribers |
+| `checkpoint="runs"` | OS-wide replay granularity |
+| `auto_provision_dbs=True` | table creation and migration |
+| `base_app=...`, `on_route_conflict=...` | mounting into an existing FastAPI app |
+
+::: {.callout-tip title="The AgentOS-as-MCP-server angle"}
+`AgentOS(mcp_server=True)` makes Agno the *server* side of MCP: its agents become tools that other agents — yours, a Claude Code session, or an entirely different framework — can call. This is the inverse of `MCPTools`, and it is rare among frameworks. The pattern is useful when you've built a specialist agent and want it reachable from a stack that has nothing to do with Agno.
 
 ```python
 mcp_tools = MCPTools(
     transport="streamable-http",
-    url="https://my-agent-os.example.com/mcp",                         # <1>
+    url="https://my-agent-os.example.com/mcp",
 )
 ```
-1. **AgentOS as MCP server.** Other agents (yours or someone else's) can call your agents as tools via MCP. This makes Agno an integration target for non-Agno agents.
+:::
 
 ### OpenTelemetry observability {#sec-prod-agno-otel}
 
@@ -532,7 +796,7 @@ The traces follow the [OpenInference](https://github.com/Arize-ai/openinference)
 - **Team coordination spans** — leader decisions, member delegations, synthesis
 - **Knowledge query spans** — search terms, filters, retrieved chunks, relevance scores
 
-Traces flow to whichever OpenTelemetry backend you wire up — the session database (`SqliteDb`, `PostgresDb`) stores sessions, memories, metrics, and eval results, but trace querying is not part of its API. For local development the simplest setup is Arize Phoenix as a local OTel collector:
+Traces flow to whichever OpenTelemetry backend you wire up. The session database (`SqliteDb`, `PostgresDb`) stores sessions, memories, metrics, and eval results, and it does carry `traces_table` and `spans_table` — but querying traces is the backend's job, not the db API's. For local development the simplest setup is Arize Phoenix as a local OTel collector:
 
 ```python
 # pip install arize-phoenix
@@ -545,26 +809,67 @@ px.launch_app()   # local UI at http://localhost:6006
 
 For production, point the OTel exporter at Jaeger, Grafana Tempo, Datadog, or Arize's hosted backend.
 
+### Migrating from Agno 1.x and 2.x {#sec-prod-agno-migrate}
+
+Agno moves fast and breaks public API across majors. If you inherit an Agno codebase, this table turns the error message into the fix:
+
+| Symptom | Cause | Fix in 3.0 |
+|---|---|---|
+| `TypeError: run() got an unexpected keyword argument 'message'` | 1.x `run(message=...)` | `run(input=...)`, positional |
+| `response_model` rejected | 1.x name | `output_schema=` |
+| `ImportError: cannot import name 'MultiMCPTools'` | 2.x class, removed | several `MCPTools`, connect each yourself |
+| ``ImportError: `mcp` not installed`` — with mcp installed | mcp 2.x present; Agno needs `mcp<2` | `pip install "agno[mcp]"` |
+| `agno.storage.*` not found | 1.x storage module | `agno.db.*`, and the parameter is `db=` |
+| `AgentKnowledge` / `*KnowledgeBase` not found | 1.x knowledge classes | one `Knowledge` class plus readers |
+| `knowledge.load(...)` missing | 1.x/2.x ingestion | `insert()` / `insert_many()` |
+| a `Memory(...)` object to construct | 1.x/2.x memory object | `db=` plus `enable_agentic_memory` / `update_memory_on_run`, or `LearningMachine` |
+| `Team()` fails with no arguments | `members` became required and positional | `Team([a, b], ...)` |
+| `from agno.workflow.workflow import Workflow` | 2.x deep path | `from agno.workflow import Workflow, Step, Condition, Loop, Parallel, Router` |
+| `from agno.team.team import Team` | 2.x deep path | `from agno.team import Team` |
+
+New in 3.0 with no 2.x equivalent: `skills=`, `learning=`, `checkpoint=` with `continue_run(fork=...)` and `fork_session()`, `human_review=` on workflow steps, guardrails and evals in `pre_hooks`/`post_hooks`, `fallback_models`, `compress_tool_results` and `offload_tool_results`, and the AgentOS `scheduler` / `queue` / `a2a_interface` parameters.
+
 ### When Agno is the right call {#sec-prod-agno-when}
 
-Agno wins when you want **multi-agent + MCP + RAG on day one** and don't want to spend a sprint assembling them from independent libraries. The cost is opinionation: Agno's `Knowledge` decides how retrieval works, `Team` decides how routing works, `MemoryManager` decides what memory looks like. If those defaults match your needs, Agno is the fastest path to a working multi-agent system.
+Agno wins when you want **multi-agent + MCP + RAG + a control plane on day one** and don't want to spend a sprint assembling them from independent libraries. The cost is opinionation: `Knowledge` decides how retrieval works, `Team` decides how routing works, `LearningMachine` decides what memory looks like. If those defaults match your needs, Agno is the fastest path to a working multi-agent system.
+
+Before writing anything in an Agno codebase, check whether the framework already has it. This list is the most useful thing in the section:
+
+| You're about to build | Agno already ships |
+|---|---|
+| a retry/backoff wrapper | `retries`, `delay_between_retries`, `exponential_backoff` |
+| provider failover | `fallback_models` |
+| a retrieve-then-prompt RAG pipeline | `knowledge=` plus `search_knowledge` (already `True`) |
+| a PDF/website ingestion script | `Knowledge` readers |
+| a conversation-history trimmer | `add_history_to_context` + `num_history_runs` |
+| a "remember the user" table | `enable_agentic_memory`, `update_memory_on_run` |
+| an approval queue | `@tool(requires_confirmation=True)`, `HumanReview`, AgentOS `approvals_table` |
+| a router picking one specialist | `TeamMode.route`, or `Router` in a workflow |
+| a bounded retry loop over a stage | `Loop(max_iterations, end_condition)` |
+| branch-and-compare debugging | `fork_session()`, `continue_run(fork=True)` |
+| a REST API around your agents | `AgentOS.get_app()` |
+| a Slack or Telegram bot shell | `agno.os.interfaces.*` |
+| a cron runner | `AgentOS(scheduler=True)` |
+| PII scrubbing, injection detection | `agno.guardrails` in `pre_hooks` |
+| an LLM-as-judge harness | `agno.eval.agent_as_judge` |
+| OTel spans around runs and tools | `tracing=True` |
+| a "why did it decide that" log | `LearningMachine(decision_log=True)` |
 
 Agno's strengths:
 
-- **Breadth of integration.** MCP tools, 10+ vector DBs, 10+ storage backends, 20+ built-in tool classes, multi-model support — all with consistent APIs.
-- **Multi-agent out of the box.** Team modes (coordinate, route, broadcast, tasks) handle the most common multi-agent patterns without you writing routing logic.
-- **AgentOS deployment.** From prototype to API in minutes. The FastAPI wrapper, MCP server exposure, and tracing are deployment-ready.
-- **Agentic RAG.** Knowledge-as-a-tool means the model decides when and how to search — no hand-orchestrated retrieval pipelines.
+- **Breadth of integration.** MCP tools, 20 vector DBs, 15 storage backends, 141 built-in toolkit modules, 48 model providers — all with consistent APIs.
+- **Multi-agent out of the box.** Team modes handle the common multi-agent patterns without you writing routing logic.
+- **AgentOS deployment.** From prototype to API in minutes, with MCP-server exposure, scheduling, auth, and tracing already wired.
+- **Agentic RAG.** Knowledge-as-a-tool means the model decides when and how to search.
+- **Human review as a parameter.** `HumanReview` on a step and `requires_confirmation` on a tool cover the approval cases without a separate service.
 
 Agno's weaknesses:
 
-- **No fork-from-state replay.** If you need to debug *why* a past run branched wrong and re-run from the exact state, Burr (Chapter 7) is the tool. Agno has session storage but not state-snapshot replay.
-- **Opinionated abstractions.** If Agno's `Knowledge` doesn't match your retrieval needs, or `Team` coordination doesn't fit your use case, you're fighting the framework rather than using it.
-- **Less explicit control flow.** The `Team` leader makes routing decisions via the model — powerful but less predictable than an explicit state machine. For critical paths where you need deterministic routing, `Workflow` or Burr is safer.
-
-::: {.callout-tip title="The AgentOS-as-MCP-server angle"}
-Agno can also be the *server* side of MCP: an `AgentOS` instance exposes its agents as MCP tools that other agents (yours or someone else's) can call. This is the inverse of `MCPTools`. The pattern is useful when you've built a specialist agent and want a Claude Code session — or a different framework entirely — to call it as a tool. It also makes Agno an integration target for non-Agno agents, which is rare among frameworks.
-:::
+- **Opinionated abstractions.** If `Knowledge` doesn't match your retrieval needs, or `Team` coordination doesn't fit, you're fighting the framework rather than using it.
+- **Less explicit control flow.** The `Team` leader routes via the model — powerful but less predictable than an explicit state machine. For critical paths, use `Workflow` with `executor=` callables, or Burr.
+- **Control flow is Agno's vocabulary, not yours.** A `Loop` is a loop and a `Condition` is a branch. Burr routes to any action on any predicate; Agno gives you the shapes that ship.
+- **State is a message history, not a typed value.** Forking works (@sec-prod-agno-replay), but what you fork is a conversation, not an inspectable `State` object. When the state machine *is* the specification, Burr's typing earns its keep.
+- **API churn.** Three majors in about two years, each with removals. Pin the version and read @sec-prod-agno-migrate before upgrading.
 
 
 ## mcp-agent: MCP-Native and Pattern-First {#sec-prod-mcp-agent}
@@ -977,7 +1282,7 @@ import asyncio
 from agno.agent import Agent
 from agno.models.anthropic import Claude
 from agno.tools.mcp import MCPTools
-from agno.team.team import Team
+from agno.team import Team
 from agno.team.mode import TeamMode
 from agno.db.sqlite import SqliteDb
 
@@ -986,7 +1291,7 @@ db = SqliteDb(db_file="qa_agent.db")
 async def main():
     # MCP-based web search
     search_tools = MCPTools(
-        command="npx -y @modelcontextprotocol/server-brave-search",
+        "npx -y @modelcontextprotocol/server-brave-search",
         env={"BRAVE_API_KEY": "${BRAVE_API_KEY}"},
     )
     await search_tools.connect()
@@ -1013,10 +1318,10 @@ async def main():
     )
 
     qa_team = Team(                                                      # <3>
+        [researcher, synthesizer],
         name="QA Team",
         mode=TeamMode.coordinate,
         model=Claude(id="claude-sonnet-4-6"),
-        members=[researcher, synthesizer],
         db=db,
         instructions=[
             "For factual questions, delegate to the Researcher first.",
@@ -1037,7 +1342,7 @@ asyncio.run(main())
 ```
 1. **Researcher agent** has web search via MCP. It gathers evidence.
 2. **Synthesizer agent** takes the researcher's findings and produces a grounded answer.
-3. **Team in coordinate mode.** The leader decides the pipeline: research first, synthesize second. The routing is model-driven, not hard-coded.
+3. **Team in coordinate mode.** Members go in positionally. The leader decides the pipeline: research first, synthesize second. The routing is model-driven, not hard-coded.
 
 The PocketFlow version had explicit `DecideAction` -> `SearchWeb` -> `Answer` nodes with action edges. The Agno version replaces the explicit state machine with a team leader that makes the same decisions — but the routing logic is in the model, not the graph.
 
@@ -1122,26 +1427,27 @@ The shape difference is the actual decision the comparison is helping you make:
 | Axis | Agno | mcp-agent |
 |------|------|-----------|
 | **Center of gravity** | Batteries-included agent platform | MCP-spec-native + Anthropic patterns |
-| **Killer feature** | `Knowledge` + `Team` + `MCPTools` + 10 storage backends | Full MCP spec + pattern factories + Temporal |
+| **Killer feature** | `Knowledge` + `Team` + `MCPTools` + AgentOS control plane | Full MCP spec + pattern factories + Temporal |
 | **Primitives** | Agent, Team, Workflow, Knowledge | Agent, AugmentedLLM, pattern factories |
 | **MCP story** | First-class `MCPTools` + AgentOS-as-server | The substrate — lifecycle, auth, elicitation, sampling |
-| **RAG** | `Knowledge` primitive, 10+ vector DBs | DIY (via MCP servers) |
+| **RAG** | `Knowledge` primitive, 20 vector DBs | DIY (via MCP servers) |
 | **Multi-agent** | Native `Team` with 4 coordination modes | Nested `AugmentedLLM`s + Swarm pattern |
-| **Memory** | Agentic memory + session storage + 10 DB backends | DIY |
-| **Replay / durability** | Session storage (no fork-from-state) | Temporal workflow replay |
+| **Memory** | Agentic memory + `LearningMachine` + 15 DB backends | DIY |
+| **Replay / durability** | `checkpoint=` + `continue_run(fork=…)` + `fork_session()` (3.0) | Temporal workflow replay |
 | **Observability** | OTel via OpenInference, built-in trace DB | OTLP + `TokenCounter` |
-| **Deployment** | AgentOS (FastAPI, RBAC, MCP server) | Library only (bring your own deployment) |
+| **Human review** | `HumanReview` per step, `requires_confirmation` per tool | Elicitation via MCP |
+| **Deployment** | AgentOS (FastAPI, RBAC, MCP server, scheduler, queue) | Library only (bring your own deployment) |
 | **Governance** | Commercial (Agno) + OSS | Last Mile AI + OSS |
 | **Pick when...** | You want MCP + RAG + Team + memory without assembly | You're MCP-first, want patterns as primitives, need durable execution |
 
-For the full three-way comparison (including Burr + Pydantic), see the Burr sections in Chapter 7 — particularly the fork-from-state replay story that neither Agno nor mcp-agent matches.
+For the full three-way comparison (including Burr + Pydantic), see the Burr sections in Chapter 7. Agno 3.0 closed the replay gap that earlier comparisons put in Burr's column (@sec-prod-agno-replay); what still separates them is typed state — Burr forks an inspectable `State`, Agno forks a message history.
 
 ::: {.callout-tip title="Can you combine them?"}
 **Agno + mcp-agent** overlap significantly — both want to own the agent surface — so picking one is usually cleaner.
 
 **Burr + Agno** is plausible: use Burr's state machine for the conversational loop (Chapter 7), call an Agno agent as a tool inside an action. The composition isn't documented but the interfaces are loose enough.
 
-**Burr + mcp-agent** is similar: a Burr action can wrap an mcp-agent `AugmentedLLM` and benefit from both fork-from-state and the pattern library. This is the most synergistic pairing — Burr for the outer loop and state inspection, mcp-agent for the inner pattern composition.
+**Burr + mcp-agent** is similar: a Burr action can wrap an mcp-agent `AugmentedLLM` and benefit from both typed-state replay and the pattern library. This is the most synergistic pairing — Burr for the outer loop and state inspection, mcp-agent for the inner pattern composition.
 :::
 
 ::: {.callout-note title="What about Mastra?"}
@@ -1169,10 +1475,11 @@ Feature tables — including the one in @sec-prod-matrix — stall when the requ
 ## Key Takeaways {#sec-prod-takeaways}
 
 - PocketFlow stops being enough when MCP servers proliferate and you need multi-agent coordination, RAG, and memory. Chapter 7 (Burr + Pydantic) addresses typed state and replay; this chapter addresses the platform question.
-- **Agno** is the batteries-included pick. `Agent` / `Team` / `Workflow` / `Knowledge` plus `MCPTools` plus multi-backend memory ship MCP, RAG, and multi-agent as one decision instead of three integrations. The cost is opinionation — Agno decides how retrieval, routing, and memory work.
+- **Agno** is the batteries-included pick. `Agent` / `Team` / `Workflow` / `Knowledge` plus `MCPTools`, multi-backend memory, per-step `HumanReview`, and the AgentOS control plane ship MCP, RAG, multi-agent, approvals, and deployment as one decision instead of five integrations. The cost is opinionation — Agno decides how retrieval, routing, and memory work — and API churn: three majors in two years, each with removals (@sec-prod-agno-migrate).
 - **mcp-agent** is the MCP-native pick. The Model Context Protocol is the substrate, `AugmentedLLM` is the composition primitive, and the canonical Anthropic patterns (Router, Parallel, Evaluator-Optimizer) ship as factory helpers. Temporal handles durable execution. The cost is assembly — no built-in RAG, memory, or deployment story.
 - The decision matrix in @sec-prod-matrix is honest about gaps — neither framework is a superset of the other. The right choice depends on which pressure dominates your project.
-- Frameworks compose better than they replace. Burr (Chapter 7) + mcp-agent is a real option: fork-from-state for the outer loop, `AugmentedLLM` patterns inside the actions.
+- Frameworks compose better than they replace. Burr (Chapter 7) + mcp-agent is a real option: typed-state replay for the outer loop, `AugmentedLLM` patterns inside the actions.
+- Pin the Agno version. Every signature in this chapter is agno 3.0.0; 1.x and 2.x code fails at import or at the first keyword argument.
 
 
 ## Concept Map {#sec-prod-concept-map}

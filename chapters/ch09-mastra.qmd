@@ -1040,26 +1040,26 @@ How does Mastra stack up against the Python frameworks from Chapters 7 and 8? Th
 | **Tool typing** | Zod schemas | Python type hints | MCP schemas | `reads`/`writes` decl. |
 | **Workflows** | Builder pattern (`.then/.parallel/.branch`) | `Workflow` class | Orchestrator patterns | `ApplicationBuilder` graph |
 | **MCP client** | `MCPClient` (native) | `MCPTools` wrapper | Native substrate | Manual integration |
-| **MCP server** | `MCPServer` (native) | Not built-in | Not built-in | Not built-in |
-| **Memory** | 4-layer (history, observational, working, semantic) | Session + memory stores | Conversation context | State snapshots |
+| **MCP server** | `MCPServer` (native) | `AgentOS(mcp_server=True)` | Not built-in | Not built-in |
+| **Memory** | 4-layer (history, observational, working, semantic) | Sessions + agentic memory + `LearningMachine` (6 stores) | Conversation context | State snapshots |
 | **RAG** | Built-in pipeline | `Knowledge` primitive | External | External (Hamilton) |
-| **Human-in-the-loop** | Workflow suspension | Workflow steps | Temporal signals | Manual state check |
+| **Human-in-the-loop** | Workflow suspension | `HumanReview` per step, `requires_confirmation` per tool | Temporal signals | `halt_before` |
 | **Structured output** | Zod/Valibot/ArkType | Pydantic models | JSON Schema | Pydantic models |
 | **Observability** | OTel traces + metrics | OTel compatible | Logging | Burr UI + OTel |
-| **Fork/replay** | Studio time-travel | Not built-in | Temporal replay | `fork_from_sequence_id` |
+| **Fork/replay** | Studio time-travel | `continue_run(fork=…)`, `fork_session()` (3.0) | Temporal replay | `fork_from_sequence_id` |
 | **Multi-agent** | Supervisor (agent-as-tool) | `Team` (auto-routing) | Router/Parallel/Evaluator | Manual composition |
 | **Deployment** | Hono server, Vercel, Lambda, Cloudflare, Inngest | FastAPI, Docker | Custom server | Custom server |
 | **Visual dev** | Studio | Agno Platform | Not built-in | Burr UI |
-| **Guardrails** | Input/output guardrails, tripwire | Custom middleware | Not built-in | Not built-in |
+| **Guardrails** | Input/output guardrails, tripwire | `agno.guardrails` in `pre_hooks` | Not built-in | Not built-in |
 
 ::: {.callout-note}
-The comparison is not "which is best" — it's "which fits your stack." If your backend is TypeScript, Mastra is the natural choice. If your team is Python-primary and needs MCP as the substrate, mcp-agent is the fit. If you need fork-from-state debugging above all else, Burr is unmatched. If you want Python batteries-included, Agno is the pick. The matrix helps you find your row.
+The comparison is not "which is best" — it's "which fits your stack." If your backend is TypeScript, Mastra is the natural choice. If your team is Python-primary and needs MCP as the substrate, mcp-agent is the fit. If you need typed-state fork-and-replay above all else, Burr is unmatched — Agno 3.0 forks too, but what it forks is a message history, not an inspectable `State`. If you want Python batteries-included, Agno is the pick. The matrix helps you find your row.
 :::
 
 ### Where Mastra leads
 
 - **MCP server support.** Mastra is the only framework in this comparison that can *expose* your agents as MCP servers, not just consume MCP servers. This makes your Mastra agents composable into other agents' tool sets — a capability that matters when you're building a multi-agent system across teams or organizations.
-- **Memory depth.** The four-layer memory system (history, observational, working, semantic) is more nuanced than any of the Python frameworks' built-in memory. Agno has flexible storage backends but doesn't ship observational memory or semantic recall as primitives.
+- **Memory depth.** The four-layer memory system (history, observational, working, semantic) is Mastra's oldest lead, and Agno 3.0's `LearningMachine` narrows it — six curated stores (user profile, user memory, session context, entity memory, learned knowledge, decision log) plus `search_past_sessions` for semantic recall. Mastra still wins on working memory as a first-class, schema-typed layer.
 - **Edge deployment.** TypeScript's cold-start advantage on Cloudflare Workers, Vercel Edge, and Deno Deploy is real. Python agents on Lambda have 2-5 second cold starts; TypeScript agents on edge runtimes start in milliseconds.
 
 ### Where Mastra trails
