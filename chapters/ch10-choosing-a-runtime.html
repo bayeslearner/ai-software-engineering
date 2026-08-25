@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="AI-Powered SE Tutorial">
-<meta name="dcterms.date" content="2026-08-24">
+<meta name="dcterms.date" content="2026-08-25">
 
 <title>10&nbsp; Choosing a Runtime – AI-Powered Software Engineering</title>
 <style>
@@ -305,7 +305,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">August 24, 2026</p>
+      <p class="date">August 25, 2026</p>
     </div>
   </div>
   
@@ -337,7 +337,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><strong>Executed, assertions passed:</strong> Burr 0.42.0, LangGraph 1.2.11. <strong>Written from current published docs, not executed:</strong> Agno, Microsoft Agent Framework, Pydantic AI — accurate in shape, unverified in detail. Where this chapter shows terminal output, that output is real. Where it shows only code, say so. A comparison that claims a green run it did not get is worse than no comparison.</p>
+<p><strong>Executed, assertions passed:</strong> Burr 0.42.0, LangGraph 1.2.11, Agno 3.0.0 (structural checks — workflow control flow, HITL pause and resume, persistence — run without model calls). <strong>Written from current published docs, not executed:</strong> Microsoft Agent Framework, Pydantic AI — accurate in shape, unverified in detail. Where this chapter shows terminal output, that output is real. Where it shows only code, say so. A comparison that claims a green run it did not get is worse than no comparison.</p>
 </div>
 </div>
 <p>The first version of that evaluation asked: <em>which framework can hold both a pinned pipeline and a worker–reviewer loop?</em> That turned out to be the wrong question — or at least a late one. Answering it properly required backing up to something more basic.</p>
@@ -725,7 +725,7 @@ checkpoints   : 10  (original branch still there)</code></pre>
 </section>
 <section id="sec-rt-agno" class="level3" data-number="10.5.5">
 <h3 data-number="10.5.5" class="anchored" data-anchor-id="sec-rt-agno"><span class="header-section-number">10.5.5</span> Agno — declared steps and loops, plus a control plane</h3>
-<p><em>From current docs. See <a href="ch08-production-frameworks.html#sec-prod-agno" class="quarto-xref"><span>Section 8.2</span></a> for the full platform tour.</em></p>
+<p><em>Signatures verified against agno 3.0.0; the pause/resume flow below was executed. See <a href="ch08-production-frameworks.html#sec-prod-agno" class="quarto-xref"><span>Section 8.2</span></a> for the full platform tour.</em></p>
 <p>Agno’s distinguishing move in this comparison: <strong>the review loop is a component you declare, not a graph you wire.</strong> Per-iteration review, reject-with-feedback and resumption arrive without drawing a single edge.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>workflow <span class="op">=</span> Workflow(</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">"produce_episode"</span>, db<span class="op">=</span>SqliteDb(db_file<span class="op">=</span><span class="st">"wf.db"</span>),   <span class="co"># db required for HITL</span></span>
@@ -747,7 +747,7 @@ checkpoints   : 10  (original branch still there)</code></pre>
 <span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> req <span class="kw">in</span> run.steps_requiring_output_review:</span>
 <span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>        req.confirm()                     <span class="co"># or req.reject(feedback="runs long")</span></span>
 <span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    run <span class="op">=</span> workflow.continue_run(run)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><strong>On the axes.</strong> Fastest route to a working reviewer loop with human review at every iteration, and the only candidate shipping a control plane (sessions, RBAC, tracing) in the box. But the control flow is <em>Agno’s vocabulary</em>: a <code>Loop</code> is a loop. Burr routes to any action on any predicate; here you get the shapes that ship (axis A constrained, axis B closed — the composed posture has no natural expression). No fork-from-arbitrary-checkpoint, so walkback is yours regardless.</p>
+<p><strong>On the axes.</strong> Fastest route to a working reviewer loop with human review at every iteration, and the only candidate shipping a control plane (sessions, RBAC, tracing) in the box. But the control flow is <em>Agno’s vocabulary</em>: a <code>Loop</code> is a loop. Burr routes to any action on any predicate; here you get the shapes that ship (axis A constrained, axis B closed — the composed posture has no natural expression). Forking exists at the agent level — <code>checkpoint=</code>, <code>continue_run(fork=True, continue_from=&lt;index&gt;)</code>, <code>fork_session()</code> — but what it forks is a message history, not a typed state you can read, diff, or policy-check before resuming.</p>
 </section>
 </section>
 <section id="sec-rt-composed" class="level2" data-number="10.6">
@@ -970,7 +970,7 @@ world after   : {'sources': []}  (back to the start)</code></pre>
 <td>Fork from any past point</td>
 <td>✓ <code>sequence_id</code></td>
 <td>✓ best of five</td>
-<td>✗</td>
+<td>~ message index, untyped</td>
 <td>~ from head</td>
 <td>~ replay</td>
 </tr>

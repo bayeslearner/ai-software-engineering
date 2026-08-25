@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="AI-Powered SE Tutorial">
-<meta name="dcterms.date" content="2026-08-24">
+<meta name="dcterms.date" content="2026-08-25">
 
 <title>9&nbsp; Mastra: TypeScript Agents, End to End – AI-Powered Software Engineering</title>
 <style>
@@ -359,7 +359,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">August 24, 2026</p>
+      <p class="date">August 25, 2026</p>
     </div>
   </div>
   
@@ -1846,14 +1846,14 @@ Note
 <tr class="even">
 <td><strong>MCP server</strong></td>
 <td><code>MCPServer</code> (native)</td>
-<td>Not built-in</td>
+<td><code>AgentOS(mcp_server=True)</code></td>
 <td>Not built-in</td>
 <td>Not built-in</td>
 </tr>
 <tr class="odd">
 <td><strong>Memory</strong></td>
 <td>4-layer (history, observational, working, semantic)</td>
-<td>Session + memory stores</td>
+<td>Sessions + agentic memory + <code>LearningMachine</code> (6 stores)</td>
 <td>Conversation context</td>
 <td>State snapshots</td>
 </tr>
@@ -1867,9 +1867,9 @@ Note
 <tr class="odd">
 <td><strong>Human-in-the-loop</strong></td>
 <td>Workflow suspension</td>
-<td>Workflow steps</td>
+<td><code>HumanReview</code> per step, <code>requires_confirmation</code> per tool</td>
 <td>Temporal signals</td>
-<td>Manual state check</td>
+<td><code>halt_before</code></td>
 </tr>
 <tr class="even">
 <td><strong>Structured output</strong></td>
@@ -1888,7 +1888,7 @@ Note
 <tr class="even">
 <td><strong>Fork/replay</strong></td>
 <td>Studio time-travel</td>
-<td>Not built-in</td>
+<td><code>continue_run(fork=…)</code>, <code>fork_session()</code> (3.0)</td>
 <td>Temporal replay</td>
 <td><code>fork_from_sequence_id</code></td>
 </tr>
@@ -1916,7 +1916,7 @@ Note
 <tr class="even">
 <td><strong>Guardrails</strong></td>
 <td>Input/output guardrails, tripwire</td>
-<td>Custom middleware</td>
+<td><code>agno.guardrails</code> in <code>pre_hooks</code></td>
 <td>Not built-in</td>
 <td>Not built-in</td>
 </tr>
@@ -1932,14 +1932,14 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The comparison is not “which is best” — it’s “which fits your stack.” If your backend is TypeScript, Mastra is the natural choice. If your team is Python-primary and needs MCP as the substrate, mcp-agent is the fit. If you need fork-from-state debugging above all else, Burr is unmatched. If you want Python batteries-included, Agno is the pick. The matrix helps you find your row.</p>
+<p>The comparison is not “which is best” — it’s “which fits your stack.” If your backend is TypeScript, Mastra is the natural choice. If your team is Python-primary and needs MCP as the substrate, mcp-agent is the fit. If you need typed-state fork-and-replay above all else, Burr is unmatched — Agno 3.0 forks too, but what it forks is a message history, not an inspectable <code>State</code>. If you want Python batteries-included, Agno is the pick. The matrix helps you find your row.</p>
 </div>
 </div>
 <section id="where-mastra-leads" class="level3" data-number="9.15.1">
 <h3 data-number="9.15.1" class="anchored" data-anchor-id="where-mastra-leads"><span class="header-section-number">9.15.1</span> Where Mastra leads</h3>
 <ul>
 <li><strong>MCP server support.</strong> Mastra is the only framework in this comparison that can <em>expose</em> your agents as MCP servers, not just consume MCP servers. This makes your Mastra agents composable into other agents’ tool sets — a capability that matters when you’re building a multi-agent system across teams or organizations.</li>
-<li><strong>Memory depth.</strong> The four-layer memory system (history, observational, working, semantic) is more nuanced than any of the Python frameworks’ built-in memory. Agno has flexible storage backends but doesn’t ship observational memory or semantic recall as primitives.</li>
+<li><strong>Memory depth.</strong> The four-layer memory system (history, observational, working, semantic) is Mastra’s oldest lead, and Agno 3.0’s <code>LearningMachine</code> narrows it — six curated stores (user profile, user memory, session context, entity memory, learned knowledge, decision log) plus <code>search_past_sessions</code> for semantic recall. Mastra still wins on working memory as a first-class, schema-typed layer.</li>
 <li><strong>Edge deployment.</strong> TypeScript’s cold-start advantage on Cloudflare Workers, Vercel Edge, and Deno Deploy is real. Python agents on Lambda have 2-5 second cold starts; TypeScript agents on edge runtimes start in milliseconds.</li>
 </ul>
 </section>
